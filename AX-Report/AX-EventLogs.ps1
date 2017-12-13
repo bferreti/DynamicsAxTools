@@ -22,7 +22,6 @@ $LogFolder = $Dir + "\Logs\AX-Report"
 Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-StringCrypto.psm1 -DisableNameChecking
 
 $EventLogName = 'Application', 'System'
 

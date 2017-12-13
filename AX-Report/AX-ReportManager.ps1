@@ -18,7 +18,6 @@ $LogFolder = $Dir + "\Logs\AX-Report\$Environment"
 Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-StringCrypto.psm1 -DisableNameChecking
 
 #$FileDateTime = Get-Date -f MMddyyHHmm
 #$FileDateTime = Get-Date (Get-Date).AddDays(-1) -format d
