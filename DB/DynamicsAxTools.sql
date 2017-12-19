@@ -797,7 +797,8 @@ CREATE TABLE [dbo].[AXTools_Servers](
        [SERVERTYPE] [nvarchar](50) NOT NULL,
        [IP] [nvarchar](50) NULL,
        [DOMAIN] [nvarchar](50) NULL,
-       [FQDN] [nvarchar](50) NULL
+       [FQDN] [nvarchar](50) NULL,
+       [CREATEDDATETIME] [datetime] NULL
 ) ON [PRIMARY]
 
 GO
@@ -857,4 +858,6 @@ ALTER TABLE [dbo].[AXTools_Servers]  WITH NOCHECK ADD  CONSTRAINT [FK_AXTools_Se
 REFERENCES [dbo].[AXTools_Environments] ([ENVIRONMENT])
 GO
 ALTER TABLE [dbo].[AXTools_Servers] CHECK CONSTRAINT [FK_AXTools_Servers_AXTools_Environments]
+GO
+ALTER TABLE [dbo].[AXTools_Servers] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
