@@ -28,6 +28,7 @@ param (
     [String]$Table,
     [Array]$Data
 )
+    #Write-Host "Insert Table: $Table"
     $DataTable = New-Object Data.DataTable   
     $First = $true  
     foreach($Object in $Data) 
@@ -132,16 +133,15 @@ return
 function Write-Log
 {
 param (
-    [String]$LogData
+    [string]$LogData
 )
+    $Script:Settings
     $TLogStamp = (Get-Date -DisplayHint Time)
     $ExecLog = New-Object -TypeName System.Object
     $ExecLog | Add-Member -Name CreatedDateTime -Value $TLogStamp -MemberType NoteProperty
-    $ExecLog | Add-Member -Name ReportID -Value $FileDateTime -MemberType NoteProperty
-    $ExecLog | Add-Member -Name ScriptName -Value $ScriptName -MemberType NoteProperty
-    #$ExecLog | Add-Member -Name ServerName -Value $LogStep -MemberType NoteProperty
+    $ExecLog | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
     $ExecLog | Add-Member -Name Log -Value $LogData.Trim() -MemberType NoteProperty
-    SQL-BulkInsert 'AXTools_ExecutionLogs' $ExecLog
+    SQL-BulkInsert 'AXTools_ExecutionLog' $ExecLog
 }
 
 function UpdateMsiStatus

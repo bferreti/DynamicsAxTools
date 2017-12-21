@@ -404,7 +404,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[AXReport_CDXJobs](
+CREATE TABLE [dbo].[AXReport_RetailJobs](
        [JOBID] [nvarchar](10) NULL,
        [DATASTORESTATUS] [bigint] NULL,
        [STATUSDOWNLOADSESSIONDATASTORE] [nvarchar](30) NULL,
@@ -599,7 +599,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[AXReport_ProcessDetail](
+CREATE TABLE [dbo].[AXReport_ProcessDetails](
        [SERVERNAME] [nvarchar](30) NULL,
        [SERVERTYPE] [nvarchar](10) NULL,
        [MACHINENAME] [nvarchar](50) NULL,
@@ -639,7 +639,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[AXReport_SQLServerLogs](
+CREATE TABLE [dbo].[AXReport_SQLLogs](
        [LOGDATE] [datetime] NULL,
        [PROCESSINFO] [nvarchar](50) NULL,
        [TEXT] [nvarchar](max) NULL,
@@ -655,7 +655,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[AXReport_SSRSLogs](
+CREATE TABLE [dbo].[AXReport_SRSLogs](
        [STATUS] [nvarchar](50) NULL,
        [INSTANCENAME] [nvarchar](30) NULL,
        [REPORTPATH] [nvarchar](max) NULL,
@@ -755,8 +755,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[AXTools_ExecutionLog](
        [CREATEDDATETIME] [datetime] NULL,
-       [GUID] [nvarchar](36) NULL,
-       [LOG] [nvarchar](max) NULL
+       [LOG] [nvarchar](max) NULL,
+       [GUID] [nvarchar](36) NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 WITH
 (
@@ -812,7 +812,7 @@ ALTER TABLE [dbo].[AXReport_AOSServices] ADD  DEFAULT (getdate()) FOR [CREATEDDA
 GO
 ALTER TABLE [dbo].[AXReport_BatchJobs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
-ALTER TABLE [dbo].[AXReport_CDXJobs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
+ALTER TABLE [dbo].[AXReport_RetailJobs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
 ALTER TABLE [dbo].[AXReport_DBInstances] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
@@ -828,11 +828,11 @@ ALTER TABLE [dbo].[AXReport_Netwoking] ADD  DEFAULT (getdate()) FOR [CREATEDDATE
 GO
 ALTER TABLE [dbo].[AXReport_PerfmonData] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
-ALTER TABLE [dbo].[AXReport_ProcessDetail] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
+ALTER TABLE [dbo].[AXReport_ProcessDetails] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
-ALTER TABLE [dbo].[AXReport_SQLServerLogs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
+ALTER TABLE [dbo].[AXReport_SQLLogs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
-ALTER TABLE [dbo].[AXReport_SSRSLogs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
+ALTER TABLE [dbo].[AXReport_SRSLogs] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO
 ALTER TABLE [dbo].[AXTools_AccountProfile] ADD  DEFAULT (getdate()) FOR [CREATEDDATETIME]
 GO

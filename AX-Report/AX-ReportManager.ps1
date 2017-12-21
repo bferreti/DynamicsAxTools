@@ -25,14 +25,15 @@ $DataCollectorName = 'AXPerfmon'
 $LogFilesDays = 7
 $AutoCleanUp = $true
 
+$Global:Guid = ([Guid]::NewGuid()).Guid
 $Script:Settings = New-Object -TypeName System.Object
-$Script:Settings | Add-Member -Name GUID -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name GUID -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
 $Script:Settings | Add-Member -Name DataCollectorName -Value $DataCollectorName -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ToolsFolder -Value $ToolsFolder -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ReportFolder -Value $ReportFolder -MemberType NoteProperty
-$Script:Settings | Add-Member -Name LogFolder -Value $LogFolder -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name ToolsFolder -Value $ToolsFolder -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name ReportFolder -Value $ReportFolder -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name LogFolder -Value $LogFolder -MemberType NoteProperty
 
 function Get-WrkProcess
 {
@@ -111,8 +112,8 @@ param(
     foreach($WrkServer in $WrkServers) {
         Write-Log "$($WrkServer.ServerName) ($($WrkServer.ServerType)) Processing."
         $Processes = Get-Process -ComputerName $WrkServer.ServerName | 
-            Select Name, Id, Handles, VM, WS, PM, NPM, WorkingSet, PagedMemorySize, PrivateMemorySize, VirtualMemorySize, BasePriority, MachineName
-        SQL-InsertDB 'AXReportProcessDetail' $Processes
+            Select Name, Id, Handles, VM, WS, PM, NPM, WorkingSet, PagedMemorySize, PrivateMemorySize, VirtualMemorySize, BasePriority, @{n='ServerName';e={$_.MachineName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+        SQL-BulkInsert 'AXReport_RunningProcesses' $Processes
         Switch($WrkServer.ServerType) {
             'AOS' {
                 Get-AXConfiguration $WrkServer
@@ -135,21 +136,22 @@ param(
     Get-AXLogs
     Get-SSRSLogs
     AXR-CheckJobs
-    AXR-CreateReport
+    #AXR-CreateReport
     AXR-CheckJobs
-    AXR-SendEmail
+    #AXR-SendEmail
     if($AutoCleanUp) { Do-CleanUp }
     Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
 
 function Get-EventLogs
 {
-    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)" -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] } -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $WrkServer.ServerType, $FileDateTime
+    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)_$($WrkServer.ServerType)" -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] } -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $Script:Settings.Guid, $Script:Settings.ReportDate
 }
 
 function AXR-CheckJobs
 {
     While ($(Get-Job).Count -gt 0) {
+        Get-Job | select id, Name, State | FT -AutoSize
         $JobsDone = Get-Job | Where-Object { $_.State -eq 'Completed' }
         foreach ($Job in $JobsDone) {
             Write-Log "$(($Job.Name).Split('_')[2]) $(($Job.Name).Split('_')[1]) Completed. Duration (min): $([Math]::Round((($Job.PSEndTime - $Job.PSBeginTime).TotalMinutes),2))"
@@ -176,7 +178,7 @@ function Get-AXConfiguration
 function Add-SQLInstance($DBServer, $DBName, $Details)
 {
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT COUNT(DBServer) FROM AXReportDBInstances WHERE DBServer = '$DBServer' and DBNAME = '$DBName' and REPORTID = '$FileDateTime'"
+    $Query = "SELECT COUNT(DBServer) FROM AXReport_SqlDatabases WHERE DBServer = '$DBServer' and DBNAME = '$DBName' and Guid = '$($Script:Settings.Guid)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Conn.Open()
     $DBCount = $Cmd.ExecuteScalar()
@@ -193,9 +195,12 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
         $SQLInstance = @()
         $Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $DBServer
         $SQLTmp = New-Object -TypeName System.Object
+        $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBServer -Value $DBServer -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBName -Value $DBName -MemberType NoteProperty
         $SQLTmp | Add-Member -Name Details -Value $Details -MemberType NoteProperty
+        $SQLTmp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+        $SQLTmp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
         $SQLInstance += $SQLTmp
         Write-Log "$($WrkServer.ServerName) - $DBServer | $DBName"
         if($Server.IsClustered) {
@@ -204,16 +209,22 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
             foreach($Node in $Cluster) {
                 if($Node.NodeName -match $($Server.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) {
                     $SQLTmp = New-Object -TypeName System.Object
+                    $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBServer -Value ($Node.NodeName).ToUpper() -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBName -Value '' -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name Details -Value "Active-Node | $($DBServer) | $($Node.Id) | $($Node.State)" -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
                     $SQLInstance += $SQLTmp
                 }
                 else {
                     $SQLTmp = New-Object -TypeName System.Object
+                    $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBServer -Value ($Node.NodeName).ToUpper() -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBName -Value '' -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name Details -Value "Passive-Node | $($DBServer) | $($Node.Id) | $($Node.State)" -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
                     $SQLInstance += $SQLTmp
                 }
                 if(!($WrkServers.ServerName -like $Node.NodeName)) { 
@@ -221,7 +232,7 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
                 } 
             }
         }
-    SQL-InsertDB 'AXReportDBInstances' $SQLInstance
+    SQL-BulkInsert 'AXReport_SqlDatabases' $SQLInstance
     }
 }
 
@@ -229,15 +240,20 @@ function Get-AOSServices
 {
     $AOSService = Get-Service -ComputerName $WrkServer.ServerName |
         Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" } | 
-            Select MachineName, Name, @{n='Status';e={($_.Status).ToString()}}, DisplayName
-    SQL-InsertDB 'AXReportAOSServices' $AOSService
+            Select  @{n='ServerName';e={$_.MachineName.Trim()}},
+                    @{n='Service';e={$_.Name}},
+                    @{n='DisplayName';e={$_.DisplayName}},
+                    @{n='Status';e={($_.Status).ToString()}},
+                    @{n='ReportDate';e={$Script:Settings.ReportDate}},
+                    @{n='Guid';e={$Script:Settings.Guid}}                    
+    SQL-BulkInsert 'AXReport_AxServices' $AOSService
 }
 
 function Get-AXLogs
 {
     Write-Log "Quering AX Database (Batch Jobs/Retail/MRP/SQL Errors)"
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT DBServer, DBName FROM AXReportDBInstances WHERE ReportID = '$FileDateTime' AND DETAILS = 'AX Database' GROUP BY DBServer, DBName"
+    $Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'AX Database' GROUP BY DBServer, DBName"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -296,8 +312,8 @@ function Get-AXLogs
         $AXJobsCnt = $Adapter.Fill($AXJobsDS)
         if($AXJobsCnt -gt 0) {
             $AXBatch = $AXJobsDS.Tables[0] | 
-                Select HISTORYCAPTION, JOBCAPTION, STATUS, @{n='SERVERID';e={($_.SERVERID -replace '01@','').Trim()}}, STARTDATETIMECST, ENDDATETIMECST, EXECUTEDBY, BATCHID,	BATCHJOBID, BATCHJOBHISTORYID, @{n='LOG';e={($_.LOG -replace '\t|\r|\n', " ").Trim()}}
-            SQL-InsertDB 'AXReportBatchJobs' $AXBatch
+                Select HISTORYCAPTION, JOBCAPTION, STATUS, @{n='SERVERID';e={($_.SERVERID -replace '01@','').Trim()}}, STARTDATETIMECST, ENDDATETIMECST, EXECUTEDBY, BATCHID,	BATCHJOBID, BATCHJOBHISTORYID, @{n='LOG';e={($_.LOG -replace '\t|\r|\n', " ").Trim()}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+            SQL-BulkInsert 'AXReport_AxBatchJobs' $AXBatch
         }
 
         #Long Running Jobs
@@ -323,7 +339,7 @@ function Get-AXLogs
             WHERE (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)' AND 
             DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) < '$((Get-Date).AddDays(0).Date)')
             GROUP BY B.CAPTION, A.STATUS, A.SERVERID, A.EXECUTEDBY 
-            HAVING DATEDIFF(MINUTE, MAX(A.STARTDATETIME),MAX(A.ENDDATETIME)) > 15
+            HAVING DATEDIFF(MINUTE, MAX(A.STARTDATETIME),MAX(A.ENDDATETIME)) > 1--5
             ORDER BY 5 DESC"
         
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
@@ -333,8 +349,8 @@ function Get-AXLogs
         $AXLongJobCnt = $Adapter.Fill($AXLongJobsDS)
         if($AXLongJobCnt -gt 0) {
             $AXLongBatch = $AXLongJobsDS.Tables[0] | 
-                Select JOB, COUNT, STATUS, DURATION, EXECUTEDBY, @{n='SERVERID';e={($_.SERVERID -replace '01@','').Trim()}}
-            SQL-InsertDB 'AXReportLongBatchJobs' $AXLongBatch
+                Select JOB, COUNT, STATUS, DURATION, EXECUTEDBY, @{n='SERVERID';e={($_.SERVERID -replace '01@','').Trim()}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+            SQL-BulkInsert 'AXReport_AxLongBatchJobs' $AXLongBatch
         }
 
         #CDX Jobs
@@ -392,8 +408,8 @@ function Get-AXLogs
         $AXRetailCnt = $Adapter.Fill($RetailDS)
         if($AXRetailCnt -gt 0) {
             $AXRetail =  $RetailDS.Tables[0] | 
-                Select JOBID, DATASTORESTATUS, STATUSDOWNLOADSESSIONDATASTORE, @{n='MESSAGE';e={($_.MESSAGE -replace '\t|\r|\n', " ").Trim()}}, DATEREQUESTED, DATEDOWNLOADED, DATEAPPLIED, CURRENTROWVERSION, ROWSAFFECTED, DATAFILEOUTPUTPATH, SESSIONSTATUS, STATUSDOWNLOADSESSION, DATABASE_, NAME, MODIFIEDDATETIME
-            SQL-InsertDB 'AXReportCDXJobs' $AXRetail
+                Select JOBID, DATASTORESTATUS, STATUSDOWNLOADSESSIONDATASTORE, @{n='MESSAGE';e={($_.MESSAGE -replace '\t|\r|\n', " ").Trim()}}, DATEREQUESTED, DATEDOWNLOADED, DATEAPPLIED, CURRENTROWVERSION, ROWSAFFECTED, DATAFILEOUTPUTPATH, SESSIONSTATUS, STATUSDOWNLOADSESSION, DATABASE_, NAME, MODIFIEDDATETIME, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+            SQL-BulkInsert 'AXReport_AxRetailJobs' $AXRetail
         }
         ##MRP
         #Write-Log "`t" "Collecting MRP Logs"
@@ -428,16 +444,16 @@ function Get-AXLogs
         $MRPCnt = $Adapter.Fill($MRPDS)
         if($MRPCnt -gt 0) {
             $AXMRP = $MRPDS.Tables[0] | 
-                Select REQPLANID, STARTDATETIME, ENDDATETIME, CANCELLED, USEDCHILDTHREADS, MAXCHILDTHREADS, COMPLETEUPDATE, USEDTODAYSDATE, NUMOFITEMS, NUMOFINVENTONHAND, NUMOFSALESLINE, NUMOFPURCHLINE, NUMOFTRANSFERPLANNEDORDER, NUMOFITEMPLANNEDORDER, NUMOFINVENTJOURNAL, TIMECOPY, TIMECOVERAGE, TIMEUPDATE, @{n='LOG';e={($_.LOG -replace '\t|\r|\n', " ").Trim()}}
-            SQL-InsertDB 'AXReportMRP' $AXMRP
+                Select REQPLANID, STARTDATETIME, ENDDATETIME, CANCELLED, USEDCHILDTHREADS, MAXCHILDTHREADS, COMPLETEUPDATE, USEDTODAYSDATE, NUMOFITEMS, NUMOFINVENTONHAND, NUMOFSALESLINE, NUMOFPURCHLINE, NUMOFTRANSFERPLANNEDORDER, NUMOFITEMPLANNEDORDER, NUMOFINVENTJOURNAL, TIMECOPY, TIMECOVERAGE, TIMEUPDATE, @{n='LOG';e={($_.LOG -replace '\t|\r|\n', " ").Trim()}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+            SQL-BulkInsert 'AXReport_AxMRP' $AXMRP
         }
 
         ##SQL Error Logs
         #Write-Log "`t" "Collecting SQL Error Logs"
         $SQLConn = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $SQLInstance.DBServer
         $SQLLogs = $SQLConn.ReadErrorLog() | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) } |
-                Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}} #| Where-Object {($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) }
-        SQL-InsertDB 'AXReportSQLServerLogs' $SQLLogs
+                Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}} #| Where-Object {($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) }
+        SQL-BulkInsert 'AXReport_SqlLogs' $SQLLogs
 
     $Conn.Close()
     }
@@ -663,13 +679,15 @@ function Add-PerfCounter($Path, $Type, $ReportView)
     $tmpCounter | Add-Member -Name EndDateTime -Value $CounterSummary.NewestRecord -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Samples -Value $CounterSummary.SampleCount -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Counter -Value $NewPath -MemberType NoteProperty
-    SQL-InsertDB 'AXReportPerfmonData' $tmpCounter
+    $tmpCounter | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
+    $tmpCounter | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+    SQL-BulkInsert 'AXReport_PerfmonData' $tmpCounter
 }
 
 function Get-SSRSLogs
 {
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT DBServer, DBName FROM AXReportDBInstances WHERE ReportID = '$FileDateTime' AND DETAILS = 'SSRS Database' GROUP BY DBServer, DBName"
+    $Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'SSRS Database' GROUP BY DBServer, DBName"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -705,8 +723,8 @@ function Get-SSRSLogs
         
         if($SRSLogCnt -gt 0) {
             $SRSLogs = $SSRSDS.Tables[0] | 
-                Select Status, InstanceName, ReportPath, UserName, Format, TimeStart, TimeEnd, TimeDataRetrieval, TimeProcessing, TimeRendering
-            SQL-InsertDB 'AXReportSSRSLogs' $SRSLogs
+                Select Status, InstanceName, ReportPath, UserName, Format, TimeStart, TimeEnd, TimeDataRetrieval, TimeProcessing, TimeRendering, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+            SQL-BulkInsert 'AXReport_SrsLogs' $SRSLogs
         }
     $Conn.Close()
     }
@@ -810,7 +828,7 @@ function Do-Cleanup
 
 function Check-Folder {
 param(
-    [sring]$Path
+    [string]$Path
 )
     if(!(Test-Path($Path))) {
         New-Item -ItemType Directory -Force -Path $Path | Out-Null

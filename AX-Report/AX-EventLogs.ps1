@@ -1,13 +1,10 @@
 ﻿Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]
-    $ServerName,
+    [string]$ServerName,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]
-    $ServerType,
+    [string]$Guid,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]
-    $FileDateTime
+    [string]$ReportDate
 )
 [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
 
@@ -20,8 +17,6 @@ $ReportFolder = $Dir + "\Reports\AX-Report"
 $LogFolder = $Dir + "\Logs\AX-Report"
 
 Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
 
 $EventLogName = 'Application', 'System'
 
@@ -32,9 +27,9 @@ function Get-EventLogs
         foreach($LogName in $EventLogName) {
             #Write-Log $ServerName "EventLogs |-> Started $LogName"
             $EventLogs = Get-EventLog -Computername $ServerName -LogName $LogName -EntryType Warning, Error -After $((Get-Date).AddDays(-1).Date) |
-                Select MachineName, @{n='LogName';e={$LogName}}, @{n='EntryType';e={($_.EntryType).ToString()}}, EventID, Source, TimeGenerated,  @{n='Message';e={$_.Message -replace '\t|\r|\n', " "}}
+                Select @{n='LogName';e={$LogName}}, @{n='EntryType';e={($_.EntryType).ToString()}}, EventID, Source, TimeGenerated,  @{n='Message';e={$_.Message -replace '\t|\r|\n', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
             #Write-Log $ServerName "EventLogs |-> Total $($LogName): $($EventLogs.Count) records."
-            SQL-InsertDB 'AXReportEventLogs' $EventLogs
+            SQL-BulkInsert 'AXReport_EventLogs' $EventLogs
         }
     }
     catch
@@ -43,6 +38,7 @@ function Get-EventLogs
     }
 }
 
+<#
 function SQL-InsertDB($Table, $Data)
 {
     $CreatedDateTime = Get-Date -f G
@@ -106,5 +102,7 @@ function Write-Log($LogData)
     $ExecLog | Add-Member -Name Log -Value $LogData -MemberType NoteProperty
     SQL-BulkInsert 'AXTools_ExecutionLogs' $ExecLog
 }
+
+#>
 
 Get-EventLogs
