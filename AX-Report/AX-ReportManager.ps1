@@ -19,8 +19,6 @@ Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
 Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
 
-#$FileDateTime = Get-Date -f MMddyyHHmm
-#$FileDateTime = Get-Date (Get-Date).AddDays(-1) -format d
 $DataCollectorName = 'AXPerfmon'
 $LogFilesDays = 7
 $AutoCleanUp = $true
@@ -31,9 +29,6 @@ $Script:Settings | Add-Member -Name GUID -Value $Global:Guid -MemberType NotePro
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
 $Script:Settings | Add-Member -Name DataCollectorName -Value $DataCollectorName -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name ToolsFolder -Value $ToolsFolder -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name ReportFolder -Value $ReportFolder -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name LogFolder -Value $LogFolder -MemberType NoteProperty
 
 function Get-WrkProcess
 {
@@ -463,23 +458,24 @@ function Get-PerfmonFile
 {
     try {
         $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
-        $DataCollectorSet.Query($DataCollectorName,$WrkServer.ServerName)
+        $DataCollectorSet.Query($($Script:Settings.DataCollectorName),$WrkServer.ServerName)
     }
     catch {
-        Write-Log "ERROR - $DataCollectorName Failed. ($($_.Exception.Message))."
-        #$CIMComputer = New-CIMSession -Computername $WrkServer.ServerName
-        #Write-Log "$($WrkServer.ServerName) - Perfmon Trying to enable firewall rule -> Performance Logs and Alerts."
-        #Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
-        #Write-Log "$($WrkServer.ServerName) - Perfmon Trying to enable firewall rule -> Windows Management Instrumentation (WMI)."
-        #Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
-        #Remove-CIMSession -ComputerName $WrkServer.ServerName
+        Write-Log "ERROR - $($Script:Settings.DataCollectorName) Failed. ($($_.Exception.Message))."
+        $CIMComputer = New-CIMSession -Computername $WrkServer.ServerName
+        Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
+        Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
+        Remove-CIMSession -ComputerName $($Script:Settings.DataCollectorName)
         #
-        #Write-Log "$($WrkServer.ServerName)" "Trying to create performance counter $DataCollectorName."
-        #$Xml = Get-Content $Dir\Templates\AxPerfmon_$($WrkServer.ServerType).xml
-        #$DataCollectorSet.SetXml($Xml)
-        #$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$DataCollectorName"
-        #$DataCollectorSet.Commit($DataCollectorName,$WrkServer.ServerName,0x0003) | Out-Null
-        #Write-Log
+        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+        $Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
+        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+        $Conn.Open()
+        $Xml = $Cmd.ExecuteScalar()
+        $Conn.Close()
+        $DataCollectorSet.SetXml($Xml)
+        $DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
+        $DataCollectorSet.Commit($Script:Settings.DataCollectorName,$WrkServer.ServerName,0x0003) | Out-Null
     }
 
     if($DataCollectorSet.Status -eq 1) {
@@ -490,7 +486,7 @@ function Get-PerfmonFile
     else {
         try {
             $DataCollectorSet.Start($false)
-            Write-Log "ERROR - $($WrkServer.ServerName) - $DataCollectorName stopped, attempt start it."
+            Write-Log "ERROR - $($WrkServer.ServerName) - $($Script:Settings.DataCollectorName) stopped, attempt start it."
         }
         catch {
             Write-Log "ERROR - $($WrkServer.ServerName) - $($_.Exception.Message)"
@@ -498,7 +494,7 @@ function Get-PerfmonFile
     }
     if($AutoCleanUp) {
         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
-        $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$DataCollectorName"
+        $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
         $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays($LogFilesDays * -1))}  | Sort-Object -Property LastWriteTime
         if($BlgFiles.Count -ge 5) {
             if(!(Test-Path("$Path\Temp\"))) {
@@ -526,89 +522,91 @@ function Get-PerfmonFile
 
 function Get-PerfmonLogs
 {
-    $BlgFile = Get-ChildItem -Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$DataCollectorName\" | 
-        Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } | 
-            Sort-Object -Property CreationTime -Descending
-    if($BlgFile) {
-        $Paths = Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.PathsWithInstances }
-        $Paths += Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.Counter }
-        #Write-Log "$($WrkServer.ServerName)" "Perfmon Analysing $DataCollectorName."
-        foreach($Path in $Paths) {
-            switch -wildcard ($Path) {
-                '*Processor(_Total)\% Processor Time*' { Add-PerfCounter $Path 'SRV' 1 }
-                '*Available MBytes*' { Add-PerfCounter $Path 'SRV' 1 }
-                '*Paging File(_Total)\% Usage' { Add-PerfCounter $Path 'SRV' 1 }
-                #
-                '*Microsoft Dynamics AX Object Server(01)*'  { Add-PerfCounter $Path 'AX' 1 }
-                '*Process(ax32serv*)\ID Process*' { Add-PerfCounter $Path 'AX' 0 }
-                '*Process(ax32serv*)\Virtual Bytes*' { Add-PerfCounter $Path 'AX' 0 }
-                '*Process(ax32serv*)\Private Bytes*' { Add-PerfCounter $Path 'AX' 0 }
-                '*Process(ax32serv*)\% Processor Time*' { Add-PerfCounter $Path 'AX' 0 }
-                '*Process(ax32serv*)\Working Set*' { Add-PerfCounter $Path 'AX' 0 }
-                #
-                '*Process(sqlservr*)\ID Process*' { Add-PerfCounter $Path 'SQL' 0 }
-                '*Process(sqlservr*)\Virtual Bytes*' { Add-PerfCounter $Path 'SQL' 0 }
-                '*Process(sqlservr*)\Private Bytes*' { Add-PerfCounter $Path 'SQL' 0 }
-                '*Process(sqlservr*)\% Processor Time*' { Add-PerfCounter $Path 'SQL' 0 }
-                '*Process(sqlservr*)\Working Set*' { Add-PerfCounter $Path 'SQL' 0 }
-                '*SQL Statistics\SQL Re-Compilations/sec*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*SQL Statistics\SQL Compilations/sec*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Memory Manager\Total Server Memory*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Memory Manager\Target Server Memory*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Locks(_Total)\Number of Deadlocks/sec*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Locks(_Total)\Lock Wait Time (ms)*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Buffer Manager\Buffer cache hit ratio*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Buffer Manager\Page life expectancy*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Buffer Manager\Page life expectancy*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Latches\Latch Waits*' { Add-PerfCounter $Path 'SQL' 1 }
-                '*Latches\Total Latch Wait Time*' { Add-PerfCounter $Path 'SQL' 1 }
-                #
-                '*Web Service(*RealTimeService)\Current Connections' { Add-PerfCounter $Path 'RTS' 1 }
-                '*Web Service(*RealTimeService)\Bytes Received/sec' { Add-PerfCounter $Path 'RTS' 1 }
-                '*Web Service(*RealTimeService)\Bytes Sent/sec' { Add-PerfCounter $Path 'RTS' 1 }
-                '*WAS_W3WP(*RealTimeService)\Health Ping Reply Latency' { Add-PerfCounter $Path 'RTS' 1 }
-                '*WAS_W3WP(*RealTimeService)\Total Health Pings.' { Add-PerfCounter $Path 'RTS' 1 }
-                '*W3SVC_W3WP(*RealTimeService)\Requests / Sec' { Add-PerfCounter $Path 'RTS' 1 }
-                '*W3SVC_W3WP(*RealTimeService)\Active Requests' { Add-PerfCounter $Path 'RTS' 1 }
-                #
-                '*Web Service(*AsyncService)\Current Connections' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*Web Service(*AsyncService)\Bytes Received/sec' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*Web Service(*AsyncService)\Bytes Sent/sec' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*WAS_W3WP(*AsyncService)\Health Ping Reply Latency' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*WAS_W3WP(*AsyncService)\Total Health Pings.' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*W3SVC_W3WP(*AsyncService)\Requests / Sec' { Add-PerfCounter $Path 'SYNC' 1 }
-                '*W3SVC_W3WP(*AsyncService)\Active Requests' { Add-PerfCounter $Path 'SYNC' 1 }
-                #
-                '*Web Service(*Default*)\Current Connections' { Add-PerfCounter $Path 'STO' 1 }
-                '*Web Service(*Default*)\Bytes Received/sec' { Add-PerfCounter $Path 'STO' 1 }
-                '*Web Service(*Default*)\Bytes Sent/sec' { Add-PerfCounter $Path 'STO' 1 }
-                '*WAS_W3WP(*Default*)\Health Ping Reply Latency' { Add-PerfCounter $Path 'STO' 0 }
-                '*WAS_W3WP(*Default*)\Total Health Pings.' { Add-PerfCounter $Path 'STO' 0 }
-                '*W3SVC_W3WP(*Default*)\Requests / Sec' { Add-PerfCounter $Path 'STO' 0 }
-                '*W3SVC_W3WP(*Default*)\Active Requests' { Add-PerfCounter $Path 'STO' 0 }
-                #
-                '*Terminal Services\Inactive Sessions' { Add-PerfCounter $Path 'RDP' 1 }
-                '*Terminal Services\Total Sessions' { Add-PerfCounter $Path 'RDP' 1 }
-                '*Terminal Services\Active Sessions' { Add-PerfCounter $Path 'RDP' 1 }
-                #
-                '*Process(ReportingServicesService*)\ID Process*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*Process(ReportingServicesService*)\Virtual Bytes*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*Process(ReportingServicesService*)\Private Bytes*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*Process(ReportingServicesService*)\% Processor Time*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*Process(ReportingServicesService*)\Working Set*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*ReportServer:Service\Active Connections*' { Add-PerfCounter $Path 'SRS' 1 }
-                '*ReportServer:Service\Memory Pressure State*' { Add-PerfCounter $Path 'SRS' 1 }
-                '*ReportServer:Service\Memory Shrink Amount*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*ReportServer:Service\Memory Shrink Notifications/sec*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*ReportServer:Service\Tasks Queued*' { Add-PerfCounter $Path 'SRS' 0 }
-                '*ReportServer:Service\Errors Total*' { Add-PerfCounter $Path 'SRS' 1 }
-                '*ReportServer:Service\Errors/sec*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests Disconnected*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests Executing*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests Not Authorized*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests Rejected*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests Total*' { Add-PerfCounter $Path 'SRS' 1 }
-		        '*ReportServer:Service\Requests/sec*' { Add-PerfCounter $Path 'SRS' 1 }
+    if(Test-Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\") {
+        $BlgFile = Get-ChildItem -Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\" | 
+            Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } | 
+                Sort-Object -Property CreationTime -Descending
+        if($BlgFile) {
+            $Paths = Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.PathsWithInstances }
+            $Paths += Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.Counter }
+            #Write-Log "$($WrkServer.ServerName)" "Perfmon Analysing $DataCollectorName."
+            foreach($Path in $Paths) {
+                switch -wildcard ($Path) {
+                    '*Processor(_Total)\% Processor Time*' { Add-PerfCounter $Path 'SRV' 1 }
+                    '*Available MBytes*' { Add-PerfCounter $Path 'SRV' 1 }
+                    '*Paging File(_Total)\% Usage' { Add-PerfCounter $Path 'SRV' 1 }
+                    #
+                    '*Microsoft Dynamics AX Object Server(01)*'  { Add-PerfCounter $Path 'AX' 1 }
+                    '*Process(ax32serv*)\ID Process*' { Add-PerfCounter $Path 'AX' 0 }
+                    '*Process(ax32serv*)\Virtual Bytes*' { Add-PerfCounter $Path 'AX' 0 }
+                    '*Process(ax32serv*)\Private Bytes*' { Add-PerfCounter $Path 'AX' 0 }
+                    '*Process(ax32serv*)\% Processor Time*' { Add-PerfCounter $Path 'AX' 0 }
+                    '*Process(ax32serv*)\Working Set*' { Add-PerfCounter $Path 'AX' 0 }
+                    #
+                    '*Process(sqlservr*)\ID Process*' { Add-PerfCounter $Path 'SQL' 0 }
+                    '*Process(sqlservr*)\Virtual Bytes*' { Add-PerfCounter $Path 'SQL' 0 }
+                    '*Process(sqlservr*)\Private Bytes*' { Add-PerfCounter $Path 'SQL' 0 }
+                    '*Process(sqlservr*)\% Processor Time*' { Add-PerfCounter $Path 'SQL' 0 }
+                    '*Process(sqlservr*)\Working Set*' { Add-PerfCounter $Path 'SQL' 0 }
+                    '*SQL Statistics\SQL Re-Compilations/sec*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*SQL Statistics\SQL Compilations/sec*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Memory Manager\Total Server Memory*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Memory Manager\Target Server Memory*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Locks(_Total)\Number of Deadlocks/sec*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Locks(_Total)\Lock Wait Time (ms)*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Buffer Manager\Buffer cache hit ratio*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Buffer Manager\Page life expectancy*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Buffer Manager\Page life expectancy*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Latches\Latch Waits*' { Add-PerfCounter $Path 'SQL' 1 }
+                    '*Latches\Total Latch Wait Time*' { Add-PerfCounter $Path 'SQL' 1 }
+                    #
+                    '*Web Service(*RealTimeService)\Current Connections' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*Web Service(*RealTimeService)\Bytes Received/sec' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*Web Service(*RealTimeService)\Bytes Sent/sec' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*WAS_W3WP(*RealTimeService)\Health Ping Reply Latency' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*WAS_W3WP(*RealTimeService)\Total Health Pings.' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*W3SVC_W3WP(*RealTimeService)\Requests / Sec' { Add-PerfCounter $Path 'RTS' 1 }
+                    '*W3SVC_W3WP(*RealTimeService)\Active Requests' { Add-PerfCounter $Path 'RTS' 1 }
+                    #
+                    '*Web Service(*AsyncService)\Current Connections' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*Web Service(*AsyncService)\Bytes Received/sec' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*Web Service(*AsyncService)\Bytes Sent/sec' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*WAS_W3WP(*AsyncService)\Health Ping Reply Latency' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*WAS_W3WP(*AsyncService)\Total Health Pings.' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*W3SVC_W3WP(*AsyncService)\Requests / Sec' { Add-PerfCounter $Path 'SYNC' 1 }
+                    '*W3SVC_W3WP(*AsyncService)\Active Requests' { Add-PerfCounter $Path 'SYNC' 1 }
+                    #
+                    '*Web Service(*Default*)\Current Connections' { Add-PerfCounter $Path 'STO' 1 }
+                    '*Web Service(*Default*)\Bytes Received/sec' { Add-PerfCounter $Path 'STO' 1 }
+                    '*Web Service(*Default*)\Bytes Sent/sec' { Add-PerfCounter $Path 'STO' 1 }
+                    '*WAS_W3WP(*Default*)\Health Ping Reply Latency' { Add-PerfCounter $Path 'STO' 0 }
+                    '*WAS_W3WP(*Default*)\Total Health Pings.' { Add-PerfCounter $Path 'STO' 0 }
+                    '*W3SVC_W3WP(*Default*)\Requests / Sec' { Add-PerfCounter $Path 'STO' 0 }
+                    '*W3SVC_W3WP(*Default*)\Active Requests' { Add-PerfCounter $Path 'STO' 0 }
+                    #
+                    '*Terminal Services\Inactive Sessions' { Add-PerfCounter $Path 'RDP' 1 }
+                    '*Terminal Services\Total Sessions' { Add-PerfCounter $Path 'RDP' 1 }
+                    '*Terminal Services\Active Sessions' { Add-PerfCounter $Path 'RDP' 1 }
+                    #
+                    '*Process(ReportingServicesService*)\ID Process*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*Process(ReportingServicesService*)\Virtual Bytes*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*Process(ReportingServicesService*)\Private Bytes*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*Process(ReportingServicesService*)\% Processor Time*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*Process(ReportingServicesService*)\Working Set*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*ReportServer:Service\Active Connections*' { Add-PerfCounter $Path 'SRS' 1 }
+                    '*ReportServer:Service\Memory Pressure State*' { Add-PerfCounter $Path 'SRS' 1 }
+                    '*ReportServer:Service\Memory Shrink Amount*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*ReportServer:Service\Memory Shrink Notifications/sec*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*ReportServer:Service\Tasks Queued*' { Add-PerfCounter $Path 'SRS' 0 }
+                    '*ReportServer:Service\Errors Total*' { Add-PerfCounter $Path 'SRS' 1 }
+                    '*ReportServer:Service\Errors/sec*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests Disconnected*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests Executing*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests Not Authorized*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests Rejected*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests Total*' { Add-PerfCounter $Path 'SRS' 1 }
+		            '*ReportServer:Service\Requests/sec*' { Add-PerfCounter $Path 'SRS' 1 }
+                }
             }
         }
     }
