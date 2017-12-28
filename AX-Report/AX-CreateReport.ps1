@@ -1,8 +1,8 @@
 ﻿Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [string]$FileDateTime,
-    [string]$Environment,
-    [system.object]$Settings
+    [String]$Guid,
+    [String]$Environment,
+    [String]$ReportDate
 )
 [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
 
@@ -13,18 +13,22 @@ $ModuleFolder = $Dir + "\AX-Modules"
 $ToolsFolder = $Dir + "\AX-Tools"
 $ReportFolder = $Dir + "\Reports\AX-Report\$Environment"
 $LogFolder = $Dir + "\Logs\AX-Report\$Environment"
+$ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 #
 Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
+#Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-ReportFunc.psm1 -DisableNameChecking
 
-$Footer="AX Report v{3} run {0} by {1}\{2}" -f (Get-Date),$env:UserDomain,$env:UserName,'2.0'
+$Footer = "AX Report v{3} run {0} by {1}\{2}" -f (Get-Date),$env:UserDomain,$env:UserName,'2.0'
 $ReportName = "AX Daily Report"
-
 
 function Run-Report
 {
     Run-ReportDP
     Create-ReportSummary
+    Create-Report
+    Save-ReportFile
+
 }
 
 function Create-ReportSummary
@@ -81,38 +85,46 @@ function Create-ReportSummary
     #REMOVING INSTANCES NOT RUNNING
     $PermonDataLogsTmp = $Script:ReportDP.PermonDataLogs | Where {$_.ServerType -notmatch 'SQL' -or $_.CounterType -like 'SRV' }
     $PermonDataLogsTmp += $Script:ReportDP.PermonDataLogs | Where {(($_.Max -ne 0) -or ($_.Min -ne 0)) -and ($_.CounterType -notmatch 'SRV') -and ($_.ServerType -match 'SQL')}
-    $AXPerfmonCLR = Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green
-    
+    #$AXPerfmonCLR = Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green
+    $Script:ReportDP | Add-Member -Name AxPerfmonCLR -Value $(Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green) -MemberType NoteProperty
+
+
     #PerfmonData
-    if(((($AXPerfmonCLR | Group RowColor | Where Name -like 'Green').Count) + (($AXPerfmonCLR | Group RowColor | Where Name -like 'Green').Count)) -eq $AXPerfmonCLR.Count) {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$(($AXPerfmonCLR | Group RowColor | Where Name -like 'Green').Count) Alerts."; RowColor = 'Green' }
+    if(((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Green').Count) + (($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Green').Count)) -eq $Script:ReportDP.AxPerfmonCLR.Count) {
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$(($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Green').Count) Alerts."; RowColor = 'Green' }
     }
-    elseif (((($AXPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count) -gt 0) -and ((($AXPerfmonCLR | Group RowColor | Where Name -like 'Red').Count) -eq 0)) {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$((($AXPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count)) Warnings."; RowColor = 'Yellow' }
+    elseif (((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count) -gt 0) -and ((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Red').Count) -eq 0)) {
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count)) Warnings."; RowColor = 'Yellow' }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$((($AXPerfmonCLR | Group RowColor | Where Name -like 'Red').Count)) Criticals and $((($AXPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count)) Warnings."; RowColor = 'Red' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Performance Monitor"; Status = "$((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Red').Count)) Criticals and $((($Script:ReportDP.AxPerfmonCLR | Group RowColor | Where Name -like 'Yellow').Count)) Warnings."; RowColor = 'Red' }
     }
     
     #EventLogs
     if(($($Script:ReportDP.AxEventLogs | Group Id | Where Name -like 1000).Count -gt 0) -or ($($Script:ReportDP.AxEventLogs | Group Id | Where Name -like 1002).Count -gt 0)) { 
-        $Query = "SELECT  ServerName as [Server],
-                          ServerType = Case ServerType
-		                    WHEN 'AOS' then 'AOS Server'
-		                    WHEN 'RDP' then 'RDP Server'
-		                  END, 
-		                  Application = CASE SUBSTRING(MESSAGE,(CHARINDEX('Ax32',MESSAGE)), ((CHARINDEX('.exe',MESSAGE)) - (CHARINDEX('Ax32',MESSAGE))))
-		                    WHEN 'Ax32' then 'client'
-		                    WHEN 'Ax32Serv' then 'server'
-		                  END, 
-		                  Type = Case EVENTID
-		                    WHEN '1000' then 'crash(es)'
-		                    WHEN '1002' then 'hang(s)'
-		                  END, COUNT(1) as Count
-                    FROM AxReport_EventLogs 
-                    WHERE Guid = '$Guid' AND (EVENTID = '1000' or EVENTID = '1002') AND ENTRYTYPE = 'ERROR' AND MESSAGE LIKE '%AX32%'
-                    GROUP BY ServerName, ServerType, SUBSTRING(MESSAGE,(CHARINDEX('Ax32',MESSAGE)), ((CHARINDEX('.exe',MESSAGE)) - (CHARINDEX('Ax32',MESSAGE)))), EVENTID
-                    ORDER BY 1 DESC, COUNT DESC"
+        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+        $Query = "SELECT  A.ServerName as [Server],
+                                ServerType = Case B.ServerType
+		                        WHEN 'AOS' then 'AOS Server'
+		                        WHEN 'RDP' then 'RDP Server'
+		                        END, 
+		                        Application = CASE SUBSTRING(A.MESSAGE,(CHARINDEX('Ax32',A.MESSAGE)), ((CHARINDEX('.exe',A.MESSAGE)) - (CHARINDEX('Ax32',A.MESSAGE))))
+		                        WHEN 'Ax32' then 'client'
+		                        WHEN 'Ax32Serv' then 'server'
+		                        END, 
+		                        Type = Case A.EVENTID
+		                        WHEN '1000' then 'crash(es)'
+		                        WHEN '1002' then 'hang(s)'
+		                        END, COUNT(1) as Count
+                        FROM AxReport_EventLogs A
+                        CROSS JOIN AXTools_Servers B
+                        WHERE A.Guid = '$Guid' 
+		                        AND (A.EVENTID = '1000' or A.EVENTID = '1002') 
+		                        AND A.ENTRYTYPE = 'ERROR' 
+		                        AND A.MESSAGE LIKE '%AX32%' 
+		                        AND A.SERVERNAME = B.SERVERNAME
+                        GROUP BY A.ServerName, B.ServerType, SUBSTRING(A.MESSAGE,(CHARINDEX('Ax32',A.MESSAGE)), ((CHARINDEX('.exe',A.MESSAGE)) - (CHARINDEX('Ax32',A.MESSAGE)))), A.EVENTID
+                        ORDER BY 1 DESC, COUNT DESC"
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
         $Adapter.SelectCommand = $Cmd
@@ -170,64 +182,65 @@ function Create-ReportSummary
 function Create-Report
 {
     #Start Report
-    $AXReport += Get-HtmlOpen -TitleText ($ReportName)
-    $AXReport += Get-HtmlContentOpen -HeaderText "AX Daily Report"
+    $Script:AXReport = @()
+    $Script:AXReport += Get-HtmlOpen -TitleText ($ReportName)
+    $Script:AXReport += Get-HtmlContentOpen -HeaderText "AX Daily Report"
 
     ###First
     ##Summary Report
-    $AXReport += Get-HtmlColumn1of2
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Summary Information"
-    $AXReport += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
+    $Script:AXReport += Get-HtmlColumn1of2
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Summary Information"
+    $Script:AXReport += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
     #
     #AX Services Status
-    $AXReport += Get-HtmlColumn2of2
+    $Script:AXReport += Get-HtmlColumn2of2
     $Green = '$this.Status -match "Running"'
     $Red = '$this.Status -match "Stopped"'
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Services Status"
-    $AXReport += Get-HtmlContentTable(Set-TableRowColor $AxServicesReport -Red $Red -Green $Green)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
-    $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Services Status"
+    $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor $Script:ReportDP.AxServices -Red $Red -Green $Green)
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
+    $Script:AXReport += Get-HtmlContentClose
     #
 
     #MRP Status
-    if($AxMRPLogsReport)
+    if($Script:ReportDP.AxMRPLogs)
     {
         $Green = '$this.TotalTime -gt 0 -and $this.TotalTime -le 45'
         $Yellow = '$this.TotalTime -gt 45 -and $this.TotalTime -le 60'
         $Red = '$this.TotalTime -eq 0 -or $this.TotalTime -gt 60'
-        $AxMRPColor = Set-TableRowColor $AxMRPLogsReport -Green $Green -Yellow $Yellow -Red $Red
-        $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "MRP Run Status"
-        $AXReport += Get-HtmlContentTable($AxMRPColor)
-        $AXReport += Get-HtmlContentClose
+        $AxMRPColor = Set-TableRowColor $Script:ReportDP.AxMRPLogs -Green $Green -Yellow $Yellow -Red $Red
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "MRP Run Status"
+        $Script:AXReport += Get-HtmlContentTable($AxMRPColor)
+        $Script:AXReport += Get-HtmlContentClose
     }
 
     #Second
     ##Perfmon Logs
-    $AXReport += Get-HtmlContentOpen
-    $AXReport += Get-HtmlColumn1of2
-        $AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor by Server [Total - $($AXPerfmonCLR.Count)]" -BackgroundShade 1
-        foreach ($Type in ($AXPerfmonCLR | Group ServerType | Sort Name ) ) {
-            $AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
-            foreach ($Group in ($AXPerfmonCLR | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
-                $AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
-                $AXReport += Get-HtmlContentTable ($Group.Group | Select Counter, Max, Min, Avg, RowColor)
-                $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlContentOpen
+    $Script:AXReport += Get-HtmlColumn1of2
+        $Script:AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor by Server [Total - $($Script:ReportDP.AxPerfmonCLR.Count)]" -BackgroundShade 1
+        foreach ($Type in ($Script:ReportDP.AxPerfmonCLR | Group ServerType | Sort Name ) ) {
+            $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
+            foreach ($Group in ($Script:ReportDP.AxPerfmonCLR | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
+                $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
+                $Script:AXReport += Get-HtmlContentTable ($Group.Group | Select Counter, Max, Min, Avg, RowColor)
+                $Script:AXReport += Get-HtmlContentClose
             }
-            $AXReport += Get-HtmlContentClose
+            $Script:AXReport += Get-HtmlContentClose
         }
-        $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
+        $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
     #
-    $AXReport += Get-HtmlColumn2of2
-    $AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor Alerts by Threshold" -BackgroundShade 1
-        $AxPerfMonGrp = $AXPerfmonCLR | Where {($_.RowColor -like 'Red') -or ($_.RowColor -like 'Yellow')} | Group RowColor | Sort Name
-        $AXReport += Get-HtmlContentTable ($AxPerfMonGrp.Group | Select ServerName, Counter, Max, Min, Avg, RowColor)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
+    $Script:AXReport += Get-HtmlColumn2of2
+    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor Alerts by Threshold" -BackgroundShade 1
+        $AxPerfMonGrp = $Script:ReportDP.AxPerfmonCLR | Where {($_.RowColor -like 'Red') -or ($_.RowColor -like 'Yellow')} | Group RowColor | Sort Name
+        $Script:AXReport += Get-HtmlContentTable ($AxPerfMonGrp.Group | Select ServerName, Counter, Max, Min, Avg, RowColor)
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
     
     #Third
     #Event Logs Graphs
@@ -242,109 +255,120 @@ function Create-Report
     $PieChartObject2.Size.Width = 300
     $PieChartObject2.ChartStyle.ExplodeMaxValue = $true    				
     
-    $AXReport += Get-HtmlContentOpen
-    $AXReport += Get-HtmlColumn1of2
-    $AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server (Top 5)"
-    $AXReport += New-HTMLPieChart -PieChartObject $PieChartObject2 -PieChartData ($AxEventLogsChart | Group ServerName | Sort Count -Descending | Select -First 5)
-    $AXReport += Get-HtmlContentTable ($AxEventLogsChart | Group ServerName | Select Name, Count | Sort Count -Descending | Select -First 5)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
+    $Script:AXReport += Get-HtmlContentOpen
+    $Script:AXReport += Get-HtmlColumn1of2
+    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server (Top 5)"
+    $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject2 -PieChartData ($Script:ReportDP.AxEventLogsChart | Group ServerName | Sort Count -Descending | Select -First 5)
+    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxEventLogsChart | Group ServerName | Select Name, Count | Sort Count -Descending | Select -First 5)
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
 
-    $AXReport += Get-HtmlColumn2of2
-    $AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server" -BackgroundShade 1
-    foreach ($Type in ($AxEventLogsChart | Group ServerType | Sort Name ) ) {
-        $AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
-        foreach ($Group in ($AxEventLogsChart | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
-            $AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
-            $AXReport += Get-HtmlContentTable ($AxEventLogsReport | Where {$_.ServerName -match $Group.Name} | Select LogName, Type, Id, Source, Count | Sort Count -Descending)
-            $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumn2of2
+    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server" -BackgroundShade 1
+    foreach ($Type in ($Script:ReportDP.AxEventLogsChart | Group ServerType | Sort Name ) ) {
+        $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
+        foreach ($Group in ($Script:ReportDP.AxEventLogsChart | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
+            $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
+            $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxEventLogs | Where {$_.ServerName -match $Group.Name} | Select LogName, Type, Id, Source, Count | Sort Count -Descending)
+            $Script:AXReport += Get-HtmlContentClose
         }
-        $AXReport += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlContentClose
     }
-    $AXReport += Get-HtmlContentClose   
+    $Script:AXReport += Get-HtmlContentClose   
     #
-    $AXReport += Get-HtmlColumnClose
-    $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlColumnClose
+    $Script:AXReport += Get-HtmlContentClose
 
     #Batch Jobs Errors
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Batch Jobs Errors [Total - $($AxBatchJobsReport.Count)]"
-    $AXReport += Get-HtmlContentTable ($AxBatchJobsReport)
-    $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Batch Jobs Errors [Total - $($Script:ReportDP.AxBatchJobs.Count)]"
+    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxBatchJobs)
+    $Script:AXReport += Get-HtmlContentClose
     #
-    $PieChartObject3 = New-HTMLPieChartObject
-    $PieChartObject3.Title = " "
-    $PieChartObject3.Size.Height = 300
-    $PieChartObject3.Size.Width = 300
-    $PieChartObject3.ChartStyle.ExplodeMaxValue = $true
+    if($Script:ReportDP.SSRSErrorLogs.Count -gt 0) {
+        $PieChartObject3 = New-HTMLPieChartObject
+        $PieChartObject3.Title = " "
+        $PieChartObject3.Size.Height = 300
+        $PieChartObject3.Size.Width = 300
+        $PieChartObject3.ChartStyle.ExplodeMaxValue = $true
 
-    $AXReport += Get-HtmlContentOpen
-    $AXReport += Get-HtmlColumn1of2
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Error Logs [Total - $($SSRSErrorLogsReport.Count)]"
-    $AXReport += Get-HtmlContentTable(Set-TableRowColor($SSRSErrorLogsReport | Select Instance, Message, Report, Count) -Alternating)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
-    #
-    $AXReport += Get-HtmlColumn2of2
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Errors by User (Top 5)"
-    $AXReport += New-HTMLPieChart -PieChartObject $PieChartObject3 -PieChartData ($SSRSUsersReport | Sort Count -Descending | Select -First 5)
-    $AXReport += Get-HtmlContentTable($SSRSUsersReport | Select User, Count | Sort Count -Descending | Select -First 5)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
-    $AXReport += Get-HtmlContentClose
- 
-    #CDX Jobs Errors
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($AxCDXJobsReport.Count)]" 
-    $AXReport += Get-HtmlContentTable (Set-TableRowColor $AxCDXJobsReport -Alternating)
-    $AXReport += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlContentOpen
+        $Script:AXReport += Get-HtmlColumn1of2
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Error Logs [Total - $($Script:ReportDP.SSRSErrorLogs.Count)]"
+        $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor($Script:ReportDP.SSRSErrorLogs | Select Instance, Message, Report, Count) -Alternating)
+        $Script:AXReport += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlColumnClose
+        #
+        $Script:AXReport += Get-HtmlColumn2of2
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Errors by User (Top 5)"
+        $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject3 -PieChartData ($Script:ReportDP.SSRSUsersReport | Sort Count -Descending | Select -First 5)
+        $Script:AXReport += Get-HtmlContentTable($Script:ReportDP.SSRSUsersReport | Select User, Count | Sort Count -Descending | Select -First 5)
+        $Script:AXReport += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlColumnClose
+        $Script:AXReport += Get-HtmlContentClose
+    }
+
+    if($Script:ReportDP.AxCDXJobs.Count -gt 0) {
+        #CDX Jobs Errors
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Count)]" 
+        $Script:AXReport += Get-HtmlContentTable (Set-TableRowColor $Script:ReportDP.AxCDXJobs -Alternating)
+        $Script:AXReport += Get-HtmlContentClose
+    }
 
     ##SQL Error Logs
-    $AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SQL Server Error Logs [Total - $($SQLErrorLogsReport.Count)]" 
-    $AXReport += Get-HtmlContentTable ($SQLErrorLogsReport) 
-    $AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SQL Server Error Logs [Total - $($Script:ReportDP.SQLErrorLogs.Count)]" 
+    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SQLErrorLogs) 
+    $Script:AXReport += Get-HtmlContentClose
 
-    $PieChartObject4 = New-HTMLPieChartObject
-    $PieChartObject4.Title = " "
-    $PieChartObject4.Size.Height = 400
-    $PieChartObject4.Size.Width = 400
-    $PieChartObject4.ChartStyle.ExplodeMaxValue = $true    			
+    if($Script:ReportDP.SSRSWeek.Count -gt 0) {
+        $PieChartObject4 = New-HTMLPieChartObject
+        $PieChartObject4.Title = " "
+        $PieChartObject4.Size.Height = 400
+        $PieChartObject4.Size.Width = 400
+        $PieChartObject4.ChartStyle.ExplodeMaxValue = $true    			
     
-    $AXReport += Get-HtmlContentOpen
-    $AXReport += Get-HtmlColumn1of2
-    $AXReport += Get-HtmlContentOpen -HeaderText "SSRS Errors 7 Days"
-    $AXReport += New-HTMLPieChart -PieChartObject $PieChartObject4 -PieChartData ($SSRSWeekReport | Sort Date)
-    $AXReport += Get-HtmlContentTable ($SSRSWeekReport | Select Date, Count | Sort Date -Descending)
-    $AXReport += Get-HtmlContentClose
-    $AXReport += Get-HtmlColumnClose
+        $Script:AXReport += Get-HtmlContentOpen
+        $Script:AXReport += Get-HtmlColumn1of2
+        $Script:AXReport += Get-HtmlContentOpen -HeaderText "SSRS Errors 7 Days"
+        $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject4 -PieChartData ($Script:ReportDP.SSRSWeek | Sort Date)
+        $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SSRSWeek | Select Date, Count | Sort Date -Descending)
+        $Script:AXReport += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlColumnClose
 
-    $AXR += Get-HtmlColumn2of2
+        $Script:AXReport += Get-HtmlColumn2of2
 
-    $AXR += Get-HtmlColumnClose
-    $AXR += Get-HtmlContentClose
+        $Script:AXReport += Get-HtmlColumnClose
+        $Script:AXReport += Get-HtmlContentClose
+    }
 
     #Close Report
-    $AXR += Get-HtmlContentClose
-    $AXR += Get-HtmlClose
-    #Save HTML
-    $AXReportPath = join-path $ReportOutputPath ("AXReport-$FileDateTime" + ".mht")
-    $AXR | Set-Content -Path $AXReportPath -Force
+    $Script:AXReport += Get-HtmlContentClose
+    $Script:AXReport += Get-HtmlClose -Footer $Footer
 }
 
-function Create-ReportFile
+function Save-ReportFile
 {
-    ##Summary Email
+    ##Add Summary Email Info
     $Script:AxSummary += New-Object PSObject -Property @{ Name = '**Please see the attached report for details.'; Status = ''; RowColor = 'None' }
     $AXREmail = @()
     $AXREmail += Get-SummaryOpen -TitleText ($ReportName)
     $AXREmail += Get-HtmlContentOpen -HeaderText "Summary Information"
     $AXREmail += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
     $AXREmail += Get-HtmlContentClose
-    $AXREmail += Get-SummaryClose
-    $AXReportPath = join-path $ReportOutputPath ("AXReport-$FileDateTime-Summary" + ".html")
+    $AXREmail += Get-SummaryClose -Footer $Footer
+    #Save Summary
+    $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate-Summary" + ".html")
     $AXREmail | Set-Content -Path $AXReportPath -Force
+    #Save Report
+    $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate" + ".mht")
+    $Script:AXReport | Set-Content -Path $AXReportPath -Force
 }
 
-function Get-AxServices
+function Run-ReportDP
 {
+
+#function Get-AxServices
+#{
+    $Script:ReportDP = New-Object -TypeName System.Object   
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT ServerName, Service AS ServiceName, DisplayName, Status FROM AXReport_AxServices WHERE Guid = '$Guid'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
@@ -352,12 +376,12 @@ function Get-AxServices
     $Adapter.SelectCommand = $Cmd
     $AxServices = New-Object System.Data.DataSet
     $Adapter.Fill($AxServices) | Out-Null
-    $Script:ReportDP | Add-Member -Name AxServicesReport -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, DisplayName, Status) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, DisplayName, Status) -MemberType NoteProperty
     #return $AxServices.Tables[0] | Select ServerName, ServiceName, DisplayName, Status
-}
+#}
 
-function Get-AxBatchJobs
-{
+#function Get-AxBatchJobs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT HISTORYCAPTION AS [History Caption],JOBCAPTION AS [Job Caption],Status,ServerID AS Server,STARTDATETIMECST AS [Start Time(CST)],ENDDATETIMECST AS [End Time(CST)],EXECUTEDBY AS [User], LOG AS Log
                 FROM AXReport_AxBatchJobs 
@@ -369,10 +393,10 @@ function Get-AxBatchJobs
     $Adapter.Fill($AxBatchJobs)
     $Script:ReportDP | Add-Member -Name AxBatchJobs -Value $($AxBatchJobs.Tables[0] | Select 'History Caption', 'Job Caption', 'Status', @{n='Server';e={($_.SERVER -replace '01@','').Trim()}}, 'Start Time(CST)', 'End Time(CST)', 'User', 'Log') -MemberType NoteProperty
     #return $AxBatchJobs.Tables[0] | Select 'History Caption', 'Job Caption', 'Status', @{n='Server';e={($_.SERVER -replace '01@','').Trim()}}, 'Start Time(CST)', 'End Time(CST)', 'User', 'Log'
-}
+#}
 
-function Get-AxLongBatchJobs
-{
+#function Get-AxLongBatchJobs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT Job, Count, Status, Duration, EXECUTEDBY AS [User], ServerID AS [Server]
                 FROM AXReport_AxLongBatchJobs 
@@ -385,10 +409,10 @@ function Get-AxLongBatchJobs
     $Adapter.Fill($AxLongBatchJobs)
     $Script:ReportDP | Add-Member -Name AxLongBatchJobs -Value $($AxLongBatchJobs.Tables[0] | Select 'Job', 'Count', 'Status', 'Duration', 'User', 'Server') -MemberType NoteProperty
     #return $AxLongBatchJobs.Tables[0] | Select 'Job', 'Count', 'Status', 'Duration', 'User', 'Server'
-}
+#}
 
-function Get-AxRetailJobs
-{
+#function Get-AxRetailJobs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT JobID, STATUSDOWNLOADSESSIONDATASTORE AS [Download Status], Message, DateRequested, DateDownloaded, DateApplied, ROWSAFFECTED as [Rows], DATAFILEOUTPUTPATH as [Path], STATUSDOWNLOADSESSION as [Session Status], DATABASE_ as [Database], Name
                 FROM AXReport_AxRetailJobs 
@@ -401,27 +425,27 @@ function Get-AxRetailJobs
     $Script:ReportDP | Add-Member -Name AxCDXJobs -Value $($AxCDXJobs.Tables[0] | Select JobID, 'Download Status', Message, DateRequested, DateDownloaded, DateApplied, Rows, Path, 'Session Status', Database, Name) -MemberType NoteProperty
     #return $AxCDXJobs.Tables[0] | Select JobID, 'Download Status', Message, DateRequested, DateDownloaded, DateApplied, Rows, Path, 'Session Status', Database, Name
 
-}
+#}
 
-function Get-AxEventLogs
-{
+#function Get-AxEventLogs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    <#
-    $Query = "SELECT ServerName, EntryType as Type, EventID as ID, Source
-                FROM AXReport_EventLogs 
-                WHERE Guid = '$Guid' --AND (SOURCE LIKE '%Dynamics%' OR SOURCE LIKE '%MSSQLSERVER%' OR SOURCE LIKE 'Application%')"
+    $Query = "SELECT A.ServerName, B.ServerType, A.EntryType as Type, A.EventID as ID, A.Source
+                FROM AXReport_EventLogs A
+                CROSS JOIN AXTools_Servers B 
+                WHERE Guid = '$Guid' AND A.SERVERNAME = B.SERVERNAME --AND (SOURCE LIKE '%Dynamics%' OR SOURCE LIKE '%MSSQLSERVER%' OR SOURCE LIKE 'Application%')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $AxEventLogs = New-Object System.Data.DataSet
     $Adapter.Fill($AxEventLogs)
-    #$Script:ReportDP | Add-Member -Name AxEventLogs -Value $($AxEventLogs.Tables[0]) -MemberType NoteProperty -Force
-    #>
-    $Query = "SELECT ServerName, LogName, EntryType as Type, EventID as ID, Source, Count(1) as Count
-                FROM AXReport_EventLogs 
-                WHERE Guid = '$Guid' --AND (SOURCE LIKE '%Dynamics%' OR SOURCE LIKE '%MSSQLSERVER%' OR SOURCE LIKE 'Application%')
-                GROUP BY ServerName, LogName, EntryType, EventID, Source"
+    $Script:ReportDP | Add-Member -Name AxEventLogsChart -Value $($AxEventLogs.Tables[0]) -MemberType NoteProperty -Force
 
+    $Query = "SELECT A.ServerName, B.ServerType, A.LogName, A.EntryType as Type, A.EventID as ID, A.Source, Count(1) as Count
+                FROM AXReport_EventLogs A
+                CROSS JOIN AXTools_Servers B
+                WHERE Guid = '$Guid' AND A.SERVERNAME = B.SERVERNAME --AND (SOURCE LIKE '%Dynamics%' OR SOURCE LIKE '%MSSQLSERVER%' OR SOURCE LIKE 'Application%')
+                GROUP BY A.ServerName, B.ServerType, A.LogName, A.EntryType, A.EventID, A.Source"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -429,10 +453,10 @@ function Get-AxEventLogs
     $Adapter.Fill($AxEventLogs)
     $Script:ReportDP | Add-Member -Name AxEventLogs -Value $($AxEventLogs.Tables[0] | Select ServerName, ServerType, LogName, Type, ID, Source, Count) -MemberType NoteProperty -Force
     #return $AxEventLogs.Tables[0] | Select ServerName, ServerType, LogName, Type, ID, Source, Count
-}
+#}
 
-function Get-AxMRPLogs
-{
+#function Get-AxMRPLogs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT TOP 7 STARTDATETIME as [Start Time(CST)], ENDDATETIME as [End Time(CST)], ((TIMECOPY+TIMECOVERAGE+TIMEUPDATE)/60) AS [TotalTime], Cancelled, USEDTODAYSDATE as [Todays Date], NUMOFITEMS as Items, NUMOFINVENTONHAND as OnHand, NUMOFSALESLINE as SalesLines, NUMOFPURCHLINE as PurchLines, NUMOFTRANSFERPLANNEDORDER as Transfers, NUMOFITEMPLANNEDORDER as Orders, NUMOFINVENTJOURNAL as InventJournals, LOG as Log
                 FROM AXReport_AxMRP 
@@ -445,10 +469,10 @@ function Get-AxMRPLogs
     $Adapter.Fill($AxMRPLogs)  
     $Script:ReportDP | Add-Member -Name AxMRPLogs -Value $($AxMRPLogs.Tables[0] | Select 'Start Time(CST)', 'End Time(CST)', 'TotalTime', Cancelled, Items, OnHand, SalesLines, PurchLines, Transfers, Orders, InventJournals, Log) -MemberType NoteProperty
     #return $AxMRPLogs.Tables[0] | Select 'Start Time(CST)', 'End Time(CST)', 'TotalTime', Cancelled, Items, OnHand, SalesLines, PurchLines, Transfers, Orders, InventJournals, Log
-}
+#}
 
-function Get-SQLErrorLogs
-{
+#function Get-SQLErrorLogs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT MAX(LOGDATE) as Date, MAX(PROCESSINFO) as Process, TEXT as Log, MAX(Server) as Server, MAX([Database]) as [Database], COUNT(TEXT) as Count
                 FROM AXReport_SqlLogs
@@ -464,10 +488,10 @@ function Get-SQLErrorLogs
     $Adapter.Fill($SQLErrorLogs)
     $Script:ReportDP | Add-Member -Name SQLErrorLogs -Value $($SQLErrorLogs.Tables[0] | Select  Date, Process, Log, Server, Database, Count) -MemberType NoteProperty
     #return $SQLErrorLogs.Tables[0] | Select  Date, Process, Log, Server, Database, Count
-}
+#}
 
-function Get-SSRSErrorLogs
-{
+#function Get-SSRSErrorLogs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT INSTANCENAME as Instance, STATUS as Message, REPORTPATH as Report, COUNT(REPORTPATH) as Count
                 FROM AXReport_SRSLogs
@@ -481,10 +505,10 @@ function Get-SSRSErrorLogs
     $Adapter.Fill($SSRSErrorLogs)
     $Script:ReportDP | Add-Member -Name SSRSErrorLogs -Value $($SSRSErrorLogs.Tables[0] | Select Instance, Message, Report, Count) -MemberType NoteProperty
     #return $SSRSErrorLogs.Tables[0] | Select Instance, Message, Report, Count
-}
+#}
 
-function Get-SSRSUsers
-{
+#function Get-SSRSUsers
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT UserName as [User], COUNT(1) as Count
                 FROM AXReport_SRSLogs
@@ -498,10 +522,10 @@ function Get-SSRSUsers
     $Adapter.Fill($SSRSUsers)
     $Script:ReportDP | Add-Member -Name SSRSUsers -Value $($SSRSUsers.Tables[0]) -MemberType NoteProperty
     #return $SSRSUsers.Tables[0]
-}
+#}
 
-function Get-SSRSWeek
-{
+#function Get-SSRSWeek
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT TOP 7 Guid, CONVERT(date, MAX(TIMESTART)) as [Date], COUNT(1) as Count
                 FROM AXReport_SRSLogs
@@ -515,41 +539,42 @@ function Get-SSRSWeek
     $Script:ReportDP | Add-Member -Name SSRSWeek -Value $($SSRSWeek.Tables[0] | Select @{n='Date';e={($_.Date | Get-Date -Format "MM/dd/yyyy")}}, Count) -MemberType NoteProperty
     #return $SSRSWeek.Tables[0] | Select @{n='Date';e={($_.Date | Get-Date -Format "MM/dd/yyyy")}}, Count
 
-}
+#}
 
-function Get-PermonDataLogs
-{
+#function Get-PermonDataLogs
+#{
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT ServerName, Counter, CounterType, 
-		                CASE  WHEN COUNTER like '%Private Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Bytes %' THEN SUM(ROUND((MAXIMUM/1024),2))
-			                  WHEN COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Working Set%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Available GBytes%' THEN SUM(ROUND((MAXIMUM/1024),2))
-			                  WHEN COUNTER like '%Total Server Memory%' THEN SUM(ROUND((MAXIMUM/1048576),2))
+    $Query = "SELECT A.ServerName, B.ServerType, A.Counter, A.CounterType, 
+		                CASE  WHEN A.COUNTER like '%Private Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Bytes %' THEN SUM(ROUND((MAXIMUM/1024),2))
+			                  WHEN A.COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Working Set%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Available GBytes%' THEN SUM(ROUND((MAXIMUM/1024),2))
+			                  WHEN A.COUNTER like '%Total Server Memory%' THEN SUM(ROUND((MAXIMUM/1048576),2))
 			                  ELSE SUM(ROUND(MAXIMUM,2))
 		                END AS Max,
-		                CASE  WHEN COUNTER like '%Private Bytes%' THEN SUM(ROUND((MINIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Bytes %' THEN SUM(ROUND((MINIMUM/1024),2))
-			                  WHEN COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((MINIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Working Set%' THEN SUM(ROUND((MINIMUM/1073741824),2))
-			                  WHEN COUNTER like '%Available GBytes%' THEN SUM(ROUND((MAXIMUM/1024),2))
-			                  WHEN COUNTER like '%Total Server Memory%' THEN SUM(ROUND((MAXIMUM/1048576),2))
+		                CASE  WHEN A.COUNTER like '%Private Bytes%' THEN SUM(ROUND((MINIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Bytes %' THEN SUM(ROUND((MINIMUM/1024),2))
+			                  WHEN A.COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((MINIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Working Set%' THEN SUM(ROUND((MINIMUM/1073741824),2))
+			                  WHEN A.COUNTER like '%Available GBytes%' THEN SUM(ROUND((MAXIMUM/1024),2))
+			                  WHEN A.COUNTER like '%Total Server Memory%' THEN SUM(ROUND((MAXIMUM/1048576),2))
 			                  ELSE SUM(ROUND(MINIMUM,2))
 		                END AS Min,
-		                CASE  WHEN COUNTER like '%Private Bytes%' THEN SUM(ROUND((AVERAGE/1073741824),2))
-			                  WHEN COUNTER like '%Bytes %' THEN SUM(ROUND((AVERAGE/1024),2))
-			                  WHEN COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((AVERAGE/1073741824),2))
-			                  WHEN COUNTER like '%Working Set%' THEN SUM(ROUND((AVERAGE/1073741824),2))
-			                  WHEN COUNTER like '%Available GBytes%' THEN SUM(ROUND((AVERAGE/1024),2))
-			                  WHEN COUNTER like '%Total Server Memory%' THEN SUM(ROUND((AVERAGE/1048576),2))
+		                CASE  WHEN A.COUNTER like '%Private Bytes%' THEN SUM(ROUND((AVERAGE/1073741824),2))
+			                  WHEN A.COUNTER like '%Bytes %' THEN SUM(ROUND((AVERAGE/1024),2))
+			                  WHEN A.COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((AVERAGE/1073741824),2))
+			                  WHEN A.COUNTER like '%Working Set%' THEN SUM(ROUND((AVERAGE/1073741824),2))
+			                  WHEN A.COUNTER like '%Available GBytes%' THEN SUM(ROUND((AVERAGE/1024),2))
+			                  WHEN A.COUNTER like '%Total Server Memory%' THEN SUM(ROUND((AVERAGE/1048576),2))
 			                  ELSE SUM(ROUND(AVERAGE,2))
 		                END AS Avg,
-				    COUNT(SERVERName) AS [Check]
-                FROM AXReport_PerfmonData
-                WHERE Guid = '$Guid' AND REPORTVIEW = 1
-			    GROUP BY SERVERName, COUNTER, COUNTERTYPE
-                ORDER BY SERVERName"
+				    COUNT(A.SERVERNAME) AS [Check]
+                FROM AXReport_PerfmonData A
+                CROSS JOIN AXTools_Servers B
+                WHERE A.Guid = '$Guid' AND A.REPORTVIEW = 1 AND A.SERVERNAME = B.SERVERNAME
+			    GROUP BY A.SERVERNAME, B.SERVERTYPE, A.COUNTER, A.COUNTERTYPE
+                ORDER BY A.SERVERNAME"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -559,9 +584,7 @@ function Get-PermonDataLogs
     #return $PermonDataLogs.Tables[0] | Select ServerName, ServerType, Counter, CounterType, Max, Min, Avg
 }
 
-
-
-
+Run-Report
 
 
 function Get-HtmlOpen {
@@ -1327,3 +1350,4 @@ $Report = @"
 
 ##
 #$Conn.Close()
+#>

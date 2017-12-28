@@ -131,9 +131,9 @@ param(
     Get-AXLogs
     Get-SSRSLogs
     AXR-CheckJobs
-    #AXR-CreateReport
+    AXR-CreateReport
     AXR-CheckJobs
-    #AXR-SendEmail
+    AXR-SendEmail
     if($AutoCleanUp) { Do-CleanUp }
     Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
@@ -524,12 +524,14 @@ function Get-PerfmonLogs
 {
     if(Test-Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\") {
         $BlgFile = Get-ChildItem -Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\" | 
-            Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } | 
+            Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } |
+            #Where-Object { $_.Extension -match '.blg' } | 
                 Sort-Object -Property CreationTime -Descending
         if($BlgFile) {
             $Paths = Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.PathsWithInstances }
             $Paths += Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.Counter }
             #Write-Log "$($WrkServer.ServerName)" "Perfmon Analysing $DataCollectorName."
+            $Script:BlgCounters = @()
             foreach($Path in $Paths) {
                 switch -wildcard ($Path) {
                     '*Processor(_Total)\% Processor Time*' { Add-PerfCounter $Path 'SRV' 1 }
@@ -608,6 +610,7 @@ function Get-PerfmonLogs
 		            '*ReportServer:Service\Requests/sec*' { Add-PerfCounter $Path 'SRS' 1 }
                 }
             }
+            SQL-BulkInsert 'AXReport_PerfmonData' $Script:BlgCounters
         }
     }
 }
@@ -666,6 +669,7 @@ function Add-PerfCounter($Path, $Type, $ReportView)
     }
 
     $tmpCounter = New-Object -TypeName System.Object
+    $tmpCounter | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
     $tmpCounter | Add-Member -Name CounterType -Value $Type -MemberType NoteProperty
     $tmpCounter | Add-Member -Name ReportView -Value $ReportView -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Path -Value $Path.Substring($WrkServer.ServerName.Length + 3) -MemberType NoteProperty
@@ -679,7 +683,8 @@ function Add-PerfCounter($Path, $Type, $ReportView)
     $tmpCounter | Add-Member -Name Counter -Value $NewPath -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
     $tmpCounter | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
-    SQL-BulkInsert 'AXReport_PerfmonData' $tmpCounter
+    #SQL-BulkInsert 'AXReport_PerfmonData' $tmpCounter
+    $Script:BlgCounters += $tmpCounter
 }
 
 function Get-SSRSLogs
@@ -797,20 +802,14 @@ function Write-Log($LogData)
 function AXR-CreateReport
 {
     Write-Log "HTML Started ($FileDateTime)."
-    $JobStart = Start-Job -Name "AXReport_CreateReport" -ScriptBlock {& $args[0] $args[1] } -ArgumentList @("$ScriptDir\AX-CreateReport.ps1"), $FileDateTime
+    $JobStart = Start-Job -Name "AXReport_CreateReport" -ScriptBlock {& $args[0] $args[1] $args[2] } -ArgumentList @("$ScriptDir\AX-CreateReport.ps1"), $Script:Settings.Guid, $Script:Settings.Environment
 }
 
 function AXR-SendEmail
 {
-<#
-    $SMTPMessage.From = 'AX Daily Report <919705676@mfrm.com>'
-    $SMTPMessage.To.Add('bferreti@microsoft.com')
-    $SMTPMessage.To.Add('dl_applicationsupport@mattressfirm.com')
-    $SMTPMessage.To.Add('brflin@microsoft.com')
-#>
     $Subject = "AX Daily Report <$((Get-Date).AddDays(-1) | Get-Date -Format "MMM dd, yyyy")>"
-    $Body = Get-Content $ReportFolder\AXReport-$FileDateTime-Summary.html
-    $Attachment = "$ReportFolder\AXReport-$FileDateTime.mht"
+    $Body = Get-Content $ReportFolder\AXReport-$ReportDate-Summary.html
+    $Attachment = "$ReportFolder\AXReport-$ReportDate.mht"
     Send-Email -Subject $Subject -Body $Body -Attachment $Attachment -EmailProfile $Script:Settings.EmailProfile
     Write-Log "AX Report has been Sent."
 }

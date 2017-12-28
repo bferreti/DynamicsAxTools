@@ -1,0 +1,440 @@
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary="PART"; type="text/html"
+
+--PART
+Content-Type: text/html; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<title>AX Daily Report</title>
+<style type="text/css">
+* {    
+    margin: 0px;
+    font-family: sans-serif;
+    font-size: 8pt;
+}
+
+body {
+    margin: 8px 5px 8px 5px; 
+}
+
+hr {
+    height: 4px; 
+    background-color: #337e94; 
+    border: 0px;
+}
+
+table {
+    table-layout: auto; 
+    width: 100%;
+    border-collapse: collapse;   
+}
+
+th {
+    vertical-align: top; 
+    text-align: left;
+    padding: 2px 5px 2px 5px;
+}
+
+td {
+    vertical-align: top; 
+    padding: 2px 5px 2px 5px;
+    border-top: 1px solid #bbbbbb;  
+}
+
+div.section {
+    padding-bottom: 12px;
+} 
+
+div.header {
+    border: 1px solid #bbbbbb; 
+    padding: 4px 5em 0px 5px; 
+    margin: 0px 0px -1px 0px;
+    height: 2em; 
+    width: 95%; 
+    font-weight: bold ;
+    color: #ffffff;
+    background-color: #337e94;
+}
+
+div.content { 
+    border: 1px solid #bbbbbb; 
+    padding: 4px 0px 5px 11px; 
+    margin: 0px 0px -1px 0px;
+    width: 95%; 
+    color: #000000; 
+    background-color: #f9f9f9;
+}
+
+div.reportname {
+    font-size: 16pt; 
+    font-weight: bold;
+}
+
+div.reportdate {
+    font-size: 12pt; 
+    font-weight: bold;
+}
+
+div.footer {
+    padding-right: 5em;
+    text-align: right; 
+}
+
+table.fixed {
+    table-layout: fixed; 
+}
+
+th.content { 
+    border-top: 1px solid #bbbbbb; 
+	width: 25%;
+}
+
+td.content { 
+	width: 75%;
+}
+
+td.groupby {
+	border-top: 3px double #bbbbbb;
+}
+
+.green {
+	background-color: #a1cda4;
+}
+
+.yellow {
+	background-color: #fffab1;
+}
+
+.red {
+	background-color: #f5a085;
+}
+
+.odd {
+	background-color: #D5D8DC;
+}
+
+.even {
+	background-color: #F7F9F9;
+}
+
+.header {
+	background-color: #616A6B; color: #F7F9F9;
+}
+
+div.column { width: 100%; float: left; overflow-y: auto; }
+div.first  { border-right: 1px  grey solid; width: 49% }
+div.second { margin-left: 10px;width: 49% }
+
+</style>
+
+<script type="text/javascript"> 
+function show(obj) {
+  document.getElementById(obj).style.display='block'; 
+  document.getElementById("hide_" + obj).style.display=''; 
+  document.getElementById("show_" + obj).style.display='none'; 
+} 
+function hide(obj) { 
+  document.getElementById(obj).style.display='none'; 
+  document.getElementById("hide_" + obj).style.display='none'; 
+  document.getElementById("show_" + obj).style.display=''; 
+} 
+</script> 
+
+</head>
+
+<body onload="hide();">
+
+<div class="section">
+    <div class="ReportName">AX Daily Report - Tuesday, December 26, 2017</div>
+    <hr/>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="AX Daily Report">AX Daily Report</a>
+    </div>
+    <div class="content" style="background-color:#ffffff;"> 
+<div class="first column">
+<div class="section">
+    <div class="header">
+        <a name="Summary Information">Summary Information</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>Name</th><th>Status</th></tr>
+<tr class="red"><td>AOS Services</td><td>AOS Services Failure Found.</td></tr>
+<tr class="red"><td>MRP Status</td><td>MRP Long Run or Failed.</td></tr>
+<tr class="green"><td>Batch Jobs</td><td>Ok.</td></tr>
+<tr class="red"><td>Long Batch Jobs (&gt;15min)</td><td>1 Jobs Found.</td></tr>
+<tr class="green"><td>Retail Jobs</td><td>Ok.</td></tr>
+<tr class="red"><td>Performance Monitor</td><td>7 Criticals and 0 Warnings.</td></tr>
+<tr class="yellow"><td>Event Logs</td><td> Crash(es) and  Hang(s)</td></tr>
+<tr class="green"><td>SQL Errors</td><td>Ok.</td></tr>
+<tr class="green"><td>SSRS Errors</td><td>Ok.</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class="second column">
+<div class="section">
+    <div class="header">
+        <a name="AX Services Status">AX Services Status</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>ServerName</th><th>ServiceName</th><th>DisplayName</th><th>Status</th></tr>
+<tr class="green"><td>DAX2012R3</td><td>AOS60$01</td><td>Microsoft Dynamics AX Object Server 6.3$01-MicrosoftDynamicsAX</td><td>Running</td></tr>
+<tr class="green"><td>DAX2012R3</td><td>CommerceDataExchangeAsyncClientService</td><td>Microsoft Dynamics AX for Retail Commerce Data Exchange Async Client</td><td>Running</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>DynamicsRetailModernPOSOfflineSyncService</td><td>Microsoft Dynamics AX for Retail Modern POS Offline Sync Service</td><td>Stopped</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>Microsoft Dynamics AX Commerce Data Exchange: Real-time Service 5.1</td><td>Microsoft Dynamics AX Commerce Data Exchange: Real-time Service 5.1</td><td>Stopped</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>Microsoft Dynamics AX Commerce Data Exchange: Real-time Service 6.1</td><td>Microsoft Dynamics AX Commerce Data Exchange: Real-time Service 6.1</td><td>Stopped</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>Microsoft Dynamics AX for Retail Offline Sync Service</td><td>Microsoft Dynamics AX for Retail Offline Sync Service</td><td>Stopped</td></tr>
+<tr class="green"><td>DAX2012R3</td><td>Microsoft.Dynamics.AX.Framework.Tools.DMF.SSISHelperService.exe</td><td>Microsoft Dynamics AX Data Import/Export Framework Service</td><td>Running</td></tr>
+<tr class="green"><td>AOS01</td><td>AOS60$01</td><td>Microsoft Dynamics AX Object Server 6.3$01-MicrosoftDynamicsAX</td><td>Running</td></tr>
+<tr class="green"><td>AOS02</td><td>AOS60$01</td><td>Microsoft Dynamics AX Object Server 6.3$01-MicrosoftDynamicsAX</td><td>Running</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name=""></a>
+    </div>
+    <div class="content" style="background-color:#ffffff;"> 
+<div class="first column">
+<div class="section">
+    <div class="header">
+        <a name="Performance Monitor by Server [Total - 29]">Performance Monitor by Server [Total - 29]</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="AOS Servers">AOS Servers</a> (<a id="show_457913038" href="javascript:void(0);" onclick="show('457913038');" style="color: #ffffff;">Show</a><a id="hide_457913038" href="javascript:void(0);" onclick="hide('457913038');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="457913038" style="display:none;background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="AOS01">AOS01</a> (<a id="show_776781267" href="javascript:void(0);" onclick="show('776781267');" style="color: #ffffff;">Show</a><a id="hide_776781267" href="javascript:void(0);" onclick="hide('776781267');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="776781267" style="display:none;background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>Counter</th><th>Max</th><th>Min</th><th>Avg</th></tr>
+<tr class="red"><td>Available GBytes</td><td>0.73</td><td>0.73</td><td>0.62</td></tr>
+<tr><td>AX Sessions</td><td>3</td><td>1</td><td>1.17</td></tr>
+<tr class="green"><td>CPU Time %</td><td>1.5</td><td>0</td><td>0.03</td></tr>
+<tr class="green"><td>Paging File %</td><td>15.64</td><td>6.05</td><td>13.61</td></tr>
+</table>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="DAX2012R3">DAX2012R3</a> (<a id="show_2137334489" href="javascript:void(0);" onclick="show('2137334489');" style="color: #ffffff;">Show</a><a id="hide_2137334489" href="javascript:void(0);" onclick="hide('2137334489');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="2137334489" style="display:none;background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>Counter</th><th>Max</th><th>Min</th><th>Avg</th></tr>
+<tr class="red"><td>Available GBytes</td><td>3.12</td><td>3.12</td><td>2.12</td></tr>
+<tr><td>AX Sessions</td><td>48</td><td>28</td><td>32.4</td></tr>
+<tr class="red"><td>CPU Time %</td><td>120.48</td><td>0</td><td>6.63</td></tr>
+<tr class="green"><td>Paging File %</td><td>17.62</td><td>6.98</td><td>13.3</td></tr>
+<tr class="green"><td>SQL\Buffer cache hit ratio</td><td>200</td><td>199.52</td><td>200</td></tr>
+<tr><td>SQL\Latch Waits/sec</td><td>561.64</td><td>0</td><td>22.66</td></tr>
+<tr><td>SQL\Lock Wait Time (ms)</td><td>523.16</td><td>0</td><td>2.52</td></tr>
+<tr><td>SQL\Number of Deadlocks/sec</td><td>0</td><td>0</td><td>0</td></tr>
+<tr class="red"><td>SQL\Page life expectancy</td><td>303684</td><td>392</td><td>105520.78</td></tr>
+<tr><td>SQL\SQL Compilations/sec</td><td>53.14</td><td>0</td><td>1.7</td></tr>
+<tr><td>SQL\SQL Re-Compilations/sec</td><td>3.06</td><td>0</td><td>0.02</td></tr>
+<tr><td>SQL\Total Latch Wait Time (ms)</td><td>158.58</td><td>0</td><td>0.98</td></tr>
+<tr><td>SQL\Total Server Memory (GB)</td><td>7.42</td><td>7.42</td><td>6.38</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="SQL Servers">SQL Servers</a> (<a id="show_1481957389" href="javascript:void(0);" onclick="show('1481957389');" style="color: #ffffff;">Show</a><a id="hide_1481957389" href="javascript:void(0);" onclick="hide('1481957389');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="1481957389" style="display:none;background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="DAX2012R3">DAX2012R3</a> (<a id="show_73772237" href="javascript:void(0);" onclick="show('73772237');" style="color: #ffffff;">Show</a><a id="hide_73772237" href="javascript:void(0);" onclick="hide('73772237');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="73772237" style="display:none;background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>Counter</th><th>Max</th><th>Min</th><th>Avg</th></tr>
+<tr class="red"><td>Available GBytes</td><td>3.12</td><td>3.12</td><td>2.12</td></tr>
+<tr class="red"><td>CPU Time %</td><td>120.48</td><td>0</td><td>6.63</td></tr>
+<tr class="green"><td>Paging File %</td><td>17.62</td><td>6.98</td><td>13.3</td></tr>
+<tr><td>AX Sessions</td><td>48</td><td>28</td><td>32.4</td></tr>
+<tr class="green"><td>SQL\Buffer cache hit ratio</td><td>200</td><td>199.52</td><td>200</td></tr>
+<tr><td>SQL\Latch Waits/sec</td><td>561.64</td><td>0</td><td>22.66</td></tr>
+<tr><td>SQL\Lock Wait Time (ms)</td><td>523.16</td><td>0</td><td>2.52</td></tr>
+<tr class="red"><td>SQL\Page life expectancy</td><td>303684</td><td>392</td><td>105520.78</td></tr>
+<tr><td>SQL\SQL Compilations/sec</td><td>53.14</td><td>0</td><td>1.7</td></tr>
+<tr><td>SQL\SQL Re-Compilations/sec</td><td>3.06</td><td>0</td><td>0.02</td></tr>
+<tr><td>SQL\Total Latch Wait Time (ms)</td><td>158.58</td><td>0</td><td>0.98</td></tr>
+<tr><td>SQL\Total Server Memory (GB)</td><td>7.42</td><td>7.42</td><td>6.38</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="second column">
+<div class="section">
+    <div class="header">
+        <a name="Performance Monitor Alerts by Threshold">Performance Monitor Alerts by Threshold</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>ServerName</th><th>Counter</th><th>Max</th><th>Min</th><th>Avg</th></tr>
+<tr class="red"><td>AOS01</td><td>Available GBytes</td><td>0.73</td><td>0.73</td><td>0.62</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>Available GBytes</td><td>3.12</td><td>3.12</td><td>2.12</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>CPU Time %</td><td>120.48</td><td>0</td><td>6.63</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>SQL\Page life expectancy</td><td>303684</td><td>392</td><td>105520.78</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>Available GBytes</td><td>3.12</td><td>3.12</td><td>2.12</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>CPU Time %</td><td>120.48</td><td>0</td><td>6.63</td></tr>
+<tr class="red"><td>DAX2012R3</td><td>SQL\Page life expectancy</td><td>303684</td><td>392</td><td>105520.78</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name=""></a>
+    </div>
+    <div class="content" style="background-color:#ffffff;"> 
+<div class="first column">
+<div class="section">
+    <div class="header">
+        <a name="Event Logs by Server (Top 5)">Event Logs by Server (Top 5)</a>
+    </div>
+    <div class="content" style="background-color:#ffffff;"> 
+<IMG SRC="data:image/gif;base64,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" ALT=" ">
+<table>
+
+<tr><th>Name</th><th>Count</th></tr>
+<tr><td>DAX2012R3</td><td>416</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class="second column">
+<div class="section">
+    <div class="header">
+        <a name="Event Logs by Server">Event Logs by Server</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="AOS Servers">AOS Servers</a> (<a id="show_2047859871" href="javascript:void(0);" onclick="show('2047859871');" style="color: #ffffff;">Show</a><a id="hide_2047859871" href="javascript:void(0);" onclick="hide('2047859871');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="2047859871" style="display:none;background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="DAX2012R3">DAX2012R3</a> (<a id="show_615365650" href="javascript:void(0);" onclick="show('615365650');" style="color: #ffffff;">Show</a><a id="hide_615365650" href="javascript:void(0);" onclick="hide('615365650');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="615365650" style="display:none;background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>LogName</th><th>Type</th><th>ID</th><th>Source</th><th>Count</th></tr>
+<tr><td>Application</td><td>Warning</td><td>2138</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>90</td></tr>
+<tr><td>Application</td><td>Warning</td><td>2138</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>90</td></tr>
+<tr><td>Application</td><td>Warning</td><td>8337</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>86</td></tr>
+<tr><td>Application</td><td>Warning</td><td>8337</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>86</td></tr>
+<tr><td>System</td><td>Error</td><td>2001</td><td>Microsoft Antimalware</td><td>14</td></tr>
+<tr><td>System</td><td>Error</td><td>2001</td><td>Microsoft Antimalware</td><td>14</td></tr>
+<tr><td>Application</td><td>Error</td><td>1000</td><td>Application Error</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1026</td><td>.NET Runtime</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1000</td><td>Application Error</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1026</td><td>.NET Runtime</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>2137</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>2</td></tr>
+<tr><td>Application</td><td>Error</td><td>2137</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>2</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="SQL Servers">SQL Servers</a> (<a id="show_368406518" href="javascript:void(0);" onclick="show('368406518');" style="color: #ffffff;">Show</a><a id="hide_368406518" href="javascript:void(0);" onclick="hide('368406518');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="368406518" style="display:none;background-color:#F8F8F8;"> 
+<div class="section">
+    <div class="header">
+        <a name="DAX2012R3">DAX2012R3</a> (<a id="show_598582553" href="javascript:void(0);" onclick="show('598582553');" style="color: #ffffff;">Show</a><a id="hide_598582553" href="javascript:void(0);" onclick="hide('598582553');" style="color: #ffffff; display:none;">Hide</a>)
+    </div>
+    <div class="content" id="598582553" style="display:none;background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>LogName</th><th>Type</th><th>ID</th><th>Source</th><th>Count</th></tr>
+<tr><td>Application</td><td>Warning</td><td>2138</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>90</td></tr>
+<tr><td>Application</td><td>Warning</td><td>2138</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>90</td></tr>
+<tr><td>Application</td><td>Warning</td><td>8337</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>86</td></tr>
+<tr><td>Application</td><td>Warning</td><td>8337</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>86</td></tr>
+<tr><td>System</td><td>Error</td><td>2001</td><td>Microsoft Antimalware</td><td>14</td></tr>
+<tr><td>System</td><td>Error</td><td>2001</td><td>Microsoft Antimalware</td><td>14</td></tr>
+<tr><td>Application</td><td>Error</td><td>1000</td><td>Application Error</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1026</td><td>.NET Runtime</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1000</td><td>Application Error</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>1026</td><td>.NET Runtime</td><td>8</td></tr>
+<tr><td>Application</td><td>Error</td><td>2137</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>2</td></tr>
+<tr><td>Application</td><td>Error</td><td>2137</td><td>Microsoft-SharePoint Products-SharePoint Foundation</td><td>2</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="AX Batch Jobs Errors [Total - 0]">AX Batch Jobs Errors [Total - 0]</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<table>
+</table>
+</div>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="SQL Server Error Logs [Total - 1]">SQL Server Error Logs [Total - 1]</a>
+    </div>
+    <div class="content" style="background-color:#F8F8F8;"> 
+<table>
+
+<tr><th>Date</th><th>Process</th><th>Log</th><th>Server</th><th>Database</th><th>Count</th></tr>
+<tr><td>12/26/2017 12:00:32 AM</td><td>spid31s</td><td>This instance of SQL Server has been using a process ID of 2204 since 12/19/2017 7:36:51 AM (local) 12/19/2017 3:36:51 PM (UTC). This is an informational message only; no user action is required.</td><td>DAX2012R3</td><td>MicrosoftDynamicsAX</td><td>1</td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+    <hr />
+    <div class="Footer">AX Report v2.0 run 12/27/2017 7:18:51 PM by CONTOSO\Administrator</div>
+</div>
+    
+</body>
+</html>
+
+--PART-- 

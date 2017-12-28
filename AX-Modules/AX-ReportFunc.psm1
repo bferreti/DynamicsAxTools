@@ -173,6 +173,10 @@ function hide(obj) {
 
 function Get-HtmlClose
 {
+[CmdletBinding()]
+Param(
+	[String]$Footer
+)
 $Report = @"
 <div class="section">
     <hr />
@@ -747,6 +751,10 @@ td.groupby {
 
 function Get-SummaryClose
 {
+[CmdletBinding()]
+Param(
+	[String]$Footer
+)
 $Report = @"
 <div class="section">
     <hr />

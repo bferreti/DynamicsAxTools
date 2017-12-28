@@ -1,10 +1,11 @@
-﻿Import-Module D:\MFRM-Powershell\AX-Modules\AX-StringCrypto.psm1
+﻿Import-Module C:\Users\Administrator\Documents\GitHub\DynamicsAxTools\AX-Modules\AX-StringCrypto.psm1
+Remove-Module -Name AX-StringCrypto
 
-$SMTPUser = '919705676'
-$SMTPPass = 'AXBatch123$'
+$SMTPUser = 'ps.monitoring.pfe@gmail.com'
+$SMTPPass = 'igyxkgbbvtmgoofa'
 
-$SMTPServer = '10.140.20.58'
-$SMTPPort = '25'
+$SMTPServer = 'smtp.gmail.com'
+$SMTPPort = '587'
 $SMTPSSL = $true
 $PasswordToEncrypt = "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
 

@@ -59,6 +59,7 @@ return
 	[Array]::Copy($AuthCode, 0, $OutputData, 32, 20)
 	[Array]::Copy($EncryptedEncodedInputString, 0, $OutputData, 52, $EncryptedEncodedInputString.Length)
 	$OutputDataAsString = [Convert]::ToBase64String($OutputData)
+    $OutputDataAsString
 }
 
 function Read-EncryptedString {

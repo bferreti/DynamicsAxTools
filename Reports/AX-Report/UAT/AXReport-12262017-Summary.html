@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<title>AX Daily Report</title>
+<style type="text/css">
+* {    
+    margin: 0px;
+    font-family: sans-serif;
+    font-size: 8pt;
+}
+
+body {
+    margin: 8px 5px 8px 5px; 
+}
+
+hr {
+    height: 4px; 
+    background-color: #337e94; 
+    border: 0px;
+}
+
+table {
+    table-layout: auto; 
+    width: 100%;
+    border-collapse: collapse;   
+}
+
+th {
+    vertical-align: top; 
+    text-align: left;
+    padding: 2px 5px 2px 5px;
+}
+
+td {
+    vertical-align: top; 
+    padding: 2px 5px 2px 5px;
+    border-top: 1px solid #bbbbbb;  
+}
+
+div.section {
+    padding-bottom: 12px;
+} 
+
+div.header {
+    border: 1px solid #bbbbbb; 
+    margin: 0px 0px -1px 0px;
+    height: 2em;
+    width: 95%; 
+    font-weight: bold ;
+    color: #ffffff;
+    background-color: #337e94;
+}
+
+div.content { 
+    border: 1px solid #bbbbbb; 
+    margin: 0px 0px -1px 0px;
+    width: 95%; 
+    color: #000000; 
+    background-color: #f9f9f9;
+}
+
+div.reportname {
+    font-size: 16pt; 
+    font-weight: bold;
+}
+
+div.footer {
+    padding-right: 5em;
+    text-align: right; 
+}
+
+table.fixed {
+    table-layout: fixed; 
+}
+
+th.content { 
+    border-top: 1px solid #bbbbbb; 
+	width: 25%;
+}
+
+td.content { 
+	width: 75%;
+}
+
+td.groupby {
+	border-top: 3px double #bbbbbb;
+}
+
+.green {
+	background-color: #a1cda4;
+}
+
+.yellow {
+	background-color: #fffab1;
+}
+
+.red {
+	background-color: #f5a085;
+}
+
+.odd {
+	background-color: #D5D8DC;
+}
+
+.even {
+	background-color: #F7F9F9;
+}
+
+.header {
+	background-color: #616A6B; color: #F7F9F9;
+}
+
+</style>
+
+</head>
+
+<div class="section">
+    <div class="reportname">AX Daily Report</div>
+    <hr/>
+    <br>  </br>
+</div>
+<div class="section">
+    <div class="header">
+        <a name="Summary Information">Summary Information</a>
+    </div>
+    <div class="content" style="background-color:#ffffff;"> 
+<table>
+
+<tr><th>Name</th><th>Status</th></tr>
+<tr class="red"><td>AOS Services</td><td>AOS Services Failure Found.</td></tr>
+<tr class="red"><td>MRP Status</td><td>MRP Long Run or Failed.</td></tr>
+<tr class="green"><td>Batch Jobs</td><td>Ok.</td></tr>
+<tr class="red"><td>Long Batch Jobs (&gt;15min)</td><td>1 Jobs Found.</td></tr>
+<tr class="green"><td>Retail Jobs</td><td>Ok.</td></tr>
+<tr class="red"><td>Performance Monitor</td><td>7 Criticals and 0 Warnings.</td></tr>
+<tr class="yellow"><td>Event Logs</td><td> Crash(es) and  Hang(s)</td></tr>
+<tr class="green"><td>SQL Errors</td><td>Ok.</td></tr>
+<tr class="green"><td>SSRS Errors</td><td>Ok.</td></tr>
+<tr><td>**Please see the attached report for details.</td><td></td></tr>
+</table>
+</div>
+</div>
+<div class="section">
+    <hr />
+    <div class="footer">AX Report v2.0 run 12/27/2017 7:18:51 PM by CONTOSO\Administrator</div>
+</div>
+    
+</body>
+</html>
