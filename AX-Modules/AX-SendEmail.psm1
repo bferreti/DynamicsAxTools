@@ -5,27 +5,27 @@ param (
     [String]$Body,
     [String]$Attachment,
     [String]$EmailProfile,
-    [String]$GUID
+    [String]$Guid
 )
     $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT * FROM [AXTools_EmailProfile] AS Email
-                JOIN [AXTools_AccountProfile] AS Acct ON Email.ConnectionID = Acct.ID
-                WHERE Email.PROFILEID = '$EmailProfile'"
+    $Query = "SELECT * FROM [AXTools_EmailProfile] AS A
+                JOIN [AXTools_UserAccount] AS B ON A.UserID = B.ID
+                WHERE A.ID = '$EmailProfile'"
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Conn)
     $Table = New-Object System.Data.DataSet
     $Adapter.Fill($Table) | Out-Null
 
     if (![string]::IsNullOrEmpty($Table.Tables))
     {
-        $SMTPServer = $(Read-EncryptedString -InputString $Table.Tables.ConnectionInfo.Split(',')[0] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)")
-        $SMTPPort = $(Read-EncryptedString -InputString $Table.Tables.ConnectionInfo.Split(',')[1] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)")
-        $SMTPUserName = $(Read-EncryptedString -InputString $Table.Tables.Data.Split(',')[0] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)")
-        $SMTPPassword = $(Read-EncryptedString -InputString $Table.Tables.Data.Split(',')[1] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)")
-        $SMTPSSL = $(Read-EncryptedString -InputString $Table.Tables.ConnectionInfo.Split(',')[2] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)")
-        $SMTPFrom = $($Table.Tables.From)
-        $SMTPTo = $($Table.Tables.To)
-        $SMTPCC = $($Table.Tables.CC)
-        $SMTPBCC = $($Table.Tables.BCC)
+        $SMTPServer = $Table.Tables.SMTPServer
+        $SMTPPort = $Table.Tables.SMTPPort
+        $SMTPUserName = $Table.Tables.UserName
+        $SMTPPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($Table.Tables.Password | ConvertTo-SecureString)))
+        $SMTPSSL = $Table.Tables.SMTPSSL
+        $SMTPFrom = $Table.Tables.From
+        $SMTPTo = $Table.Tables.To
+        $SMTPCC = $Table.Tables.CC
+        $SMTPBCC = $Table.Tables.BCC
         $Table.Dispose()
     }
     else {
@@ -53,12 +53,10 @@ param (
     $SMTPClient.Credentials = New-Object System.Net.NetworkCredential($SMTPUserName,$SMTPPassword)
 
     #Send Email
-    if($SMTPSSL -like 'True') {
+    if($SMTPSSL -eq 1) {
         $SMTPClient.EnableSsl = $true
         [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
     }
-    
-    #$SMTPClient.Send($SMTPMessage)
 
     try
     {
@@ -79,13 +77,9 @@ param (
                                         @{n='Body';e={$Body}},
                                         @{n='Attachment';e={$Attachment}}, 
                                         @{n='Log';e={$Log}},
-                                        @{n='GUID';e={$GUID}})
+                                        @{n='GUID';e={$Guid}})
 
     if($Attachment) {
         $AttachmentFile.Dispose()
     }  
 }
-
-
-
-

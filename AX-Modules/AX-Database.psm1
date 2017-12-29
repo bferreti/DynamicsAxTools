@@ -1,26 +1,17 @@
-﻿$ParamDBServer = 'DAX2012R3' #Change SQL Server Name. Server\Instance, (local)
-$ParamDBName = 'DynamicsAXTools' #Change DB Name (if you have changed during creation)
+﻿$Scriptpath = $MyInvocation.MyCommand.Path
+$ScriptDir = Split-Path $ScriptPath
+$Dir = Split-Path $ScriptDir
+$SettingsFolder = $Dir + "\AX-Tools"
+
+# Import settings from config file
+[xml]$ConfigFile = Get-Content "$SettingsFolder\Settings.xml"
+
+$ParamDBServer = $ConfigFile.Settings.Database.DBServer
+$ParamDBName = $ConfigFile.Settings.Database.DBName
 
 function Get-ConnectionString {
     return "Server=$ParamDBServer;Database=$ParamDBName;Integrated Security=True;Connect Timeout=5"
 }
-
-<#
-function SQL-InsertDB
-{
-param (
-    [String]$Table,
-    [Array]$Data
-)
-    $CreatedDateTime = Get-Date -f G
-    if($Table | Select-String 'AXReportSSRSLogs|AXReportSQLServerLogs|AXReportCDXJobs|AXReportBatchJobs|AXReportMRP|AXReportLongBatchJobs') {
-        $Data = $Data | Select *, @{n='CreatedDateTime';e={$CreatedDateTime}}, @{n='ReportID';e={$FileDateTime}}
-    }
-    else {
-        $Data = $Data | Select *, @{n='ServerName';e={$WrkServer.ServerName}}, @{n='ServerType';e={$WrkServer.ServerType}}, @{n='CreatedDateTime';e={$CreatedDateTime}}, @{n='ReportID';e={$FileDateTime}}
-    }
-    SQL-BulkInsert $Table $Data
-} #>
 
 function SQL-BulkInsert
 {
