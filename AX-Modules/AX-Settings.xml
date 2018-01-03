@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Settings>
+  <General>
+    <ReportPath>C:\Users\Administrator\Desktop\AxTools\Reports</ReportPath>
+    <LogPath>
+    </LogPath>
+    <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
+    <AutoCleanUp>$true</AutoCleanUp>
+    <RetentionDays>7</RetentionDays>
+  </General>
+  <Database>
+    <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
+    <DBServer>DAX2012R3</DBServer>
+    <DBName>DynamicsAXTools</DBName>
+    <Impersonate>
+      <UserName>Contoso\AxUser</UserName>
+      <Password>01000000d08c9ddf0115d1118c7a00c04fc297eb0100000091dd10e26e895e46a0a0e64d7029233b0000000002000000000003660000c000000010000000f2c19996a43d8c171e2adb9d14cb5ed40000000004800000a00000001000000077851d82147cc6e4ea0f733299b1bc5d180000005279f87cf3957e74f089dd8fdbc11e1e66ddb38df4626ca614000000a29c24ca7fd10e3bab503954de79fe32e1896359</Password>
+    </Impersonate>
+  </Database>
+  <OtherSettings>
+  </OtherSettings>
+</Settings>

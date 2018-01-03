@@ -3,7 +3,7 @@ $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 $ToolsFolder = $Dir + "\AX-Tools"
-Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 [System.Management.Automation.Credential()]$Credential = [System.Management.Automation.PSCredential]::Empty
 

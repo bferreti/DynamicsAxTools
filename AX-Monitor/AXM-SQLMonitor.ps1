@@ -12,17 +12,19 @@ $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
-$ReportFolder = $Dir + "\Reports\AX-Monitor\$Environment"
-$LogFolder = $Dir + "\Logs\AX-Monitor\$Environment"
 
-Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
+
+$ConfigFile = Load-ConfigFile
+
+$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
+$DataCollectorName = $ConfigFile.Settings.General.PerfmonCollectorName
+$LogFilesDays = $ConfigFile.Settings.General.RetentionDays
+$AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
+$Debug = $false
 
 $FileDateTime = Get-Date -f yyyyMMdd-HHmm
-$LogFilesDays = 5
-$AutoCleanUp = $true
-$Debug = $false
 
 function Get-SQLMonitoring
 {
@@ -84,17 +86,53 @@ function Validate-Settings
         $Script:Settings = New-Object -TypeName System.Object
         $Script:Settings | Add-Member -Name GUID -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
         try {
-            $Conn = New-Object System.Data.SqlClient.SQLConnection("Server=$($Table.Tables.DBServer);Database=$($Table.Tables.DBName);Integrated Security=True;Connect Timeout=30")
-            $Conn.Open()
-            $Conn.Close()
+            if($Table.Tables.SQLAccount) {
+                $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+                $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$($Table.Tables.SQLAccount)'"
+                $Conn.Open()
+                $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+                $UserPassword = $Cmd.ExecuteScalar()
+                $Conn.Close()
+                $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
+                $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
+                $SQLCred = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.SQLAccount, $secureUserPassword
+
+
+                $SqlConn = New-Object Microsoft.SqlServer.Management.Smo.Server
+                $SqlConn.ConnectionContext.ConnectAsUser = $true
+                $SqlConn.ConnectionContext.ConnectAsUserPassword = $SQLCred.GetNetworkCredential().Password
+                $SqlConn.ConnectionContext.ConnectAsUserName = $SQLCred.GetNetworkCredential().UserName
+                $SqlConn.ConnectionContext.ServerInstance = $Table.Tables.DBServer
+                $SqlConn.ConnectionContext.DatabaseName = $Table.Tables.DBName
+                $SqlConn.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
+                $SqlConn.ConnectionContext.Connect()
+
+            }
+            else {
+
+                $SrvConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+                $SrvConn.ServerInstance = $Table.Tables.DBServer
+                $SrvConn.DatabaseName = $Table.Tables.DBName
+                $SrvConn.ApplicationName = 'SQL Monitoring Script'
+                $SqlConn = New-Object Microsoft.SqlServer.Management.SMO.Server($SrvConn)
+                $SqlConn.ConnectionContext.Connect()
+
+
+                #$ConnectionString = "Server=$($Table.Tables.DBServer);Database=$($Table.Tables.DBName);Integrated Security=True;Connect Timeout=30"
+            }
+            #$Conn = New-Object System.Data.SqlClient.SQLConnection($ConnectionString)
+            #$Conn.Open()
+            #$Conn.Close()
             $Script:Settings | Add-Member -Name DBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
             $Script:Settings | Add-Member -Name DBName -Value $Table.Tables.DBName -MemberType NoteProperty
             $Script:Settings | Add-Member -Name Description -Value $Table.Tables.Description -MemberType NoteProperty
-            $Script:Settings | Add-Member -Name SQLServer -Value $(New-Object ('Microsoft.SqlServer.Management.Smo.Server') $Script:Settings.DBServer) -MemberType NoteProperty
+            #$Script:Settings | Add-Member -Name SQLServer -Value $(New-Object ('Microsoft.SqlServer.Management.Smo.Server') $Script:Settings.DBServer) -MemberType NoteProperty
+            $Script:Settings | Add-Member -Name SQLServer -Value $($SqlConn) -MemberType NoteProperty
+
             $Script:Settings | Add-Member -Name NetBios -Value $(($Script:Settings.SQLServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) -MemberType NoteProperty
         }
         catch {
-            Write-Host 'SQL Server or DB name invalid.'
+            Write-Host "Failed to connect to AX Database. $($_.Exception.Message)"
             break
         }
     

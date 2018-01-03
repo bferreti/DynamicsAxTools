@@ -11,17 +11,16 @@ $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
-$ToolsFolder = $Dir + "\AX-Tools"
-$ReportFolder = $Dir + "\Reports\AX-Report\$Environment"
-$LogFolder = $Dir + "\Logs\AX-Report\$Environment"
 
-Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-SendEmail.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$DataCollectorName = 'AXPerfmon'
-$LogFilesDays = 7
-$AutoCleanUp = $true
+$ConfigFile = Load-ConfigFile
+
+$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
+$DataCollectorName = $ConfigFile.Settings.General.PerfmonCollectorName
+$LogFilesDays = $ConfigFile.Settings.General.RetentionDays
+$AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
 
 $Global:Guid = ([Guid]::NewGuid()).Guid
 $Script:Settings = New-Object -TypeName System.Object
@@ -260,13 +259,13 @@ function Get-AXLogs
         $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
         $Conn.ConnectionString = "Server=$($SQLInstance.DBServer);Database=tempdb;Integrated Security=True;Connect Timeout=5"
         $Conn.Open()
-        $Query = Get-Content $ToolsFolder\ConDrop.sql | Out-String
+        $Query = Get-Content $ModuleFolder\ConDrop.sql | Out-String
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Cmd.ExecuteScalar() | Out-Null        
-        $Query = Get-Content $ToolsFolder\ConPeek.sql | Out-String
+        $Query = Get-Content $ModuleFolder\ConPeek.sql | Out-String
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Cmd.ExecuteScalar() | Out-Null
-        $Query = Get-Content $ToolsFolder\ConSize.sql | Out-String
+        $Query = Get-Content $ModuleFolder\ConSize.sql | Out-String
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Cmd.ExecuteScalar() | Out-Null
         $Conn.Close()

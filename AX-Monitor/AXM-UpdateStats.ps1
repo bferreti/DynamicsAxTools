@@ -17,7 +17,7 @@ $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
-Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $Table = ($Table.Replace('[','')).Replace(']','')
 try

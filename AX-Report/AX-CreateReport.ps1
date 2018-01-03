@@ -10,16 +10,16 @@ $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
-$ToolsFolder = $Dir + "\AX-Tools"
-$ReportFolder = $Dir + "\Reports\AX-Report\$Environment"
-$LogFolder = $Dir + "\Logs\AX-Report\$Environment"
-$ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
-#
-Import-Module $ModuleFolder\AX-Database.psm1 -DisableNameChecking
-#Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-ReportFunc.psm1 -DisableNameChecking
+
+Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
+
+$ConfigFile = Load-ConfigFile
+
+$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
 
 $Footer = "AX Report v{3} run {0} by {1}\{2}" -f (Get-Date),$env:UserDomain,$env:UserName,'2.0'
+$ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
 
 function Run-Report
