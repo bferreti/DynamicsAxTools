@@ -6,6 +6,8 @@
 )
 
 [Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
+#[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") | Out-Null
 
 ## Get PS script directory and assign to DIR variable.
 $Scriptpath = $MyInvocation.MyCommand.Path
@@ -37,9 +39,9 @@ function Get-SQLMonitoring
             Get-AXJobs
             Get-PerfData
             Get-SQLConfig
-            GRD-CreateReport
+            #GRD-CreateReport
             if($Script:Settings.SendEmail -eq 1) {
-                GRD-SendEmail
+                #GRD-SendEmail
             }
         }
         else {
@@ -74,7 +76,7 @@ function Get-SQLMonitoring
 
 function Validate-Settings
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT * FROM AXTools_Environments                
                 WHERE ENVIRONMENT = '$Environment'"
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Conn)
@@ -85,40 +87,37 @@ function Validate-Settings
     {
         $Script:Settings = New-Object -TypeName System.Object
         $Script:Settings | Add-Member -Name GUID -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
+        $Script:Settings | Add-Member -Name ToolsConnection -Value $($Conn) -MemberType NoteProperty
+       
         try {
             if($Table.Tables.SQLAccount) {
-                $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+                #$Conn = Get-ConnectionString # $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
                 $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$($Table.Tables.SQLAccount)'"
-                $Conn.Open()
-                $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+                #$Conn.Open()
+                $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
                 $UserPassword = $Cmd.ExecuteScalar()
-                $Conn.Close()
+                #$Conn.Close()
                 $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
                 $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-                $SQLCred = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.SQLAccount, $secureUserPassword
-
-
-                $SqlConn = New-Object Microsoft.SqlServer.Management.Smo.Server
-                $SqlConn.ConnectionContext.ConnectAsUser = $true
-                $SqlConn.ConnectionContext.ConnectAsUserPassword = $SQLCred.GetNetworkCredential().Password
-                $SqlConn.ConnectionContext.ConnectAsUserName = $SQLCred.GetNetworkCredential().UserName
-                $SqlConn.ConnectionContext.ServerInstance = $Table.Tables.DBServer
-                $SqlConn.ConnectionContext.DatabaseName = $Table.Tables.DBName
-                $SqlConn.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
-                $SqlConn.ConnectionContext.Connect()
-
+                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.SQLAccount, $secureUserPassword
+                $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+                $SqlConn.ServerInstance = $Table.Tables.DBServer
+                $SqlConn.DatabaseName = $Table.Tables.DBName
+                $SqlConn.ApplicationName = 'SQL Monitoring Script'
+                $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+                $SqlServer.ConnectionContext.ConnectAsUser = $true
+                $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
+                $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
+                #$SqlServer.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
+                $SqlServer.ConnectionContext.Connect()
             }
             else {
-
-                $SrvConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
-                $SrvConn.ServerInstance = $Table.Tables.DBServer
-                $SrvConn.DatabaseName = $Table.Tables.DBName
-                $SrvConn.ApplicationName = 'SQL Monitoring Script'
-                $SqlConn = New-Object Microsoft.SqlServer.Management.SMO.Server($SrvConn)
-                $SqlConn.ConnectionContext.Connect()
-
-
-                #$ConnectionString = "Server=$($Table.Tables.DBServer);Database=$($Table.Tables.DBName);Integrated Security=True;Connect Timeout=30"
+                $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+                $SqlConn.ServerInstance = $Table.Tables.DBServer
+                $SqlConn.DatabaseName = $Table.Tables.DBName
+                $SqlConn.ApplicationName = 'SQL Monitoring Script'
+                $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+                $SqlServer.ConnectionContext.Connect()
             }
             #$Conn = New-Object System.Data.SqlClient.SQLConnection($ConnectionString)
             #$Conn.Open()
@@ -127,8 +126,7 @@ function Validate-Settings
             $Script:Settings | Add-Member -Name DBName -Value $Table.Tables.DBName -MemberType NoteProperty
             $Script:Settings | Add-Member -Name Description -Value $Table.Tables.Description -MemberType NoteProperty
             #$Script:Settings | Add-Member -Name SQLServer -Value $(New-Object ('Microsoft.SqlServer.Management.Smo.Server') $Script:Settings.DBServer) -MemberType NoteProperty
-            $Script:Settings | Add-Member -Name SQLServer -Value $($SqlConn) -MemberType NoteProperty
-
+            $Script:Settings | Add-Member -Name SQLServer -Value $($SqlServer) -MemberType NoteProperty
             $Script:Settings | Add-Member -Name NetBios -Value $(($Script:Settings.SQLServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) -MemberType NoteProperty
         }
         catch {
@@ -360,8 +358,9 @@ function Get-GRDStatus
 function Get-AXJobs
 {
     Write-ExecLog "Started Batch Jobs Status"
-    $Conn = New-Object System.Data.SqlClient.SQLConnection
-    $Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
+    #$Conn = New-Object System.Data.SqlClient.SQLConnection
+    #$Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
+    $Conn = $Script:Settings.SQLServer.ConnectionContext.SqlConnectionObject
     ##
     $Query = 'SELECT Status = CASE STATUS 
 		            WHEN 2 THEN ''Executing''
@@ -684,8 +683,8 @@ Param(
             WHERE [ENVIRONMENT] = '$Environment' AND
 		            [CREATEDDATETIME] >= '$((Get-Date).AddMinutes(-60))'
                     AND [STATSTYPE] <> 'GRD'"
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $Table = New-Object System.Data.DataSet
@@ -757,7 +756,12 @@ Param(
 
 function Run-GRDStats
 {
-    Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+    if($SqlCredential) {
+        Start-Job -Credential $SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+    }
+    else {
+        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+    }
 }
 
 function Get-JobStatus
@@ -792,19 +796,20 @@ function Get-SQLStatisticsInterval
                 FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
                 WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-30))' 
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Conn.Open()
+    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
+    #$Conn.Open()
     $GRDStatsInterval = $Cmd.ExecuteScalar()
-    $Conn.Close()
+    #$Conn.Close()
 
     return $GRDStatsInterval
 }
 
 function Get-SQLStatistics
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection
-    $Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
+    #$Conn = New-Object System.Data.SqlClient.SQLConnection ########
+    #$Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
+    $Conn = $Script:Settings.SQLServer.ConnectionContext.SqlConnectionObject
     $Query = "SELECT  o.name as [TableName]
                     , object_schema_name(object_id) as [Schema]
 		            , si.name as [IndexName]
@@ -852,11 +857,11 @@ function Get-SQLStatistics
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'
                 AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
 
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Conn.Open()
+    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
+    #$Conn.Open()
     $GRDStatsCount = $Cmd.ExecuteScalar()
-    $Conn.Close()
+    #$Conn.Close()
 
     $GRDJobRun = @()
     if(($Script:Settings.EnableStats -eq 2) -and (($GRDStatsCount -eq 0) -and ($(($GRDStats | Where {$_.PercentChange -gt 10}).Count) -gt 0)) -and ($Script:Settings.CPUTotal -le 50)) {
@@ -1005,11 +1010,11 @@ function GRD-SendEmail
     $Query =   "SELECT COUNT(1) AS Report
                     FROM AXMonitor_ExecutionLog
                     WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-15))' AND [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Conn.Open()
+    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
+    #$Conn.Open()
     $GRDReportChk = $Cmd.ExecuteScalar()
-    $Conn.Close()
+    #$Conn.Close()
 
     if(($($Script:Settings.CPUTotal) -le $Script:Settings.CPUThold) -and
         ($($Script:Settings.Blocking.Spid.Count) -le $($Script:Settings.BlockThold)) -and

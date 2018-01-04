@@ -1,4 +1,10 @@
-﻿$Scriptpath = $MyInvocation.MyCommand.Path
+﻿param (
+    [Switch]$Impersonation
+)
+[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
+
+$Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
@@ -6,8 +12,6 @@ $ToolsFolder = $Dir + "\AX-Tools"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 [System.Management.Automation.Credential()]$Credential = [System.Management.Automation.PSCredential]::Empty
-
-$Credential = Get-Credential -Message "Credentials <DOMAIN\Username or user@emailserver.com>" -ErrorAction SilentlyContinue
 
 function Validate-User
 {
@@ -45,7 +49,16 @@ function Insert-User
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
     $Conn.Close()
+
+    if($Impersonation) {
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+        $ConfigFile.Settings.Database.Impersonation.UserName = $UserName
+        $ConfigFile.Settings.Database.Impersonation.Password = $SecureStringAsPlainText.ToString()
+        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
+    }
 }
+
+$Credential = Get-Credential -Message "Credentials <DOMAIN\Username or user@emailserver.com>" -ErrorAction SilentlyContinue
 
 if ($Credential.UserName -ne $null ) {
     $BSTRBC = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password)
@@ -53,7 +66,7 @@ if ($Credential.UserName -ne $null ) {
     $Domain = New-Object System.DirectoryServices.DirectoryEntry($Root,$Credential.UserName,[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRBC))
     if ($Domain.Name -eq $null)
     {
-        Write-Host "Domain authentication failed."
+        Write-Host "This is not a domain account."
         $ID = "$($Credential.UserName.Split('@')[0])"
         $UserName = "$($Credential.UserName)"
         if(Validate-User) {
@@ -68,9 +81,9 @@ if ($Credential.UserName -ne $null ) {
     }
         else
     {
-        write-host "Successfully authenticated."
-        $ID = "$($Credential.UserName)"
-        $UserName = "$((([ADSI]`"").dc).toUpper())\$($Credential.UserName)"
+        write-host "Domain successfully authenticated."
+        $ID = "$($Credential.UserName.Split('\')[1].ToUpper())"
+        $UserName = "$((([ADSI]`"").dc).toUpper())\$($Credential.UserName.Split('\')[1])"
 
         if(Validate-User) {
             write-host "Username already exists. Updating current credentials."
@@ -85,7 +98,6 @@ if ($Credential.UserName -ne $null ) {
 else {
     Write-Warning 'Canceled.'
 }
-
 <#
 $VerbosePreference = "SilentlyContinue"
 

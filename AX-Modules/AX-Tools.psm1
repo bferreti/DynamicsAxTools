@@ -16,10 +16,96 @@ function Load-ConfigFile
     return $ConfigFile
 }
 
-function Get-ConnectionString {
+function Get-ConnectionString 
+{
+    $ConfigFile = Load-ConfigFile
     $ParamDBServer = $ConfigFile.Settings.Database.DBServer
     $ParamDBName = $ConfigFile.Settings.Database.DBName
-    return "Server=$ParamDBServer;Database=$ParamDBName;Integrated Security=True;Connect Timeout=5"
+    $ParamUserName = $ConfigFile.Settings.Database.Impersonation.UserName
+    $ParamPassword = $ConfigFile.Settings.Database.Impersonation.Password
+    if($ParamUserName) {
+        $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ParamPassword | ConvertTo-SecureString)))
+        $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
+        $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $ParamUserName, $secureUserPassword
+        $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+        $SqlConn.ServerInstance = $ParamDBServer
+        $SqlConn.DatabaseName = $ParamDBName
+        $SqlConn.ApplicationName = 'SQL Monitoring Script'
+        $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+        $SqlServer.ConnectionContext.ConnectAsUser = $true
+        $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
+        $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
+        try {
+            $SqlServer.ConnectionContext.Connect()
+            return $SqlServer.ConnectionContext.SqlConnectionObject
+        }
+        catch {
+            Write-Host "Failed to connect to AXTools Database. $($_.Exception.Message)"
+            break
+        }
+    }
+    else {
+        $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+        $SqlConn.ServerInstance = $ParamDBServer
+        $SqlConn.DatabaseName = $ParamDBName
+        $SqlConn.ApplicationName = 'SQL Monitoring Script'
+        $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+        try {
+            $SqlServer.ConnectionContext.Connect()
+            return $SqlServer.ConnectionContext.SqlConnectionObject
+        }
+        catch {
+            Write-Host "Failed to connect to AXTools Database. $($_.Exception.Message)"
+            break
+        }
+    }
+
+    #return "Server=$ParamDBServer;Database=$ParamDBName;Integrated Security=True;Connect Timeout=5;"
+
+    <#
+    $ParamUserName = $ConfigFile.Settings.Database.Impersonation.UserName
+    $ParamPassword = $ConfigFile.Settings.Database.Impersonation.Password
+    if($ParamUserName) {
+        $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ParamPassword | ConvertTo-SecureString)))
+        $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
+        $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $ParamUserName, $secureUserPassword
+        $SqlServer = New-Object Microsoft.SqlServer.Management.Smo.Server
+        $SqlServer.ConnectionContext.ConnectAsUser = $true
+        $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
+        $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
+        $SqlServer.ConnectionContext.ServerInstance = $ParamDBServer
+        $SqlServer.ConnectionContext.DatabaseName = $ParamDBName
+        $SqlServer.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
+
+        try {
+            $SqlServer.ConnectionContext.Connect()
+            $SqlServer.ConnectionContext.ConnectionString
+            return $SqlServer.ConnectionContext.ConnectionString
+        }
+        catch {
+            Write-Host "Failed to connect to AXTools Database. $($_.Exception.Message)"
+            break
+        }
+    }
+    else {
+        $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+        $SqlConn.ServerInstance = $ParamDBServer
+        $SqlConn.DatabaseName = $ParamDBName
+        $SqlConn.ApplicationName = 'SQL Monitoring Script'
+        $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+        $SqlServer.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
+
+        try {
+            $SqlServer.ConnectionContext.Connect()
+            return $SqlServer.ConnectionContext.ConnectionString
+        }
+        catch {
+            Write-Host "Failed to connect to AXTools Database. $($_.Exception.Message)"
+            break
+        }
+    }
+    #>
+    
 }
 
 function SQL-BulkInsert
@@ -59,8 +145,8 @@ param (
     #$DataTable.Columns.Remove('RUNSPACEID')
     #$DataTable.Columns.Remove('PSSHOWCOMPUTERNAME')
     #Write-Output @(,($DataTable))
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn.Open()
     $BCopy = New-Object ("System.Data.SqlClient.SqlBulkCopy") $Conn
     $BCopy.DestinationTableName = "[dbo].[$Table]"
     foreach ($Col in $DataTable.Columns) {
@@ -158,8 +244,8 @@ function UpdateMsiStatus
 param (
     [string]$Status
 )
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn.Open()
     $Query = "UPDATE [dbo].[AXInstallStatus] SET Status = '$Status' WHERE GUID = '$Guid'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -175,8 +261,8 @@ param (
     [String]$Value,
     [String]$Where
 )
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn.Open()
     $Query = "UPDATE [dbo].[$Table] SET [$Set] = '$Value' WHERE $Where"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -189,8 +275,8 @@ function SQL-ExecUpdate
 param (
     [String]$Query
 )
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn.Open()
     #$Query = "UPDATE [dbo].[$Table] SET [$Set] = '$Value' WHERE $Where"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -203,8 +289,8 @@ function SQL-WriteLog
 param (
     [String]$Log
 )
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn.Open()
     $Query = "INSERT INTO AXTools_ExecutionLogs VALUES('$(Get-Date)', '', 'AXMonitor', '$Log')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -221,7 +307,7 @@ param (
     [String]$EmailProfile,
     [String]$Guid
 )
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT * FROM [AXTools_EmailProfile] AS A
                 JOIN [AXTools_UserAccount] AS B ON A.UserID = B.ID
                 WHERE A.ID = '$EmailProfile'"

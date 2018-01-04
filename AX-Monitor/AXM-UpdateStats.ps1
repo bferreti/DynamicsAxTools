@@ -20,6 +20,7 @@ $ModuleFolder = $Dir + "\AX-Modules"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $Table = ($Table.Replace('[','')).Replace(']','')
+
 try
 {
     if($Table.Split('.').Count -gt 1) {
