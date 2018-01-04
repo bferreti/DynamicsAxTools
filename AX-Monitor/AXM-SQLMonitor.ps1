@@ -16,6 +16,8 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
+Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
+
 
 $ConfigFile = Load-ConfigFile
 
@@ -39,9 +41,9 @@ function Get-SQLMonitoring
             Get-AXJobs
             Get-PerfData
             Get-SQLConfig
-            #GRD-CreateReport
+            GRD-CreateReport
             if($Script:Settings.SendEmail -eq 1) {
-                #GRD-SendEmail
+                GRD-SendEmail
             }
         }
         else {
@@ -100,6 +102,7 @@ function Validate-Settings
                 $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
                 $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
                 $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.SQLAccount, $secureUserPassword
+                $Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
                 $SqlConn.DatabaseName = $Table.Tables.DBName
@@ -756,8 +759,8 @@ Param(
 
 function Run-GRDStats
 {
-    if($SqlCredential) {
-        Start-Job -Credential $SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+    if($Script:Settings.SqlCredential) {
+        Start-Job -Credential $Script:Settings.SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
     }
     else {
         Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
@@ -1032,7 +1035,7 @@ function GRD-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays(($LogFilesDays * -1))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
+    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$LogFilesDays))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }

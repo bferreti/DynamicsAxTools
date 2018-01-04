@@ -302,7 +302,7 @@ function Send-Email
 [CmdletBinding()]
 param (
     [String]$Subject,
-    [String]$Body,
+    [Object]$Body,
     [String]$Attachment,
     [String]$EmailProfile,
     [String]$Guid
@@ -371,13 +371,13 @@ param (
         $Log = $_.Exception
     }
 
-    SQL-BulkInsert AXTools_EmailLogs @($SMTPMessage | Select @{n='Sent';e={$Sent}}, 
+    SQL-BulkInsert AXTools_EmailLogs @($SMTPMessage | Select @{n='Sent';e={[int]$Sent}}, 
                                         @{n='EmailProfile';e={$EmailProfile}},
                                         @{n='Subject';e={$Subject}},
-                                        @{n='Body';e={$Body}},
+                                        @{n='Body';e={$Body.ToString()}},
                                         @{n='Attachment';e={$Attachment}}, 
                                         @{n='Log';e={$Log}},
-                                        @{n='GUID';e={$Guid}})
+                                        @{n='Guid';e={$Guid}})
 
     if($Attachment) {
         $AttachmentFile.Dispose()
