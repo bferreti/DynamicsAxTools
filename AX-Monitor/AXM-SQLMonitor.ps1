@@ -5,9 +5,9 @@
     [Switch]$Rerun
 )
 
-[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
-[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
-#[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
+#[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") | Out-Null
 
 ## Get PS script directory and assign to DIR variable.
 $Scriptpath = $MyInvocation.MyCommand.Path
@@ -16,14 +16,11 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
-Import-Module $ModuleFolder\AX-HTMLReport.psm1 -DisableNameChecking
-
 
 $ConfigFile = Load-ConfigFile
 
 $ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
-$DataCollectorName = $ConfigFile.Settings.General.PerfmonCollectorName
 $LogFilesDays = $ConfigFile.Settings.General.RetentionDays
 $AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
 $Debug = $false
@@ -900,7 +897,6 @@ function GRD-CreateReport
 {
     $GRDReport = @()
     $GRDReport += Get-HtmlOpen -TitleText ("SQL Monitoring Alert $($Script:Settings.DBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
-    #- $(Get-Date -Format "D")
 
     $GRDSummary = @()
     

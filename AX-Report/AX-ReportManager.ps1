@@ -6,6 +6,7 @@ Param (
     [Switch]$RecycleBlg
 )
 [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
 
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
@@ -28,6 +29,8 @@ $Script:Settings | Add-Member -Name GUID -Value $Global:Guid -MemberType NotePro
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
 $Script:Settings | Add-Member -Name DataCollectorName -Value $DataCollectorName -MemberType NoteProperty
+$Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
+$Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 
 function Get-WrkProcess
 {
@@ -48,34 +51,37 @@ function Get-WrkProcess
   }
 }
 
-function Get-WrkServers
+function Validate-Settings
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Query = "SELECT [Description], [Email], [EmailProfile] FROM [AXTools_Environments] WHERE [Environment] = '$Environment'"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
-    $Adapter.SelectCommand = $Cmd
-    $Servers = New-Object System.Data.DataSet
-    $Adapter.Fill($Servers) | Out-Null
-    $Conn.Close()
+    $Query = "SELECT * FROM AXTools_Environments                
+                WHERE ENVIRONMENT = '$Environment'"
+    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnectionObject)
+    $Table = New-Object System.Data.DataSet
+    $Adapter.Fill($Table) | Out-Null
 
     if (![string]::IsNullOrEmpty($Table.Tables))
     {
         $Script:Settings | Add-Member -Name SendEmail -Value $Table.Tables.Email -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailDescription -Value $Table.Tables.Description -MemberType NoteProperty
+        $Script:Settings | Add-Member -Name SQLAccount -Value $Table.Tables.SQLAccount -MemberType NoteProperty
     }
     else {
-        $Script:Settings | Add-Member -Name SendEmail -Value 0 -MemberType NoteProperty
+        #$Script:Settings | Add-Member -Name SendEmail -Value 0 -MemberType NoteProperty
+        Write-Host 'Environment not found.'
+        break
     }
+}
 
+function Get-WrkServers
+{
+    Validate-Settings
     $Query = "SELECT [SERVERNAME], [SERVERTYPE] FROM [AXTools_Servers] WHERE [Environment] = '$Environment' AND [ACTIVE] = 1"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $Servers = New-Object System.Data.DataSet
     $Adapter.Fill($Servers) | Out-Null
-    $Conn.Close()
 
     $WrkServers = @()
     foreach($Server in $Servers.Tables[0]) {
@@ -92,7 +98,6 @@ function Get-WrkServers
         Break
     }
     else {
-        #$Script:Settings | Add-Member -Name Servers -Value $WrkServers -MemberType NoteProperty
         return $WrkServers
     }
 }
@@ -171,12 +176,9 @@ function Get-AXConfiguration
 
 function Add-SQLInstance($DBServer, $DBName, $Details)
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT COUNT(DBServer) FROM AXReport_SqlDatabases WHERE DBServer = '$DBServer' and DBNAME = '$DBName' and Guid = '$($Script:Settings.Guid)'"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Conn.Open()
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
     $DBCount = $Cmd.ExecuteScalar()
-    $Conn.Close()
 
     if($DBCount -gt 0) {
         $ok = $true
@@ -187,7 +189,8 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
        
     if(!$ok) {
         $SQLInstance = @()
-        $Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $DBServer
+        #$Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $DBServer
+        $Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLTmp = New-Object -TypeName System.Object
         $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBServer -Value $DBServer -MemberType NoteProperty
@@ -198,7 +201,6 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
         $SQLInstance += $SQLTmp
         Write-Log "$($WrkServer.ServerName) - $DBServer | $DBName"
         if($Server.IsClustered) {
-            #Write-Log "$($WrkServer.ServerName)" "$DBServer is a SQL Cluster."
             $Cluster = Get-ClusterNode -Cluster $(($DBServer.Split('\'))[0])
             foreach($Node in $Cluster) {
                 if($Node.NodeName -match $($Server.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) {
@@ -246,19 +248,15 @@ function Get-AOSServices
 function Get-AXLogs
 {
     Write-Log "Quering AX Database (Batch Jobs/Retail/MRP/SQL Errors)"
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'AX Database' GROUP BY DBServer, DBName"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $SQLInstances = New-Object System.Data.DataSet
     $Adapter.Fill($SQLInstances)
-    $Conn.Close()
 
     foreach($SQLInstance in $SQLInstances.Tables[0]) {
-        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-        $Conn.ConnectionString = "Server=$($SQLInstance.DBServer);Database=tempdb;Integrated Security=True;Connect Timeout=5"
-        $Conn.Open()
+        $Conn = Get-SQLObject -DBServer $($SQLInstance.DBServer) -DBName 'tempdb' -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName
         $Query = Get-Content $ModuleFolder\ConDrop.sql | Out-String
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Cmd.ExecuteScalar() | Out-Null        
@@ -269,12 +267,9 @@ function Get-AXLogs
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Cmd.ExecuteScalar() | Out-Null
         $Conn.Close()
-        #Write-Log "`t" "Connecting to $($SQLInstance.DBServer) / $($SQLInstance.DBName)"
-        #Write-Log "`t" "Collecting AX Batch Jobs"
+
         #Batch Jobs
-        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-        $Conn.ConnectionString = "Server=$($SQLInstance.DBServer);Database=$($SQLInstance.DBName);Integrated Security=True;Connect Timeout=5"
-        ##
+        $Conn = Get-SQLObject -DBServer $($SQLInstance.DBServer) -DBName $($SQLInstance.DBName) -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName
         $Query = "SELECT A.CAPTION AS HISTORYCAPTION
 		                ,B.CAPTION AS JOBCAPTION
 		                ,STATUS = CASE A.STATUS 
@@ -348,7 +343,6 @@ function Get-AXLogs
         }
 
         #CDX Jobs
-        #Write-Log "`t" "Collecting CDX Jobs"
         $Query = "SELECT B.JOBID  
 				, A.STATUS AS DATASTORESTATUS
 		        , STATUSDOWNLOADSESSIONDATASTORE = CASE A.STATUS 
@@ -406,7 +400,6 @@ function Get-AXLogs
             SQL-BulkInsert 'AXReport_AxRetailJobs' $AXRetail
         }
         ##MRP
-        #Write-Log "`t" "Collecting MRP Logs"
         $Query = "SELECT 
 	                 REQPLANID
 	                ,DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), STARTDATETIME) AS STARTDATETIME
@@ -443,8 +436,7 @@ function Get-AXLogs
         }
 
         ##SQL Error Logs
-        #Write-Log "`t" "Collecting SQL Error Logs"
-        $SQLConn = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $SQLInstance.DBServer
+        $SQLConn = Get-SQLObject -DBServer $SQLInstance.DBServer -DBName 'master' -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLLogs = $SQLConn.ReadErrorLog() | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) } |
                 Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}} #| Where-Object {($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) }
         SQL-BulkInsert 'AXReport_SqlLogs' $SQLLogs
@@ -466,12 +458,9 @@ function Get-PerfmonFile
         Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
         Remove-CIMSession -ComputerName $($Script:Settings.DataCollectorName)
         #
-        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
         $Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
-        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-        $Conn.Open()
+        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
         $Xml = $Cmd.ExecuteScalar()
-        $Conn.Close()
         $DataCollectorSet.SetXml($Xml)
         $DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
         $DataCollectorSet.Commit($Script:Settings.DataCollectorName,$WrkServer.ServerName,0x0003) | Out-Null
@@ -508,7 +497,7 @@ function Get-PerfmonFile
             ## Delete Temp Folder
             Remove-Item -Path "$Path\Temp\" -Recurse -Force
             $ZipFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.zip'}  | Sort-Object -Property LastWriteTime
-            $DestPath = "\\UATSCPMNK01\PerfmonArchive"
+            $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$')
             if($ZipFiles) {
                 if(!(Test-Path("$DestPath\$($WrkServer.ServerName)\"))) {
                     New-Item -ItemType Directory -Force -Path "$DestPath\$($WrkServer.ServerName)" | Out-Null
@@ -529,7 +518,6 @@ function Get-PerfmonLogs
         if($BlgFile) {
             $Paths = Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.PathsWithInstances }
             $Paths += Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.Counter }
-            #Write-Log "$($WrkServer.ServerName)" "Perfmon Analysing $DataCollectorName."
             $Script:BlgCounters = @()
             foreach($Path in $Paths) {
                 switch -wildcard ($Path) {
@@ -682,26 +670,22 @@ function Add-PerfCounter($Path, $Type, $ReportView)
     $tmpCounter | Add-Member -Name Counter -Value $NewPath -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
     $tmpCounter | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
-    #SQL-BulkInsert 'AXReport_PerfmonData' $tmpCounter
+    
     $Script:BlgCounters += $tmpCounter
 }
 
 function Get-SSRSLogs
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'SSRS Database' GROUP BY DBServer, DBName"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $SRSInstances = New-Object System.Data.DataSet
     $Adapter.Fill($SRSInstances)
-    $Conn.Close()
 
     Write-Log "Working on SSRS Logs."
     foreach($SRSInstance in $SRSInstances.Tables[0]) {
-        #Write-Log "`t" "Collecting SSRS logs $($SRSInstance.DBServer) /  $($SRSInstance.DBName)."
-        $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)        
-        $Conn.ConnectionString = "Server=$($SRSInstance.DBServer);Database=$($SRSInstance.DBName);Integrated Security=True;Connect Timeout=5"
+        $Conn = Get-SQLObject -DBServer $($SRSInstance.DBServer) -DBName $($SRSInstance.DBName) -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName
         $Query = "SELECT Status
                     , InstanceName
 		            , ReportPath
@@ -732,72 +716,6 @@ function Get-SSRSLogs
     }
 }
 
-<#
-function SQL-InsertDB($Table, $Data)
-{
-    $CreatedDateTime = Get-Date -f G
-    if($Table | Select-String 'AXReportSSRSLogs|AXReportSQLServerLogs|AXReportCDXJobs|AXReportBatchJobs|AXReportMRP') {
-        $Data = $Data | Select *, @{n='CreatedDateTime';e={$CreatedDateTime}}, @{n='ReportID';e={$FileDateTime}}
-    }
-    else {
-        $Data = $Data | Select *, @{n='ServerName';e={$WrkServer.ServerName}}, @{n='ServerType';e={$WrkServer.ServerType}}, @{n='CreatedDateTime';e={$CreatedDateTime}}, @{n='ReportID';e={$FileDateTime}}
-    }
-    SQL-BulkInsert $Table $Data
-}
-
-function SQL-BulkInsert($Table, $Data)
-{
-    $DataTable = New-Object Data.DataTable   
-    $First = $true  
-    foreach($Object in $Data) 
-    { 
-        $DataReader = $DataTable.NewRow()   
-        foreach($Property in $Object.PsObject.Get_Properties()) 
-        {   
-            if ($First) 
-            {   
-                $Col =  New-Object Data.DataColumn   
-                $Col.ColumnName = $Property.Name.ToString()   
-			    $ValueExists = Get-Member -InputObject $Property -Name Value
-			    if($ValueExists)
-                { 
-                    if($Property.Value -isnot [System.DBNull] -and $Property.Value -ne $null) {
-                        $Col.DataType = [System.Type]::GetType("$($Property.TypeNameOfValue)")
-                    } 
-                } 
-                $DataTable.Columns.Add($Col) 
-            }
-            $DataReader.Item($Property.Name) = $Property.Value 
-        }   
-        $DataTable.Rows.Add($DataReader)   
-        $First = $false
-    }
-    #Write-Output @(,($DataTable)) 
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    $Conn.Open()
-    $BCopy = New-Object ("System.Data.SqlClient.SqlBulkCopy") $Conn
-    $BCopy.DestinationTableName = "dbo.$Table"
-    foreach ($Col in $DataTable.Columns) {
-        $ColumnMap = New-Object ("Data.SqlClient.SqlBulkCopyColumnMapping") $Col.ColumnName,($Col.ColumnName).ToUpper()
-        [Void]$BCopy.ColumnMappings.Add($ColumnMap)
-    }
-    $BCopy.WriteToServer($DataTable)
-    $Conn.Close()
-}
-
-function Write-Log($LogData)
-{
-    $TLogStamp = (Get-Date -DisplayHint Time)
-    $ExecLog = New-Object -TypeName System.Object
-    $ExecLog | Add-Member -Name CreatedDateTime -Value $TLogStamp -MemberType NoteProperty
-    $ExecLog | Add-Member -Name ReportID -Value $FileDateTime -MemberType NoteProperty
-    $ExecLog | Add-Member -Name ScriptName -Value $ScriptName -MemberType NoteProperty
-    #$ExecLog | Add-Member -Name ServerName -Value $LogStep -MemberType NoteProperty
-    $ExecLog | Add-Member -Name Log -Value $LogData.Trim() -MemberType NoteProperty
-    SQL-BulkInsert 'AXTools_ExecutionLogs' $ExecLog
-}
-#>
-
 function AXR-CreateReport
 {
     Write-Log "HTML Started ($FileDateTime)."
@@ -807,15 +725,15 @@ function AXR-CreateReport
 function AXR-SendEmail
 {
     $Subject = "AX Daily Report <$((Get-Date).AddDays(-1) | Get-Date -Format "MMM dd, yyyy")>"
-    $Body = Get-Content $ReportFolder\AXReport-$ReportDate-Summary.html
-    $Attachment = "$ReportFolder\AXReport-$ReportDate.mht"
+    $Body = Get-Content $ReportFolder\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy)-Summary.html
+    $Attachment = "$ReportFolder\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy).mht"
     Send-Email -Subject $Subject -Body $Body -Attachment $Attachment -EmailProfile $Script:Settings.EmailProfile
     Write-Log "AX Report has been Sent."
 }
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays(($LogFilesDays * -1))) }
+    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$LogFilesDays))) }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }
@@ -835,4 +753,5 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-WrkProcess
+$Script:Settings.ToolsConnectionObject.Close
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }
