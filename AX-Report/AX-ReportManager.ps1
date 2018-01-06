@@ -31,7 +31,7 @@ $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType 
 $Script:Settings | Add-Member -Name DataCollectorName -Value $DataCollectorName -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
-
+$Script:Settings.Guid
 function Get-WrkProcess
 {
   switch ($psCmdlet.ParameterSetName)
@@ -144,7 +144,7 @@ param(
 
 function Get-EventLogs
 {
-    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)_$($WrkServer.ServerType)" -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] } -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $Script:Settings.Guid, $Script:Settings.ReportDate
+    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)_$($WrkServer.ServerType)" -ScriptBlock { & $args[0] $args[1] $args[2] $args[3] } -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $Script:Settings.Guid, $Script:Settings.ReportDate
 }
 
 function AXR-CheckJobs
@@ -289,9 +289,9 @@ function Get-AXLogs
 	                FROM BATCHHISTORY A WITH(NOLOCK)
 		                FULL OUTER JOIN BATCHJOB B WITH(NOLOCK) 
 			                ON A.BATCHJOBID = B.RECID
-                WHERE A.STATUS IN (3, 6, 7 , 8) AND
-                (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)' AND 
-                DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) < '$((Get-Date).AddDays(0).Date)')
+                WHERE A.STATUS IN (3, 6, 7 , 8)
+                AND (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)' 
+                AND DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) < '$((Get-Date).AddDays(0).Date)')
                 ORDER BY STARTDATETIMECST"
         
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
@@ -328,7 +328,7 @@ function Get-AXLogs
             WHERE (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)' AND 
             DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.STARTDATETIME) < '$((Get-Date).AddDays(0).Date)')
             GROUP BY B.CAPTION, A.STATUS, A.SERVERID, A.EXECUTEDBY 
-            HAVING DATEDIFF(MINUTE, MAX(A.STARTDATETIME),MAX(A.ENDDATETIME)) > 1--5
+            HAVING DATEDIFF(MINUTE, MAX(A.STARTDATETIME),MAX(A.ENDDATETIME)) > 15
             ORDER BY 5 DESC"
         
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
@@ -385,9 +385,9 @@ function Get-AXLogs
             ON A.SESSION_ = B.RECID
             JOIN RETAILCONNDATABASEPROFILE C WITH(NOLOCK)
             ON A.DATASTORE = C.RECID
-            WHERE (A.STATUS IN ('1','5','6','7','8') OR B.STATUS IN ('5','6','7','8')) AND
-   	              (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.MODIFIEDDATETIME) >= '$((Get-Date).AddDays(-1).Date)' AND
-                  (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.MODIFIEDDATETIME) < '$((Get-Date).AddDays(0).Date)'))"
+            WHERE (A.STATUS IN ('1','5','6','7','8') OR B.STATUS IN ('5','6','7','8')) 
+                AND (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.MODIFIEDDATETIME) >= '$((Get-Date).AddDays(-1).Date)'
+                AND (DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), A.MODIFIEDDATETIME) < '$((Get-Date).AddDays(0).Date)'))"
 
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -421,8 +421,8 @@ function Get-AXLogs
 	                ,TIMEUPDATE
 	                ,([TempDB].[dbo].[CONPEEK](CAST([TempDB].[dbo].[CONPEEK](LOG, 2) AS varbinary(8000)), 2)) AS LOG
                 FROM REQLOG WITH(NOLOCK)
-                WHERE DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)' AND
-                      DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), STARTDATETIME) < '$((Get-Date).AddDays(0).Date)'"
+                WHERE DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), STARTDATETIME) >= '$((Get-Date).AddDays(-1).Date)'
+                      AND DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), STARTDATETIME) < '$((Get-Date).AddDays(0).Date)'"
 
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -512,6 +512,7 @@ function Get-PerfmonLogs
 {
     if(Test-Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\") {
         $BlgFile = Get-ChildItem -Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\" | 
+            #Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } |
             Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } |
             #Where-Object { $_.Extension -match '.blg' } | 
                 Sort-Object -Property CreationTime -Descending
@@ -698,8 +699,8 @@ function Get-SSRSLogs
 		            , TimeRendering 
                 FROM $($SRSInstance.DBName)..ExecutionLog2 
                 WHERE Status <> 'rsSuccess' 
-		            AND TimeStart >= '$((Get-Date).AddDays(-1).Date)' AND
-                        TimeStart < '$((Get-Date).AddDays(0).Date)'"
+		            AND TimeStart >= '$((Get-Date).AddDays(-1).Date)' 
+                    AND TimeStart < '$((Get-Date).AddDays(0).Date)'"
 
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -753,5 +754,5 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-WrkProcess
-$Script:Settings.ToolsConnectionObject.Close
+#$Script:Settings.ToolsConnectionObject.Close
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }

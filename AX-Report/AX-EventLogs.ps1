@@ -7,6 +7,7 @@
     [string]$ReportDate
 )
 [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
 
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
@@ -31,7 +32,8 @@ function Get-EventLogs
     }
     catch
     {
-        Write-Log "$ServerName - ERROR - EventLogs: {0}" -f $_.Exception.Message
+        Write-Log "$ServerName - ERROR - EventLogs: $($_.Exception.Message)"
+        #$_.Exception.Message | Out-File C:\Users\Administrator\Documents\GitHub\DynamicsAxTools\AX-Report\Joberror.txt -Append
     }
 }
 

@@ -73,7 +73,7 @@ function Create-ReportSummary
     }
 
     #AxRetailJobs
-    if($Script:ReportDP.AxCDXJobs.Count -eq 0) { 
+    if($Script:ReportDP.AxCDXJobs.Rows.Count -eq 0) { 
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Retail Jobs"; Status = "Ok."; RowColor = 'Green' }
     }
     else {
@@ -309,9 +309,9 @@ function Create-Report
         $Script:AXReport += Get-HtmlContentClose
     }
 
-    if($Script:ReportDP.AxCDXJobs.Count -gt 0) {
-        #CDX Jobs Errors
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Count)]" 
+    #CDX Jobs Errors
+    if($Script:ReportDP.AxCDXJobs.Rows.Count -gt 0) {
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Rows.Count)]" 
         $Script:AXReport += Get-HtmlContentTable (Set-TableRowColor $Script:ReportDP.AxCDXJobs -Alternating)
         $Script:AXReport += Get-HtmlContentClose
     }
@@ -533,4 +533,4 @@ function Run-ReportDP
 }
 
 Run-Report
-$Script:ReportDP.ToolsConnectionObject.Close()
+#$Script:ReportDP.ToolsConnectionObject.Close()
