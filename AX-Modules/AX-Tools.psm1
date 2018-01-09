@@ -380,7 +380,7 @@ param (
         $Log = $_.Exception
     }
 
-    SQL-BulkInsert AXTools_EmailLogs @($SMTPMessage | Select @{n='Sent';e={[int]$Sent}}, 
+    SQL-BulkInsert AXTools_EmailLog @($SMTPMessage | Select @{n='Sent';e={[int]$Sent}}, 
                                         @{n='EmailProfile';e={$EmailProfile}},
                                         @{n='Subject';e={$Subject}},
                                         @{n='Body';e={$Body.ToString()}},

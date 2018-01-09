@@ -439,7 +439,7 @@ function Get-AXLogs
         $SQLConn = Get-SQLObject -DBServer $SQLInstance.DBServer -DBName 'master' -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLLogs = $SQLConn.ReadErrorLog() | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) } |
                 Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}} #| Where-Object {($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) }
-        SQL-BulkInsert 'AXReport_SqlLogs' $SQLLogs
+        SQL-BulkInsert 'AXReport_SQLLog' $SQLLogs
 
     $Conn.Close()
     }
@@ -711,7 +711,7 @@ function Get-SSRSLogs
         if($SRSLogCnt -gt 0) {
             $SRSLogs = $SSRSDS.Tables[0] | 
                 Select Status, InstanceName, ReportPath, UserName, Format, TimeStart, TimeEnd, TimeDataRetrieval, TimeProcessing, TimeRendering, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
-            SQL-BulkInsert 'AXReport_SrsLogs' $SRSLogs
+            SQL-BulkInsert 'AXReport_SRSLog' $SRSLogs
         }
     $Conn.Close()
     }

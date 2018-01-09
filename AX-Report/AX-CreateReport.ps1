@@ -445,7 +445,7 @@ function Run-ReportDP
     $Script:ReportDP | Add-Member -Name AxMRPLogs -Value $($AxMRPLogs.Tables[0] | Select 'Start Time(CST)', 'End Time(CST)', 'TotalTime', Cancelled, Items, OnHand, SalesLines, PurchLines, Transfers, Orders, InventJournals, Log) -MemberType NoteProperty
 
     $Query = "SELECT MAX(LOGDATE) as Date, MAX(PROCESSINFO) as Process, TEXT as Log, MAX(Server) as Server, MAX([Database]) as [Database], COUNT(TEXT) as Count
-                FROM AXReport_SqlLogs
+                FROM AXReport_SQLLog
                 WHERE Guid = '$Guid' AND
 		                PROCESSINFO NOT LIKE 'Backup' AND PROCESSINFO NOT LIKE 'Logon' AND
 		                TEXT NOT LIKE 'SQL Trace%'
@@ -459,7 +459,7 @@ function Run-ReportDP
     $Script:ReportDP | Add-Member -Name SQLErrorLogs -Value $($SQLErrorLogs.Tables[0] | Select  Date, Process, Log, Server, Database, Count) -MemberType NoteProperty
 
     $Query = "SELECT INSTANCENAME as Instance, STATUS as Message, REPORTPATH as Report, COUNT(REPORTPATH) as Count
-                FROM AXReport_SRSLogs
+                FROM AXReport_SRSLog
                 WHERE Guid = '$Guid'
                 GROUP BY INSTANCENAME, STATUS, REPORTPATH
                 ORDER BY COUNT DESC, INSTANCENAME"
@@ -471,7 +471,7 @@ function Run-ReportDP
     $Script:ReportDP | Add-Member -Name SSRSErrorLogs -Value $($SSRSErrorLogs.Tables[0] | Select Instance, Message, Report, Count) -MemberType NoteProperty
 
     $Query = "SELECT UserName as [User], COUNT(1) as Count
-                FROM AXReport_SRSLogs
+                FROM AXReport_SRSLog
                 WHERE Guid = '$Guid'
                 GROUP BY USERNAME
                 ORDER BY COUNT DESC"
@@ -483,7 +483,7 @@ function Run-ReportDP
     $Script:ReportDP | Add-Member -Name SSRSUsers -Value $($SSRSUsers.Tables[0]) -MemberType NoteProperty
 
     $Query = "SELECT TOP 7 Guid, CONVERT(date, MAX(TIMESTART)) as [Date], COUNT(1) as Count
-                FROM AXReport_SRSLogs
+                FROM AXReport_SRSLog
                 GROUP BY Guid
                 ORDER BY 2 DESC"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:ReportDP.ToolsConnectionObject)
