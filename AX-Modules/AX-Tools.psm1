@@ -26,8 +26,8 @@ param (
     $ConfigFile = Load-ConfigFile
     $ParamDBServer = $ConfigFile.Settings.Database.DBServer
     $ParamDBName = $ConfigFile.Settings.Database.DBName
-    $ParamUserName = $ConfigFile.Settings.Database.Impersonation.UserName
-    $ParamPassword = $ConfigFile.Settings.Database.Impersonation.Password
+    $ParamUserName = $ConfigFile.Settings.Database.ConnectAs.UserName
+    $ParamPassword = $ConfigFile.Settings.Database.ConnectAs.Password
     if($ParamUserName) {
         $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ParamPassword | ConvertTo-SecureString)))
         $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 

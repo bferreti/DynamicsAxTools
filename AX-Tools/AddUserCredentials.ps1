@@ -58,7 +58,7 @@ function Insert-User
     }
 }
 
-$Credential = Get-Credential -Message "Credentials <DOMAIN\Username or user@emailserver.com>" -ErrorAction SilentlyContinue
+$Credential = Get-Credential -Message "<DOMAIN\Username> OR <user@emailserver.com>" -ErrorAction SilentlyContinue
 
 if ($Credential.UserName -ne $null ) {
     $BSTRBC = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password)
@@ -67,7 +67,7 @@ if ($Credential.UserName -ne $null ) {
     if ($Domain.Name -eq $null)
     {
         Write-Host "This is not a domain account."
-        $ID = "$($Credential.UserName.Split('@')[0])"
+        $ID = "$($Credential.UserName.Split('@')[0].toUpper())"
         $UserName = "$($Credential.UserName)"
         if(Validate-User) {
             write-host "Username already exists. Updating current credentials."
@@ -83,7 +83,9 @@ if ($Credential.UserName -ne $null ) {
     {
         write-host "Domain successfully authenticated."
         $ID = "$($Credential.UserName.Split('\')[1].ToUpper())"
-        $UserName = "$((([ADSI]`"").dc).toUpper())\$($Credential.UserName.Split('\')[1])"
+        $UserName = $Credential.UserName.ToUpper()
+        
+        #"$($((([ADSI]`"").dc))\$($Credential.UserName.Split('\')[1])).toUpper())"
 
         if(Validate-User) {
             write-host "Username already exists. Updating current credentials."
