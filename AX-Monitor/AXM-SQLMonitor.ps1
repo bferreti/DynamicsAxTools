@@ -23,9 +23,8 @@ $ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\
 $LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
 $LogFilesDays = $ConfigFile.Settings.General.RetentionDays
 $AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
-$Debug = $false
-
 $FileDateTime = Get-Date -f yyyyMMdd-HHmm
+$Debug = $false
 
 function Get-SQLMonitoring
 {
@@ -39,7 +38,7 @@ function Get-SQLMonitoring
             Get-PerfData
             Get-SQLConfig
             GRD-CreateReport
-            if($Script:Settings.SendEmail -eq 1) {
+            if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
                 GRD-SendEmail
             }
         }
@@ -49,7 +48,7 @@ function Get-SQLMonitoring
             Get-PerfData
             Get-SQLConfig
             GRD-CreateReport
-            if($Script:Settings.SendEmail -eq 1) {
+            if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
                 GRD-SendEmail
             }
         }
@@ -75,7 +74,7 @@ function Get-SQLMonitoring
 
 function Validate-Settings
 {
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Conn = Get-ConnectionString
     $Query = "SELECT * FROM AXTools_Environments                
                 WHERE ENVIRONMENT = '$Environment'"
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Conn)
@@ -89,16 +88,13 @@ function Validate-Settings
         $Script:Settings | Add-Member -Name ToolsConnection -Value $($Conn) -MemberType NoteProperty
        
         try {
-            if($Table.Tables.SQLAccount) {
-                #$Conn = Get-ConnectionString # $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-                $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$($Table.Tables.SQLAccount)'"
-                #$Conn.Open()
+            if($Table.Tables.DBUser) {
+                $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
                 $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
                 $UserPassword = $Cmd.ExecuteScalar()
-                #$Conn.Close()
                 $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
                 $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.SQLAccount, $secureUserPassword
+                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.DBUser, $secureUserPassword
                 $Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
@@ -108,7 +104,6 @@ function Validate-Settings
                 $SqlServer.ConnectionContext.ConnectAsUser = $true
                 $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
                 $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
-                #$SqlServer.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
                 $SqlServer.ConnectionContext.Connect()
             }
             else {
@@ -119,13 +114,9 @@ function Validate-Settings
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.Connect()
             }
-            #$Conn = New-Object System.Data.SqlClient.SQLConnection($ConnectionString)
-            #$Conn.Open()
-            #$Conn.Close()
             $Script:Settings | Add-Member -Name DBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
             $Script:Settings | Add-Member -Name DBName -Value $Table.Tables.DBName -MemberType NoteProperty
             $Script:Settings | Add-Member -Name Description -Value $Table.Tables.Description -MemberType NoteProperty
-            #$Script:Settings | Add-Member -Name SQLServer -Value $(New-Object ('Microsoft.SqlServer.Management.Smo.Server') $Script:Settings.DBServer) -MemberType NoteProperty
             $Script:Settings | Add-Member -Name SQLServer -Value $($SqlServer) -MemberType NoteProperty
             $Script:Settings | Add-Member -Name NetBios -Value $(($Script:Settings.SQLServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) -MemberType NoteProperty
         }
@@ -164,21 +155,20 @@ function Validate-Settings
         }
 
 
-        if($Table.Tables.GRD -match '1') {
+        if($Table.Tables.RunGRD -match '1') {
             $Script:Settings | Add-Member -Name EnableGRD -Value $true -MemberType NoteProperty
         }
         else {
             $Script:Settings | Add-Member -Name EnableGRD -Value $false -MemberType NoteProperty
         }
 
-        if($Table.Tables.Stats -match '0|1|2') {
+        if($Table.Tables.RunStats -match '0|1|2') {
             $Script:Settings | Add-Member -Name EnableStats -Value $Table.Tables.Stats -MemberType NoteProperty
         }
         else {
             $Script:Settings | Add-Member -Name EnableStats -Value 0 -MemberType NoteProperty
         }
 
-        $Script:Settings | Add-Member -Name SendEmail -Value $Table.Tables.Email -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
         $Table.Dispose()
     }
@@ -186,7 +176,6 @@ function Validate-Settings
 
 function Get-SQLStatus
 {
-    #$Script:Settings | Add-Member -Name Processes -Value $($Script:Settings.SQLServer.EnumProcesses() | Where { $_.Spid -gt 50 }) -MemberType NoteProperty
     $SQLProcesses = $Script:Settings.SQLServer.EnumProcesses()
     if($SQLProcesses) {
         $Script:Settings | Add-Member -Name Processes -Value $SQLProcesses -MemberType NoteProperty
@@ -309,14 +298,11 @@ function Get-SQLStatus
 
 function Get-CPUStatus
 {
-   $CPUTotal = ([Math]::Round(((Get-Counter -Counter '\Processor(_total)\% Processor Time' -ComputerName $Script:Settings.NetBios -ErrorAction SilentlyContinue).CounterSamples).CookedValue,4))
-   
-   if($CPUTotal -le 0.0001) {
-    $CPUTotal = ([Math]::Round(((Get-Counter -Counter '\Processor(_total)\% Processor Time' -ComputerName $Script:Settings.NetBios -SampleInterval 3 -ErrorAction SilentlyContinue).CounterSamples).CookedValue,4))
-   }
-
-   $Script:Settings | Add-Member -Name CPUTotal -Value $CPUTotal -MemberType NoteProperty
-   #Get-WmiObject win32_processor | Measure-Object -property LoadPercentage -Average | Select Average
+    $CPUTotal = ([Math]::Round(((Get-Counter -Counter '\Processor(_total)\% Processor Time' -ComputerName $Script:Settings.NetBios -ErrorAction SilentlyContinue).CounterSamples).CookedValue,4))
+    if($CPUTotal -le 0.0001) {
+        $CPUTotal = ([Math]::Round(((Get-Counter -Counter '\Processor(_total)\% Processor Time' -ComputerName $Script:Settings.NetBios -SampleInterval 3 -ErrorAction SilentlyContinue).CounterSamples).CookedValue,4))
+    }
+    $Script:Settings | Add-Member -Name CPUTotal -Value $CPUTotal -MemberType NoteProperty
 }
 
 function Get-GRDStatus
@@ -358,10 +344,7 @@ function Get-GRDStatus
 function Get-AXJobs
 {
     Write-ExecLog "Started Batch Jobs Status"
-    #$Conn = New-Object System.Data.SqlClient.SQLConnection
-    #$Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
     $Conn = $Script:Settings.SQLServer.ConnectionContext.SqlConnectionObject
-    ##
     $Query = 'SELECT Status = CASE STATUS 
 		            WHEN 2 THEN ''Executing''
 		            WHEN 3 THEN ''Error''
@@ -453,7 +436,7 @@ function Get-SQLConfig
 function Get-PerfData
 {
     Write-ExecLog "Started Perfmon Collectors"
-    if(($Script:Settings.DBServer).Contains('\')) { $InstanceName = ($Script:Settings.DBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.DBServer }
+    if(($Script:Settings.DBServer).Contains('\')) { $InstanceName = ($Script:Settings.DBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.DBServer } 
     
     #-listset *
 
@@ -474,7 +457,6 @@ function Get-PerfData
             $Perfmon += (Get-Counter -Counter $Counter -ComputerName $Script:Settings.NetBios -ErrorAction SilentlyContinue).CounterSamples | Select Path, @{n='Value';e={[Math]::Round(($_.CookedValue),2)}}, Timestamp 
         }
 
-        #$TotalMemory = Get-CimInstance -ClassName 'Cim_PhysicalMemory' -ComputerName $Script:Settings.NetBios | Measure-Object -Property Capacity -Sum | Select Property, Count, Sum
         $TotalMemory = Get-WmiObject -ClassName "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $Script:Settings.NetBios | Measure-Object -Property TotalPhysicalMemory -Sum | Select Property, Count, Sum 
         $Script:Settings | Add-Member -Name MemoryTotal -Value ([Math]::Truncate($TotalMemory.Sum/1Gb)) -MemberType NoteProperty
         $Script:Settings | Add-Member -Name MemoryFree -Value ([Math]::Truncate((($Perfmon | Where {$_.Path -like '*memory\available mbytes'}).Value)/1024)) -MemberType NoteProperty
@@ -504,14 +486,13 @@ function Get-GRDTables
 
     Write-ExecLog "Started GRD (Guardian Defense - Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
 
-    if($Debug) { $Script:Settings.Processes | Export-Csv $LogFolder\40-GRD_Processes_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
-    if($Debug) { $Script:Settings.Blocking | Export-Csv $LogFolder\41-GRD_Blocking_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
-    
-    if($Debug) { $Script:Settings | Export-Csv $LogFolder\00-GRD_Settings_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
-    
-    if($Debug) { $Script:Settings.ProcessesInfo | Export-Csv $LogFolder\01-GRD_ProcessesInfo_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
-    
-    if($Debug) { $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv $LogFolder\10-GRD_SQLTextNoFilter_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
+    if($Debug) { 
+        $Script:Settings.Processes | Export-Csv $LogFolder\40-GRD_Processes_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
+        $Script:Settings.Blocking | Export-Csv $LogFolder\41-GRD_Blocking_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
+        $Script:Settings | Export-Csv $LogFolder\00-GRD_Settings_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
+        $Script:Settings.ProcessesInfo | Export-Csv $LogFolder\01-GRD_ProcessesInfo_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
+        $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv $LogFolder\10-GRD_SQLTextNoFilter_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append 
+    }
     
     $SQLText = $Script:Settings.ProcessesInfo | 
                 Where-Object {(($_.Database -eq $Script:Settings.DBName) -and 
@@ -652,7 +633,6 @@ Param(
             $Schema = 'dbo'
             $TableName = $Table.ToUpper()
         }
-
         if($Script:Settings.SQLServer.Databases[$Script:Settings.DBName].Tables.Contains($TableName, $Schema)) {
             $TablesRet += "$Schema.$TableName"
         }
@@ -683,7 +663,6 @@ Param(
             WHERE [ENVIRONMENT] = '$Environment' AND
 		            [CREATEDDATETIME] >= '$((Get-Date).AddMinutes(-60))'
                     AND [STATSTYPE] <> 'GRD'"
-    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -744,13 +723,10 @@ Param(
                                                 @{n='GUID';e={($Script:Settings.Guid)}})
                 
         if($GRDJobTemp.GRDJobRun -eq 1) {Run-GRDStats $GRDJobTemp}
-                
         if($Debug) { $GRDJobTemp | Export-Csv $LogFolder\30-GRD_JobsCreation_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
-                
         $GRDJobRun += $GRDJobTemp
     }
     $Script:Settings | Add-Member -Name GRDJobs -Value $GRDJobRun -MemberType NoteProperty
-
     if($Debug) { $(Get-Job) | Export-Csv $LogFolder\31-GRD_Jobs_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
 }
 
@@ -776,7 +752,6 @@ function Get-JobStatus
         Start-Sleep -Milliseconds 2000
         $Script:Settings | Add-Member -Name Processes -Value $($Script:Settings.SQLServer.EnumProcesses() | Where { $_.Spid -gt 50 }) -MemberType NoteProperty -Force
         $GRDSpids = ($Script:Settings.Processes | WHERE { $_.Command -match 'UPDATE STATISTICS' -and $_.Database -match $Script:Settings.DBName -and $_.Host -match $env:COMPUTERNAME } | Sort CPU -Descending)
-
         foreach($Spid in $GRDSpids) {
             if($Script:Settings.Processes.BlockingSpid -eq $Spid.Spid ) { 
                 $BlockedSpid = $Script:Settings.Processes | Where {$_.BlockingSpid -eq $Spid.Spid}
@@ -796,19 +771,13 @@ function Get-SQLStatisticsInterval
                 FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
                 WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-30))' 
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    #$Conn.Open()
     $GRDStatsInterval = $Cmd.ExecuteScalar()
-    #$Conn.Close()
-
     return $GRDStatsInterval
 }
 
 function Get-SQLStatistics
 {
-    #$Conn = New-Object System.Data.SqlClient.SQLConnection ########
-    #$Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True;Connect Timeout=30"
     $Conn = $Script:Settings.SQLServer.ConnectionContext.SqlConnectionObject
     $Query = "SELECT  o.name as [TableName]
                     , object_schema_name(object_id) as [Schema]
@@ -857,11 +826,8 @@ function Get-SQLStatistics
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'
                 AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
 
-    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    #$Conn.Open()
     $GRDStatsCount = $Cmd.ExecuteScalar()
-    #$Conn.Close()
 
     $GRDJobRun = @()
     if(($Script:Settings.EnableStats -eq 2) -and (($GRDStatsCount -eq 0) -and ($(($GRDStats | Where {$_.PercentChange -gt 10}).Count) -gt 0)) -and ($Script:Settings.CPUTotal -le 50)) {
@@ -871,7 +837,6 @@ function Get-SQLStatistics
                 Start-Sleep -Milliseconds 5000
             }
                 $GRDJobTemp = New-Object -TypeName System.Object
-                #$GRDJobTemp | Add-Member -Name TableName -Value $Table.Name.Split(',')[1].Trim() -MemberType NoteProperty
                 $GRDJobTemp | Add-Member -Name TableName -Value $Table.Name.Replace(', ','.') -MemberType NoteProperty
                 $GRDJobTemp | Add-Member -Name StatsType -Value 'REGULAR' -MemberType NoteProperty
                 $GRDJobTemp | Add-Member -Name Statement -Value "UPDATE STATISTICS $($Table.Name.Replace(', ','.'))" -MemberType NoteProperty
@@ -993,13 +958,11 @@ function GRD-CreateReport
         $GRDReport += Get-HtmlContentClose
     }
     $GRDReport += Get-HtmlClose -FooterText "Guid: $($Script:Settings.Guid)"
-    
     $Script:Settings | Add-Member -Name GRDReport -Value $GRDReport -MemberType NoteProperty
 
     #Save HTML
     $GRDReportPath = join-path $ReportFolder ("GRD-$($Script:Settings.NetBios)-$FileDateTime" + ".html")
     $GRDReport | Set-Content -Path $GRDReportPath -Force
-    
     $Script:Settings | Add-Member -Name GRDReportPath -Value $GRDReportPath -MemberType NoteProperty
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET REPORT = '$GRDReportPath' WHERE GUID = '$($Script:Settings.Guid)'"
 }
@@ -1009,11 +972,8 @@ function GRD-SendEmail
     $Query =   "SELECT COUNT(1) AS Report
                     FROM AXMonitor_ExecutionLog
                     WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-15))' AND [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-    #$Conn = Get-ConnectionString #New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    #$Conn.Open()
     $GRDReportChk = $Cmd.ExecuteScalar()
-    #$Conn.Close()
 
     if(($($Script:Settings.CPUTotal) -le $Script:Settings.CPUThold) -and
         ($($Script:Settings.Blocking.Spid.Count) -le $($Script:Settings.BlockThold)) -and

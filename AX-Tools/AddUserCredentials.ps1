@@ -1,5 +1,5 @@
 ﻿param (
-    [Switch]$Impersonation
+    [Switch]$RunAs
 )
 [Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 [Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
@@ -15,12 +15,10 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 function Validate-User
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT UserName FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
-    $Conn.Open()
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $UserExists = $Cmd.ExecuteScalar()
-    $Conn.Close()
 
     if($UserExists) {
         return $true
@@ -32,9 +30,7 @@ function Validate-User
 
 function Delete-User
 {
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "DELETE FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
-    $Conn.Open()
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
 }
@@ -42,15 +38,12 @@ function Delete-User
 function Insert-User
 {
     $SecureStringAsPlainText = $Credential.Password | ConvertFrom-SecureString
-    $Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD])
                 VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
-    $Conn.Open()
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
-    $Conn.Close()
 
-    if($Impersonation) {
+    if($RunAs) {
         [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
         $ConfigFile.Settings.Database.Impersonation.UserName = $UserName
         $ConfigFile.Settings.Database.Impersonation.Password = $SecureStringAsPlainText.ToString()
@@ -61,6 +54,7 @@ function Insert-User
 $Credential = Get-Credential -Message "<DOMAIN\Username> OR <user@emailserver.com>" -ErrorAction SilentlyContinue
 
 if ($Credential.UserName -ne $null ) {
+    $Conn = Get-ConnectionString
     $BSTRBC = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password)
     $Root = "LDAP://" + ([ADSI]"").distinguishedName
     $Domain = New-Object System.DirectoryServices.DirectoryEntry($Root,$Credential.UserName,[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRBC))
