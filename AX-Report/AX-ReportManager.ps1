@@ -44,7 +44,7 @@ function Get-WrkProcess
         break
     }
     default {
-        $ScriptName = 'AX Report'
+        $ScriptName = 'AX Report Script'
         Get-AxReport(Get-WrkServers)
         break
     }
@@ -61,13 +61,14 @@ function Validate-Settings
 
     if (![string]::IsNullOrEmpty($Table.Tables))
     {
-        $Script:Settings | Add-Member -Name SendEmail -Value $Table.Tables.Email -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailDescription -Value $Table.Tables.Description -MemberType NoteProperty
-        $Script:Settings | Add-Member -Name SQLAccount -Value $Table.Tables.SQLAccount -MemberType NoteProperty
+        $Script:Settings | Add-Member -Name SQLAccount -Value $Table.Tables.DBUser -MemberType NoteProperty
+        if($Table.Tables.LocalAdminUser) {
+            $Script:Settings | Add-Member -Name LocalAdminAccount -Value $(Get-UserCredentials $Table.Tables.LocalAdminUser) -MemberType NoteProperty
+        }
     }
     else {
-        #$Script:Settings | Add-Member -Name SendEmail -Value 0 -MemberType NoteProperty
         Write-Host 'Environment not found.'
         break
     }
@@ -137,14 +138,16 @@ param(
     AXR-CheckJobs
     AXR-CreateReport
     AXR-CheckJobs
-    AXR-SendEmail
+    if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
+        AXR-SendEmail
+    }
     if($AutoCleanUp) { Do-CleanUp }
     Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
 
 function Get-EventLogs
 {
-    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)_$($WrkServer.ServerType)" -ScriptBlock { & $args[0] $args[1] $args[2] $args[3] } -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $Script:Settings.Guid, $Script:Settings.ReportDate
+    $JobStart = Start-Job -Name "AXReport_EventLogs_$($WrkServer.ServerName)_$($WrkServer.ServerType)" -ScriptBlock { & $args[0] $args[1] $args[2] $args[3] $args[4]} -ArgumentList @("$ScriptDir\AX-EventLogs.ps1"), $WrkServer.ServerName, $Script:Settings.Guid, $Script:Settings.ReportDate, $Script:Settings.LocalAdminAccount
 }
 
 function AXR-CheckJobs
@@ -162,6 +165,54 @@ function AXR-CheckJobs
 
 function Get-AXConfiguration
 {
+    if($Script:Settings.LocalAdminAccount) {
+        $AOSKey = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' }
+        foreach($AOSVersion in $AOSKey) {
+            if($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$"){
+                    Switch($AOSVersion.PSChildName.Substring(0,1)) {
+                    "5" { $Version = "AX2009" }
+                    "6" { $Version = "AX2012" }
+                    "7" { $Version = "D365" }
+                }
+                $AOSInstances = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") {Get-ChildItem $args[0] }
+                foreach($Instance in $AOSInstances) {
+                    $Current = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
+                    $InstanceName = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
+                    $CurrentKey = "$($Instance.Name)\$Current"
+                    $DBName = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
+                    $DBServer = Invoke-command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
+                    $Details = "AX Database (Version: $Version / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+                    Write-Log "$($WrkServer.ServerName) - $Details"
+                    Add-SQLInstance $DBServer $DBName 'AX Database'
+                }
+            }
+        }
+    }
+    else {
+        $AOSKey = Invoke-command -Computer $($WrkServer.ServerName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' }
+        foreach($AOSVersion in $AOSKey) {
+            if($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$"){
+                    Switch($AOSVersion.PSChildName.Substring(0,1)) {
+                    "5" { $Version = "AX2009" }
+                    "6" { $Version = "AX2012" }
+                    "7" { $Version = "D365" }
+                }
+                $AOSInstances = Invoke-command -Computer $($WrkServer.ServerName) -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { Get-ChildItem $args[0] }
+                foreach($Instance in $AOSInstances) {
+                    $Current = Invoke-command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
+                    $InstanceName = Invoke-command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
+                    $CurrentKey = "$($Instance.Name)\$Current"
+                    $DBName = Invoke-command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
+                    $DBServer = Invoke-command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
+                    $Details = "AX Database (Version: $Version / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+                    Write-Log "$($WrkServer.ServerName) - $Details"
+                    Add-SQLInstance $DBServer $DBName 'AX Database'
+                }
+            }
+        }
+    }
+
+ <#
     $reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey("LocalMachine",$($WrkServer.ServerName))
     $key = "SYSTEM\\CurrentControlSet\\services\\Dynamics Server\\6.0\\01"
     $regkey = $reg.opensubkey($key)
@@ -170,8 +221,7 @@ function Get-AXConfiguration
     $regkey = $reg.opensubkey($key)
     $DBServer = $regKey.GetValue('DBServer')
     $DBName = $regKey.GetValue('Database')
-    #
-    Add-SQLInstance $DBServer $DBName 'AX Database'
+#>
 }
 
 function Add-SQLInstance($DBServer, $DBName, $Details)
@@ -189,23 +239,21 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
        
     if(!$ok) {
         $SQLInstance = @()
-        #$Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $DBServer
         $Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLTmp = New-Object -TypeName System.Object
-        $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
+        $SQLTmp | Add-Member -Name Environment -Value $Script:Settings.Environment -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBServer -Value $DBServer -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBName -Value $DBName -MemberType NoteProperty
         $SQLTmp | Add-Member -Name Details -Value $Details -MemberType NoteProperty
         $SQLTmp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
         $SQLTmp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
         $SQLInstance += $SQLTmp
-        Write-Log "$($WrkServer.ServerName) - $DBServer | $DBName"
         if($Server.IsClustered) {
             $Cluster = Get-ClusterNode -Cluster $(($DBServer.Split('\'))[0])
             foreach($Node in $Cluster) {
                 if($Node.NodeName -match $($Server.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) {
                     $SQLTmp = New-Object -TypeName System.Object
-                    $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name Environment -Value $Script:Settings.Environment -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBServer -Value ($Node.NodeName).ToUpper() -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBName -Value '' -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name Details -Value "Active-Node | $($DBServer) | $($Node.Id) | $($Node.State)" -MemberType NoteProperty
@@ -215,7 +263,7 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
                 }
                 else {
                     $SQLTmp = New-Object -TypeName System.Object
-                    $SQLTmp | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
+                    $SQLTmp | Add-Member -Name Environment -Value $Script:Settings.Environment -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBServer -Value ($Node.NodeName).ToUpper() -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name DBName -Value '' -MemberType NoteProperty
                     $SQLTmp | Add-Member -Name Details -Value "Passive-Node | $($DBServer) | $($Node.Id) | $($Node.State)" -MemberType NoteProperty
@@ -234,6 +282,7 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
 
 function Get-AOSServices
 {
+    <#
     $AOSService = Get-Service -ComputerName $WrkServer.ServerName |
         Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" } | 
             Select  @{n='ServerName';e={$_.MachineName.Trim()}},
@@ -241,8 +290,46 @@ function Get-AOSServices
                     @{n='DisplayName';e={$_.DisplayName}},
                     @{n='Status';e={($_.Status).ToString()}},
                     @{n='ReportDate';e={$Script:Settings.ReportDate}},
-                    @{n='Guid';e={$Script:Settings.Guid}}                    
-    SQL-BulkInsert 'AXReport_AxServices' $AOSService
+                    @{n='Guid';e={$Script:Settings.Guid}}
+    #>
+    $AOSServices = @()
+    if($Script:Settings.LocalAdminAccount -and $WrkServer.ServerName -ne $env:COMPUTERNAME) {
+        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
+        if($Services) { 
+            foreach($Service in $Services) {
+                $ServicePID = $Service.ProcessID
+                $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$ServicePID'" -Credential $Script:Settings.LocalAdminAccount -ea 0
+                $AOSTemp  = New-Object -TypeName System.Object
+                $AOSTemp | Add-Member -Name ServerName -Value $($WrkServer.ServerName) -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Service -Value $Service.Name -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Name -Value $Service.DisplayName -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Status -Value $Service.State -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
+                $AOSServices += $AOSTemp
+            }
+        }
+    }
+    else {
+        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
+        if($Services) { 
+            foreach($Service in $Services) {
+                $ServicePID = $Service.ProcessID
+                $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$ServicePID'" -ea 0
+                $AOSTemp  = New-Object -TypeName System.Object
+                $AOSTemp | Add-Member -Name ServerName -Value $($WrkServer.ServerName) -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Service -Value $Service.Name -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Name -Value $Service.DisplayName -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Status -Value $Service.State -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
+                $AOSServices += $AOSTemp
+            }
+        }
+    }
+    SQL-BulkInsert 'AXReport_AxServices' $AOSServices
 }
 
 function Get-AXLogs
@@ -513,12 +600,12 @@ function Get-PerfmonLogs
     if(Test-Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\") {
         $BlgFile = Get-ChildItem -Path "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)\" | 
             #Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } |
-            Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) } |
+            Where-Object { $_.Extension -match '.blg' -and $_.CreationTime -ge $((Get-Date).AddDays(-1).Date) -and $_.CreationTime -lt $((Get-Date).AddDays(0).Date) -and $(New-TimeSpan ($_.CreationTime) ($_.LastWriteTime)).TotalMinutes -gt 5 } |
             #Where-Object { $_.Extension -match '.blg' } | 
                 Sort-Object -Property CreationTime -Descending
         if($BlgFile) {
-            $Paths = Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.PathsWithInstances }
-            $Paths += Import-Counter -Path $($BlgFile.FullName) -ListSet * | % { $_.Counter }
+            $Paths = Import-Counter -Path $BlgFile.FullName -ListSet * -ErrorAction SilentlyContinue | % { $_.PathsWithInstances }
+            $Paths += Import-Counter -Path $BlgFile.FullName -ListSet * -ErrorAction SilentlyContinue | % { $_.Counter }
             $Script:BlgCounters = @()
             foreach($Path in $Paths) {
                 switch -wildcard ($Path) {
@@ -605,8 +692,8 @@ function Get-PerfmonLogs
 
 function Add-PerfCounter($Path, $Type, $ReportView)
 {
-    $CounterData = Import-Counter -Path $($BlgFile.FullName) -Counter $Path -ErrorAction SilentlyContinue
-    $CounterSummary = Import-Counter -Path $($BlgFile.FullName) -Summary
+    $CounterData = Import-Counter -Path $BlgFile.FullName -Counter $Path -ErrorAction SilentlyContinue
+    $CounterSummary = Import-Counter -Path $BlgFile.FullName -Summary
 
     Switch -wildcard ($Path) {
         '*MSSQL$*'{
@@ -658,6 +745,7 @@ function Add-PerfCounter($Path, $Type, $ReportView)
 
     $tmpCounter = New-Object -TypeName System.Object
     $tmpCounter | Add-Member -Name ServerName -Value $WrkServer.ServerName -MemberType NoteProperty
+    $tmpCounter | Add-Member -Name ServerType -Value $WrkServer.ServerType -MemberType NoteProperty
     $tmpCounter | Add-Member -Name CounterType -Value $Type -MemberType NoteProperty
     $tmpCounter | Add-Member -Name ReportView -Value $ReportView -MemberType NoteProperty
     $tmpCounter | Add-Member -Name Path -Value $Path.Substring($WrkServer.ServerName.Length + 3) -MemberType NoteProperty
@@ -754,5 +842,4 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-WrkProcess
-#$Script:Settings.ToolsConnectionObject.Close
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }

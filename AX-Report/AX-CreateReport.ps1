@@ -13,15 +13,10 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
-#Import-Module $ModuleFolder\Remove\AX-ReportFunc.psm1 -DisableNameChecking
-
 
 $ConfigFile = Load-ConfigFile
-
 $ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
-
-#$Footer = "AX Report v{3} run {0} by {1}\{2}" -f (Get-Date),$env:UserDomain,$env:UserName,'2.0'
 $ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
 
@@ -36,7 +31,6 @@ function Run-Report
 function Create-ReportSummary
 {
     $Script:AxSummary = @()
-
     #AxServices
     if($Script:ReportDP.AxServices.Count -eq ($Script:ReportDP.AxServices | Where {$_.Status -match 'Running'}).Count) { 
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = "Ok. All Services Running."; RowColor = 'Green' }
@@ -46,16 +40,18 @@ function Create-ReportSummary
     }
 
     #MRP Runtime
-    if($Script:ReportDP.AxMRPLogs) {
-        switch -wildcard ($Script:ReportDP.AxMRPLogs) {
-            {$($Script:ReportDP.AxMRPLogs.TotalTime) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP Failed or Cancelled."; RowColor = 'Red' }}
-            {($($Script:ReportDP.AxMRPLogs.TotalTime) -gt 0) -and ($($Script:ReportDP.AxMRPLogs.TotalTime) -le 45)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($Script:ReportDP.AxMRPLogs.TotalTime) minutes."; RowColor = 'Green' }}
-            {($($Script:ReportDP.AxMRPLogs.TotalTime) -gt 45) -and ($($Script:ReportDP.AxMRPLogs.TotalTime) -le 60)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($Script:ReportDP.AxMRPLogs.TotalTime) minutes."; RowColor = 'Yellow' }}
-            Default {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($Script:ReportDP.AxMRPLogs.TotalTime) minutes."; RowColor = 'Red' }}
+    if($Script:ReportDP.AxMRPLogs.Count -gt 0) {
+        $MRPTotalTime = $Script:ReportDP.AxMRPLogs.TotalTime | Measure-Object  -Maximum -Average
+        switch -wildcard ($MRPTotalTime) {
+            {$($MRPTotalTime.Maximum) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) with no execution time."; RowColor = 'Red' }}
+            {($($MRPTotalTime.Maximum) -gt 0) -and ($($MRPTotalTime.Maximum) -le 45)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Green' }}
+            #{($($Script:ReportDP.AxMRPLogs.TotalTime) -gt 45) -and ($($Script:ReportDP.AxMRPLogs.TotalTime) -le 60)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($Script:ReportDP.AxMRPLogs.TotalTime) minutes."; RowColor = 'Yellow' }}
+            {($($MRPTotalTime.Maximum) -gt 45)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Yellow' }}
+            Default {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP Failed $(if($MRPTotalTime.Maximum -gt 0){ "- $($MRPTotalTime.Maximum) minutes."} else {"."})"; RowColor = 'Red' }}
         }
     }
     else {
-         $Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP Long Run or Failed."; RowColor = 'Red'; }
+         $Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP data not found."; RowColor = 'Green'; }
     }
 
     #AxBatchJobs
@@ -63,7 +59,7 @@ function Create-ReportSummary
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Batch Jobs"; Status = "Ok."; RowColor = 'Green' }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Batch Jobs"; Status = "Errors Found."; RowColor = 'Red' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Batch Jobs"; Status = "$($Script:ReportDP.AxBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
     }
     if($Script:ReportDP.AxLongBatchJobs.Count -eq 0) {
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>15min)"; Status = "Ok."; RowColor = 'Green' }
@@ -77,7 +73,7 @@ function Create-ReportSummary
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Retail Jobs"; Status = "Ok."; RowColor = 'Green' }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Retail Jobs"; Status = "Errors Found."; RowColor = 'Red' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Retail Jobs"; Status = "$($Script:ReportDP.AxCDXJobs.Rows.Count) Jobs Found."; RowColor = 'Red' }
     }
 
     #PerfmonData Color-Set
@@ -88,7 +84,6 @@ function Create-ReportSummary
     #REMOVING INSTANCES NOT RUNNING
     $PermonDataLogsTmp = $Script:ReportDP.PermonDataLogs | Where {$_.ServerType -notmatch 'SQL' -or $_.CounterType -like 'SRV' }
     $PermonDataLogsTmp += $Script:ReportDP.PermonDataLogs | Where {(($_.Max -ne 0) -or ($_.Min -ne 0)) -and ($_.CounterType -notmatch 'SRV') -and ($_.ServerType -match 'SQL')}
-    #$AXPerfmonCLR = Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green
     $Script:ReportDP | Add-Member -Name AxPerfmonCLR -Value $(Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green) -MemberType NoteProperty
 
 
@@ -132,32 +127,37 @@ function Create-ReportSummary
         $Adapter.SelectCommand = $Cmd
         $AxCrash = New-Object System.Data.DataSet
         $Adapter.Fill($AxCrash)
-        $AxCrashLog = $AxCrash.Tables[0] | Sort Server, Type
-        $Script:AxSummary += New-Object PSObject -Property @{
-                            Name = "Event Logs";
-                            Status = "$(($AxCrashLog | Where {$_.Type -like 'Crash(es)'} | Measure-Object Count -Sum).Sum) Crash(es) and $(($AxCrashLog | Where {$_.Type -like 'Hang(s)'} | Measure-Object Count -Sum).Sum) Hang(s)"; 
-                            RowColor = if((($AxCrashLog | Where {$_.Type -like 'Crash(es)'}).Count -gt 0) -and (($AxCrashLog | Where {$_.Application -like 'server'}).Count -gt 0)) {'Red'} else {'Yellow'}
-                          }
-        foreach($Crash in $AxCrashLog | Group Server) {
-            $TmpSummary = @()
-            $i = 1
-            foreach($CrashRpt in $Crash.Group) {
-                if($i -eq 1) {
-                    $TmpSummary += "$($CrashRpt.Count) $($CrashRpt.Application) $($CrashRpt.Type)"
+        if($AxCrash.Tables[0].Rows.Count -gt 0) {
+            $AxCrashLog = $AxCrash.Tables[0] | Sort Server, Type
+            $Script:AxSummary += New-Object PSObject -Property @{
+                                Name = "Event Logs";
+                                Status = "$(($AxCrashLog | Where {$_.Type -like 'Crash(es)'} | Measure-Object Count -Sum).Sum) Crash(es) and $(($AxCrashLog | Where {$_.Type -like 'Hang(s)'} | Measure-Object Count -Sum).Sum) Hang(s)"; 
+                                RowColor = if((($AxCrashLog | Where {$_.Type -like 'Crash(es)'}).Count -gt 0) -and (($AxCrashLog | Where {$_.Application -like 'server'}).Count -gt 0)) {'Red'} else {'Yellow'}
+                              }
+            foreach($Crash in $AxCrashLog | Group Server) {
+                $TmpSummary = @()
+                $i = 1
+                foreach($CrashRpt in $Crash.Group) {
+                    if($i -eq 1) {
+                        $TmpSummary += "$($CrashRpt.Count) $($CrashRpt.Application) $($CrashRpt.Type)"
+                    }
+                    else {
+                        $TmpSummary += "and $($CrashRpt.Count) $($CrashRpt.Application) $($CrashRpt.Type)"
+                    }
+                    $i++
                 }
-                else {
-                    $TmpSummary += "and $($CrashRpt.Count) $($CrashRpt.Application) $($CrashRpt.Type)"
-                }
-                $i++
+                $Script:AxSummary += New-Object PSObject -Property @{ 
+                                Name = "`t"; 
+                                Status = " -› $($Crash.Name) - $TmpSummary"; 
+                                RowColor = if($TmpSummary -match ("server crash")) {'Red'} else {'Yellow'} }
             }
-            $Script:AxSummary += New-Object PSObject -Property @{ 
-                            Name = "`t"; 
-                            Status = " -› $($Crash.Name) - $TmpSummary"; 
-                            RowColor = if($TmpSummary -match ("server crash")) {'Red'} else {'Yellow'} }
+        }
+        else {
+            $Script:AxSummary += New-Object PSObject -Property @{ Name = "Event Logs"; Status = "Ok."; RowColor = 'Green' }
         }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Event Logs"; Status = "Ok."; RowColor = 'Green' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Event Logs"; Status = "No data found."; RowColor = 'Green' }
     }
 
     #SQLErrorLogs
@@ -282,9 +282,11 @@ function Create-Report
     $Script:AXReport += Get-HtmlContentClose
 
     #Batch Jobs Errors
-    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Batch Jobs Errors [Total - $($Script:ReportDP.AxBatchJobs.Count)]"
-    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxBatchJobs)
-    $Script:AXReport += Get-HtmlContentClose
+    if($Script:ReportDP.AxBatchJobs.Count -gt 0) {
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Batch Jobs Errors [Total - $($Script:ReportDP.AxBatchJobs.Count)]"
+        $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxBatchJobs)
+        $Script:AXReport += Get-HtmlContentClose
+    }
     #
     if($Script:ReportDP.SSRSErrorLogs.Count -gt 0) {
         $PieChartObject3 = New-HTMLPieChartObject
@@ -302,8 +304,8 @@ function Create-Report
         #
         $Script:AXReport += Get-HtmlColumn2of2
         $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Errors by User (Top 5)"
-        $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject3 -PieChartData ($Script:ReportDP.SSRSUsersReport | Sort Count -Descending | Select -First 5)
-        $Script:AXReport += Get-HtmlContentTable($Script:ReportDP.SSRSUsersReport | Select User, Count | Sort Count -Descending | Select -First 5)
+        $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject3 -PieChartData ($Script:ReportDP.SSRSUsers | Sort Count -Descending | Select -First 5)
+        $Script:AXReport += Get-HtmlContentTable($Script:ReportDP.SSRSUsers | Select User, Count | Sort Count -Descending | Select -First 5)
         $Script:AXReport += Get-HtmlContentClose
         $Script:AXReport += Get-HtmlColumnClose
         $Script:AXReport += Get-HtmlContentClose
@@ -321,26 +323,26 @@ function Create-Report
     $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SQLErrorLogs) 
     $Script:AXReport += Get-HtmlContentClose
 
-    if($Script:ReportDP.SSRSWeek.Count -gt 0) {
-        $PieChartObject4 = New-HTMLPieChartObject
-        $PieChartObject4.Title = " "
-        $PieChartObject4.Size.Height = 400
-        $PieChartObject4.Size.Width = 400
-        $PieChartObject4.ChartStyle.ExplodeMaxValue = $true    			
-    
-        $Script:AXReport += Get-HtmlContentOpen
-        $Script:AXReport += Get-HtmlColumn1of2
-        $Script:AXReport += Get-HtmlContentOpen -HeaderText "SSRS Errors 7 Days"
-        $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject4 -PieChartData ($Script:ReportDP.SSRSWeek | Sort Date)
-        $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SSRSWeek | Select Date, Count | Sort Date -Descending)
-        $Script:AXReport += Get-HtmlContentClose
-        $Script:AXReport += Get-HtmlColumnClose
-
-        $Script:AXReport += Get-HtmlColumn2of2
-
-        $Script:AXReport += Get-HtmlColumnClose
-        $Script:AXReport += Get-HtmlContentClose
-    }
+    #if($Script:ReportDP.SSRSWeek.Count -gt 0) {
+    #    $PieChartObject4 = New-HTMLPieChartObject
+    #    $PieChartObject4.Title = " "
+    #    $PieChartObject4.Size.Height = 400
+    #    $PieChartObject4.Size.Width = 400
+    #    $PieChartObject4.ChartStyle.ExplodeMaxValue = $true    			
+    #
+    #    $Script:AXReport += Get-HtmlContentOpen
+    #    $Script:AXReport += Get-HtmlColumn1of2
+    #    $Script:AXReport += Get-HtmlContentOpen -HeaderText "SSRS Errors 7 Days"
+    #    $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject4 -PieChartData ($Script:ReportDP.SSRSWeek | Sort Date)
+    #    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SSRSWeek | Select Date, Count | Sort Date -Descending)
+    #    $Script:AXReport += Get-HtmlContentClose
+    #    $Script:AXReport += Get-HtmlColumnClose
+    #
+    #    $Script:AXReport += Get-HtmlColumn2of2
+    #
+    #    $Script:AXReport += Get-HtmlColumnClose
+    #    $Script:AXReport += Get-HtmlContentClose
+    #}
 
     #Close Report
     $Script:AXReport += Get-HtmlContentClose
@@ -371,13 +373,13 @@ function Run-ReportDP
     $Script:ReportDP | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
     $Script:ReportDP | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:ReportDP.ApplicationName) -MemberType NoteProperty
 
-    $Query = "SELECT ServerName, Service AS ServiceName, DisplayName, Status FROM AXReport_AxServices WHERE Guid = '$Guid'"
+    $Query = "SELECT ServerName, Service AS ServiceName, Name, Status, StartTime FROM AXReport_AxServices WHERE Guid = '$Guid'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:ReportDP.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $AxServices = New-Object System.Data.DataSet
     $Adapter.Fill($AxServices) | Out-Null
-    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, DisplayName, Status) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, Name, Status, StartTime) -MemberType NoteProperty
 
     $Query = "SELECT HISTORYCAPTION AS [History Caption],JOBCAPTION AS [Job Caption],Status,ServerID AS Server,STARTDATETIMECST AS [Start Time(CST)],ENDDATETIMECST AS [End Time(CST)],EXECUTEDBY AS [User], LOG AS Log
                 FROM AXReport_AxBatchJobs 
@@ -433,16 +435,16 @@ function Run-ReportDP
     $Adapter.Fill($AxEventLogs)
     $Script:ReportDP | Add-Member -Name AxEventLogs -Value $($AxEventLogs.Tables[0] | Select ServerName, ServerType, LogName, Type, ID, Source, Count) -MemberType NoteProperty -Force
 
-    $Query = "SELECT TOP 7 STARTDATETIME as [Start Time(CST)], ENDDATETIME as [End Time(CST)], ((TIMECOPY+TIMECOVERAGE+TIMEUPDATE)/60) AS [TotalTime], Cancelled, USEDTODAYSDATE as [Todays Date], NUMOFITEMS as Items, NUMOFINVENTONHAND as OnHand, NUMOFSALESLINE as SalesLines, NUMOFPURCHLINE as PurchLines, NUMOFTRANSFERPLANNEDORDER as Transfers, NUMOFITEMPLANNEDORDER as Orders, NUMOFINVENTJOURNAL as InventJournals, LOG as Log
+    $Query = "SELECT TOP 7 ReqPlanId as [Plan], STARTDATETIME as [Start Time(CST)], ENDDATETIME as [End Time(CST)], ((TIMECOPY+TIMECOVERAGE+TIMEUPDATE)/60) AS [TotalTime], Cancelled, USEDTODAYSDATE as [Todays Date], NUMOFITEMS as Items, NUMOFINVENTONHAND as OnHand, NUMOFSALESLINE as SalesLines, NUMOFPURCHLINE as PurchLines, NUMOFTRANSFERPLANNEDORDER as Transfers, NUMOFITEMPLANNEDORDER as Orders, NUMOFINVENTJOURNAL as InventJournals, LOG as Log
                 FROM AXReport_AxMRP 
-                WHERE Guid = '$Guid' AND REQPLANID = 'MFIS'
+                WHERE Guid = '$Guid' AND COMPLETEUPDATE = '1'
                 ORDER BY STARTDATETIME DESC"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:ReportDP.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $AxMRPLogs = New-Object System.Data.DataSet
     $Adapter.Fill($AxMRPLogs)  
-    $Script:ReportDP | Add-Member -Name AxMRPLogs -Value $($AxMRPLogs.Tables[0] | Select 'Start Time(CST)', 'End Time(CST)', 'TotalTime', Cancelled, Items, OnHand, SalesLines, PurchLines, Transfers, Orders, InventJournals, Log) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxMRPLogs -Value $($AxMRPLogs.Tables[0] | Select 'Plan', 'Start Time(CST)', 'End Time(CST)', 'TotalTime', Cancelled, Items, OnHand, SalesLines, PurchLines, Transfers, Orders, InventJournals, Log) -MemberType NoteProperty
 
     $Query = "SELECT MAX(LOGDATE) as Date, MAX(PROCESSINFO) as Process, TEXT as Log, MAX(Server) as Server, MAX([Database]) as [Database], COUNT(TEXT) as Count
                 FROM AXReport_SQLLog
@@ -493,7 +495,7 @@ function Run-ReportDP
     $Adapter.Fill($SSRSWeek)
     $Script:ReportDP | Add-Member -Name SSRSWeek -Value $($SSRSWeek.Tables[0] | Select @{n='Date';e={($_.Date | Get-Date -Format "MM/dd/yyyy")}}, Count) -MemberType NoteProperty
 
-    $Query = "SELECT A.ServerName, B.ServerType, A.Counter, A.CounterType, 
+    $Query = "SELECT A.ServerName, A.ServerType, A.Counter, A.CounterType, 
 		                CASE  WHEN A.COUNTER like '%Private Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
 			                  WHEN A.COUNTER like '%Bytes %' THEN SUM(ROUND((MAXIMUM/1024),2))
 			                  WHEN A.COUNTER like '%Virtual Bytes%' THEN SUM(ROUND((MAXIMUM/1073741824),2))
@@ -520,9 +522,8 @@ function Run-ReportDP
 		                END AS Avg,
 				    COUNT(A.SERVERNAME) AS [Check]
                 FROM AXReport_PerfmonData A
-                CROSS JOIN AXTools_Servers B
-                WHERE A.Guid = '$Guid' AND A.REPORTVIEW = 1 AND A.SERVERNAME = B.SERVERNAME
-			    GROUP BY A.SERVERNAME, B.SERVERTYPE, A.COUNTER, A.COUNTERTYPE
+                WHERE A.Guid = '$Guid' AND A.REPORTVIEW = 1
+			    GROUP BY A.SERVERNAME, A.SERVERTYPE, A.COUNTER, A.COUNTERTYPE
                 ORDER BY A.SERVERNAME"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:ReportDP.ToolsConnectionObject)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -533,4 +534,3 @@ function Run-ReportDP
 }
 
 Run-Report
-#$Script:ReportDP.ToolsConnectionObject.Close()

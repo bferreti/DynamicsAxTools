@@ -66,6 +66,25 @@ param (
     }
 }
 
+function Get-UserCredentials
+{
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+    [String]$Account
+)
+    if($Account) {
+        $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Account)'"
+        $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
+        $UserAcct = New-Object System.Data.DataSet
+        $Adapter.Fill($UserAcct) | Out-Null
+        $UserPwd = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAcct.Tables.Password | ConvertTo-SecureString)))
+        $secureUserPwd = $UserPwd | ConvertTo-SecureString -AsPlainText -Force 
+        $UserCreds = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAcct.Tables.UserName, $secureUserPwd
+        return $UserCreds
+    }
+}
+
 function Get-SQLObject
 {
 [CmdletBinding()]
@@ -79,12 +98,15 @@ param (
     if($ApplicationName -eq '') { $ApplicationName = 'AX Powershell Script' }
     try {
         if($SQLAccount) {
-            $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$($SQLAccount)'"
-            $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
-            $UserPassword = $Cmd.ExecuteScalar()
-            $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
+            $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($SQLAccount)'"
+            $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
+            $UserAccount = New-Object System.Data.DataSet
+            $Adapter.Fill($UserAccount) | Out-Null
+            #$Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
+            #$UserPassword = $Cmd.ExecuteScalar()
+            $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables.Password | ConvertTo-SecureString)))
             $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-            $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $SQLAccount, $secureUserPassword
+            $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables.UserName, $secureUserPassword
             $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
             $SqlConn.ServerInstance = $DBServer
             $SqlConn.DatabaseName = $DBName

@@ -61,13 +61,11 @@ function Get-SQLMonitoring
         else {
             Write-ExecLog "Statistics False"
         }
-
     }
     if($Script:Settings.GRDJobs) { 
         Write-ExecLog "Check GRD Jobs $($Script:Settings.GRDJobs.Count)"
         Get-JobStatus
     }
-
     ## Clean log files from folder
     if($AutoCleanUp) { Do-CleanUp }
 }

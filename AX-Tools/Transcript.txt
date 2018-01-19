@@ -1,0 +1,13 @@
+**********************
+Windows PowerShell transcript start
+Start time: 20180111122346
+Username: CONTOSO\Administrator
+RunAs User: CONTOSO\Administrator
+Machine: DAX2012R3 (Microsoft Windows NT 6.3.9600.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Version 4.0 -s -NoLogo -NoProfile
+Process ID: 18864
+**********************
+**********************
+Windows PowerShell transcript end
+End time: 20180111122351
+**********************
