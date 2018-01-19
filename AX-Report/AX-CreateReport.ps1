@@ -199,9 +199,10 @@ function Create-Report
     #AX Services Status
     $Script:AXReport += Get-HtmlColumn2of2
     $Green = '$this.Status -match "Running"'
+    $Yellow = '(New-TimeSpan ($this.StartTime) $(Get-Date)).TotalDays -lt 25'
     $Red = '$this.Status -match "Stopped"'
     $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Services Status"
-    $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor $Script:ReportDP.AxServices -Red $Red -Green $Green)
+    $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor $Script:ReportDP.AxServices -Red $Red -Green $Green -Yellow $Yellow)
     $Script:AXReport += Get-HtmlContentClose
     $Script:AXReport += Get-HtmlColumnClose
     $Script:AXReport += Get-HtmlContentClose
@@ -379,7 +380,7 @@ function Run-ReportDP
     $Adapter.SelectCommand = $Cmd
     $AxServices = New-Object System.Data.DataSet
     $Adapter.Fill($AxServices) | Out-Null
-    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, Name, Status, StartTime) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, Name, Status, @{n='UpTime';e={"$([Math]::Truncate((New-TimeSpan ($_.StartTime) $(Get-Date)).TotalDays)) day(s)"}} ) -MemberType NoteProperty
 
     $Query = "SELECT HISTORYCAPTION AS [History Caption],JOBCAPTION AS [Job Caption],Status,ServerID AS Server,STARTDATETIMECST AS [Start Time(CST)],ENDDATETIMECST AS [End Time(CST)],EXECUTEDBY AS [User], LOG AS Log
                 FROM AXReport_AxBatchJobs 

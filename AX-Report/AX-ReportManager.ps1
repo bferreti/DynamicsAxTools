@@ -297,16 +297,17 @@ function Get-AOSServices
         $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
         if($Services) { 
             foreach($Service in $Services) {
-                $ServicePID = $Service.ProcessID
-                $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$ServicePID'" -Credential $Script:Settings.LocalAdminAccount -ea 0
                 $AOSTemp  = New-Object -TypeName System.Object
                 $AOSTemp | Add-Member -Name ServerName -Value $($WrkServer.ServerName) -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Service -Value $Service.Name -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Name -Value $Service.DisplayName -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Status -Value $Service.State -MemberType NoteProperty
-                $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
+                if($Service.ProcessID -ne 0) {
+                    $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$($Service.ProcessID)'" -Credential $Script:Settings.LocalAdminAccount -ea 0
+                    $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
+                }
                 $AOSServices += $AOSTemp
             }
         }
@@ -315,16 +316,17 @@ function Get-AOSServices
         $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
         if($Services) { 
             foreach($Service in $Services) {
-                $ServicePID = $Service.ProcessID
-                $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$ServicePID'" -ea 0
                 $AOSTemp  = New-Object -TypeName System.Object
                 $AOSTemp | Add-Member -Name ServerName -Value $($WrkServer.ServerName) -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Service -Value $Service.Name -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Name -Value $Service.DisplayName -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Status -Value $Service.State -MemberType NoteProperty
-                $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Guid -Value $Script:Settings.Guid -MemberType NoteProperty
+                if($Service.ProcessID -ne 0) {
+                    $ProcessInfo = Get-WmiObject -Class Win32_Process -ComputerName $($WrkServer.ServerName) -Filter "ProcessID='$($Service.ProcessID)'" -ea 0
+                    $AOSTemp | Add-Member -Name StartTime -Value $($Service.ConvertToDateTime($ProcessInfo.CreationDate)) -MemberType NoteProperty
+                }
                 $AOSServices += $AOSTemp
             }
         }
