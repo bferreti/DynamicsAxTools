@@ -32,12 +32,30 @@ function Create-ReportSummary
 {
     $Script:AxSummary = @()
     #AxServices
+    <#
     if($Script:ReportDP.AxServices.Count -eq ($Script:ReportDP.AxServices | Where {$_.Status -match 'Running'}).Count) { 
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = "Ok. All Services Running."; RowColor = 'Green' }
     }
     else {
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = "AOS Services Failure Found."; RowColor = 'Red' }
     }
+    #>
+
+    if(($Script:ReportDP.AxServices.DEL_Days -lt 1).Count -gt 0) {
+        $TmpStatus = "$(($Script:ReportDP.AxServices.DEL_Days -lt 1 | Measure-Object).Count) service(s) restarted."
+        $TmpColor = 'Yellow'
+    }
+    elseif (($Script:ReportDP.AxServices.Status -match 'Stopped').Count -gt 0) {
+        $TmpStatus = "$(($Script:ReportDP.AxServices.Status -match 'Stopped' | Measure-Object).Count) service(s) stopped."
+        $TmpColor = 'Red'
+    }
+    else {
+        $TmpStatus = "$(($Script:ReportDP.AxServices.Status -match 'Running' | Measure-Object).Count) service(s) running."
+        $TmpColor = 'Green'
+
+    }
+    $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = $TmpStatus; RowColor = $TmpColor }
+
 
     #MRP Runtime
     if($Script:ReportDP.AxMRPLogs.Count -gt 0) {
@@ -84,7 +102,7 @@ function Create-ReportSummary
     #REMOVING INSTANCES NOT RUNNING
     $PermonDataLogsTmp = $Script:ReportDP.PermonDataLogs | Where {$_.ServerType -notmatch 'SQL' -or $_.CounterType -like 'SRV' }
     $PermonDataLogsTmp += $Script:ReportDP.PermonDataLogs | Where {(($_.Max -ne 0) -or ($_.Min -ne 0)) -and ($_.CounterType -notmatch 'SRV') -and ($_.ServerType -match 'SQL')}
-    $Script:ReportDP | Add-Member -Name AxPerfmonCLR -Value $(Set-TableRowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxPerfmonCLR -Value $(Set-RowColor $PermonDataLogsTmp -Red $Red -Yellow $Yellow -Green $Green) -MemberType NoteProperty
 
 
     #PerfmonData
@@ -198,11 +216,12 @@ function Create-Report
     #
     #AX Services Status
     $Script:AXReport += Get-HtmlColumn2of2
-    $Green = '$this.Status -match "Running"'
-    $Yellow = '(New-TimeSpan ($this.StartTime) $(Get-Date)).TotalDays -lt 25'
+    $Green = '($this.Status -match "Running") -and ($this.DEL_Days -ge 1)'
+    $Yellow = '($this.DEL_Days -lt 1) -and ($this.Status -notmatch "Stopped")'
     $Red = '$this.Status -match "Stopped"'
     $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Services Status"
-    $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor $Script:ReportDP.AxServices -Red $Red -Green $Green -Yellow $Yellow)
+    $AxServicesColored = Set-RowColor $Script:ReportDP.AxServices -Red $Red -Green $Green -Yellow $Yellow
+    $Script:AXReport += Get-HtmlContentTable($AxServicesColored | Select ServerName, Name, Status, UpTime, RowColor)
     $Script:AXReport += Get-HtmlContentClose
     $Script:AXReport += Get-HtmlColumnClose
     $Script:AXReport += Get-HtmlContentClose
@@ -214,7 +233,7 @@ function Create-Report
         $Green = '$this.TotalTime -gt 0 -and $this.TotalTime -le 45'
         $Yellow = '$this.TotalTime -gt 45 -and $this.TotalTime -le 60'
         $Red = '$this.TotalTime -eq 0 -or $this.TotalTime -gt 60'
-        $AxMRPColor = Set-TableRowColor $Script:ReportDP.AxMRPLogs -Green $Green -Yellow $Yellow -Red $Red
+        $AxMRPColor = Set-RowColor $Script:ReportDP.AxMRPLogs -Green $Green -Yellow $Yellow -Red $Red
         $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "MRP Run Status"
         $Script:AXReport += Get-HtmlContentTable($AxMRPColor)
         $Script:AXReport += Get-HtmlContentClose
@@ -299,7 +318,7 @@ function Create-Report
         $Script:AXReport += Get-HtmlContentOpen
         $Script:AXReport += Get-HtmlColumn1of2
         $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Error Logs [Total - $($Script:ReportDP.SSRSErrorLogs.Count)]"
-        $Script:AXReport += Get-HtmlContentTable(Set-TableRowColor($Script:ReportDP.SSRSErrorLogs | Select Instance, Message, Report, Count) -Alternating)
+        $Script:AXReport += Get-HtmlContentTable(Set-RowColor($Script:ReportDP.SSRSErrorLogs | Select Instance, Message, Report, Count) -Alternating)
         $Script:AXReport += Get-HtmlContentClose
         $Script:AXReport += Get-HtmlColumnClose
         #
@@ -315,7 +334,7 @@ function Create-Report
     #CDX Jobs Errors
     if($Script:ReportDP.AxCDXJobs.Rows.Count -gt 0) {
         $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Rows.Count)]" 
-        $Script:AXReport += Get-HtmlContentTable (Set-TableRowColor $Script:ReportDP.AxCDXJobs -Alternating)
+        $Script:AXReport += Get-HtmlContentTable (Set-RowColor $Script:ReportDP.AxCDXJobs -Alternating)
         $Script:AXReport += Get-HtmlContentClose
     }
 
@@ -380,7 +399,7 @@ function Run-ReportDP
     $Adapter.SelectCommand = $Cmd
     $AxServices = New-Object System.Data.DataSet
     $Adapter.Fill($AxServices) | Out-Null
-    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, Name, Status, @{n='UpTime';e={"$([Math]::Truncate((New-TimeSpan ($_.StartTime) $(Get-Date)).TotalDays)) day(s)"}} ) -MemberType NoteProperty
+    $Script:ReportDP | Add-Member -Name AxServices -Value $($AxServices.Tables[0] | Select ServerName, ServiceName, Name, Status, @{n='UpTime';e={"$([Math]::Truncate((New-TimeSpan ($_.StartTime) $(Get-Date)).TotalDays)) day(s)"}}, @{n='DEL_Days';e={(New-TimeSpan ($_.StartTime) $(Get-Date)).TotalDays}} ) -MemberType NoteProperty
 
     $Query = "SELECT HISTORYCAPTION AS [History Caption],JOBCAPTION AS [Job Caption],Status,ServerID AS Server,STARTDATETIMECST AS [Start Time(CST)],ENDDATETIMECST AS [End Time(CST)],EXECUTEDBY AS [User], LOG AS Log
                 FROM AXReport_AxBatchJobs 

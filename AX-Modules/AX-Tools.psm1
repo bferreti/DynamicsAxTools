@@ -102,8 +102,6 @@ param (
             $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
             $UserAccount = New-Object System.Data.DataSet
             $Adapter.Fill($UserAccount) | Out-Null
-            #$Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
-            #$UserPassword = $Cmd.ExecuteScalar()
             $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables.Password | ConvertTo-SecureString)))
             $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
             $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables.UserName, $secureUserPassword
@@ -172,12 +170,8 @@ param (
         $DataTable.Rows.Add($DataReader)   
         $First = $false
     }
-    #$DataTable.Columns.Remove('PSCOMPUTERNAME')
-    #$DataTable.Columns.Remove('RUNSPACEID')
-    #$DataTable.Columns.Remove('PSSHOWCOMPUTERNAME')
     #Write-Output @(,($DataTable))
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    #$Conn.Open()
+    $Conn = Get-ConnectionString
     $BCopy = New-Object ("System.Data.SqlClient.SqlBulkCopy") $Conn
     $BCopy.DestinationTableName = "[dbo].[$Table]"
     foreach ($Col in $DataTable.Columns) {
@@ -418,9 +412,15 @@ param (
 function Get-HtmlOpen {
 <#
 	.SYNOPSIS
-		Get's HTML for the header of the HTML report
+		Header HTML for report
     .PARAMETER TitleText
 		The title of the report
+    .PARAMETER SimpleHTML
+		CSS with basic formatting
+    .PARAMETER AxReport
+		CSS for AX Report formatting (mht)
+    .PARAMETER AxSummary
+		CSS for AX Report Summary email
 #>
 [CmdletBinding()]
 param (
@@ -636,13 +636,23 @@ function hide(obj) {
 
 function Get-HtmlClose
 {
+<#
+	.SYNOPSIS
+		Close HTML for report
+    .PARAMETER FooterTxt
+		The footer of the report
+    .PARAMETER AxReport
+		CSS for AX Report formatting (mht)
+    .PARAMETER AxSummary
+		CSS for AX Report Summary email
+#>
 Param(
-	[string]$FooterText,
+	[string]$FooterTxt,
     [Switch]$AxReport,
     [Switch]$AxSummary    	
 )
 
-$Footer = "Date: {0} | UserName: {1}\{2} | {3}" -f $(Get-Date),$env:UserDomain,$env:UserName,$FooterText
+$Footer = "Date: {0} | UserName: {1}\{2} | {3}" -f $(Get-Date),$env:UserDomain,$env:UserName,$FooterTxt
 
 if($AxReport) {
 $Report = @"
@@ -713,13 +723,13 @@ switch ($BackgroundShade)
     default { $bgColorCode = "#ffffff" }
 }
 if ($IsHidden) {
-	$RandomNumber = Get-Random
+	$JavaScriptRdm = Get-Random
 	$Report = @"
 <div class="section">
     <div class="header">
-        <a name="$($HeaderText)">$($HeaderText)</a> (<a id="show_$RandomNumber" href="javascript:void(0);" onclick="show('$RandomNumber');" style="color: #ffffff;">Show</a><a id="hide_$RandomNumber" href="javascript:void(0);" onclick="hide('$RandomNumber');" style="color: #ffffff; display:none;">Hide</a>)
+        <a name="$($HeaderText)">$($HeaderText)</a> (<a id="show_$JavaScriptRdm" href="javascript:void(0);" onclick="show('$JavaScriptRdm');" style="color: #ffffff;">Show</a><a id="hide_$JavaScriptRdm" href="javascript:void(0);" onclick="hide('$JavaScriptRdm');" style="color: #ffffff; display:none;">Hide</a>)
     </div>
-    <div class="content" id="$RandomNumber" style="display:none;background-color:$($bgColorCode);"> 
+    <div class="content" id="$JavaScriptRdm" style="display:none;background-color:$($bgColorCode);"> 
 "@	
 }
 else {
@@ -761,15 +771,19 @@ function Get-HtmlContentTable {
 <#
 	.SYNOPSIS
 		Creates an HTML table from an array of objects
-	    .PARAMETER ArrayOfObjects
+	    .PARAMETER ObjectArray
 			An array of objects
 		.PARAMETER Fixed
 		    fixes the html column width by the number of columns
 		.PARAMETER GroupBy
-		    The column to group the data.  make sure this is first in the array
+		    The column to group the data. make sure this is first in the array
+		.PARAMETER Title
+		    Title
+		.PARAMETER Style
+		    Style
 #>	
 param(
-	[Array]$ArrayOfObjects, 
+	[Array]$ObjectArray, 
 	[Switch]$Fixed, 
 	[String]$GroupBy,
     [String]$Title,
@@ -777,7 +791,7 @@ param(
 )
 	if ($GroupBy -eq '') {
 		if($Title) { $Report = "<h2>$Title</h2>" }
-        $ReportHtml = $ArrayOfObjects | ConvertTo-Html -Fragment
+        $ReportHtml = $ObjectArray | ConvertTo-Html -Fragment
 		$ReportHtml = $ReportHtml -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', ""
 		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Green</td></tr>","<tr class=`"green`">`$+</tr>"
 		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Yellow</td></tr>","<tr class=`"yellow`">`$+</tr>"
@@ -797,18 +811,18 @@ param(
         if ($Style) { $Report = $Report -replace '<table>', "<table class=""$Style"">" }
 	}
 	else {
-		$NumberOfColumns = ($ArrayOfObjects | Get-Member -MemberType NoteProperty  | select Name).Count
+		$NumberOfColumns = ($ObjectArray | Get-Member -MemberType NoteProperty  | select Name).Count
 		$Groupings = @()
-		$ArrayOfObjects | select $GroupBy -Unique  | sort $GroupBy | foreach { $Groupings += [String]$_.$GroupBy}
+		$ObjectArray | select $GroupBy -Unique  | sort $GroupBy | foreach { $Groupings += [String]$_.$GroupBy}
 		if ($Fixed.IsPresent) {	$Report = '<table class="fixed">' }
 		else { $Report = "<table>" }
-		$GroupHeader = $ArrayOfObjects | ConvertTo-Html -Fragment 
+		$GroupHeader = $ObjectArray | ConvertTo-Html -Fragment 
 		$GroupHeader = $GroupHeader -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', "" -replace '<table>', "" -replace '</table>', "" -replace "<td>.+?</td>" -replace "<tr></tr>", ""
 		$GroupHeader = $GroupHeader -replace '<th>RowColor</th>', ''
 		$Report += $GroupHeader
 		foreach ($Group in $Groupings) {
 			$Report += "<tr><td colspan=`"$NumberOfColumns`" class=`"groupby`">$Group</td></tr>"
-			$GroupBody = $ArrayOfObjects | where { [String]$($_.$GroupBy) -eq $Group } | select * -ExcludeProperty $GroupBy | ConvertTo-Html -Fragment
+			$GroupBody = $ObjectArray | where { [String]$($_.$GroupBy) -eq $Group } | select * -ExcludeProperty $GroupBy | ConvertTo-Html -Fragment
 			$GroupBody = $GroupBody -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', "" -replace '<table>', "" -replace '</table>', "" -replace "<th>.+?</th>" -replace "<tr></tr>", "" -replace '<tr><td>', "<tr><td></td><td>"
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>Green</td></tr>","<tr class=`"green`">`$+</tr>"
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>Yellow</td></tr>","<tr class=`"yellow`">`$+</tr>"
@@ -837,9 +851,9 @@ function Get-HtmlContentText
 	.SYNOPSIS
 		Creates an HTML entry with heading and detail
 	    .PARAMETER Heading
-			The type of logo
+			Heading text or picture
 		.PARAMETER Detail
-		     Some additional pish
+		     Some additional info
 #>	
 param(
 	$Heading,
@@ -860,11 +874,11 @@ $Report = $Report -replace 'URL03', '</a>'
 Return $Report
 }
 
-function Set-TableRowColor {
+function Set-RowColor {
 <#
 	.SYNOPSIS
-		adds a row colour field to the array of object for processing with htmltable
-	    .PARAMETER ArrayOfObjects
+		Adds a RowColor field to each row in the array
+	    .PARAMETER ObjectArray
 			The type of logo
 		.PARAMETER Green
 		     Some additional pish
@@ -876,65 +890,28 @@ function Set-TableRowColor {
 			a switch the will define Odd and Even Rows in the rowcolor column 
 #>	
 Param (
-	$ArrayOfObjects, 
+	$ObjectArray, 
 	$Green, 
 	$Yellow, 
 	$Red,
 	[switch]$Alternating 
 ) 
     if ($Alternating) {
-		$ColoredArray = $ArrayOfObjects | Add-Member -MemberType ScriptProperty -Name RowColor -Value {
-		if ((([array]::indexOf($ArrayOfObjects,$this)) % 2) -eq 0) {'Odd'}
-		if ((([array]::indexOf($ArrayOfObjects,$this)) % 2) -eq 1) {'Even'}
+		$ColoredArray = $ObjectArray | Add-Member -MemberType ScriptProperty -Name RowColor -Value {
+		if ((([array]::indexOf($ObjectArray,$this)) % 2) -eq 0) {'Odd'}
+		if ((([array]::indexOf($ObjectArray,$this)) % 2) -eq 1) {'Even'}
 		} -PassThru -Force | Select-Object *
 	} else {
-		$ColoredArray = $ArrayOfObjects | Add-Member -MemberType ScriptProperty -Name RowColor -Value {
+		$ColoredArray = $ObjectArray | Add-Member -MemberType ScriptProperty -Name RowColor -Value {
 			if (Invoke-Expression $Green) {'Green'} 
+			elseif (Invoke-Expression $Yellow) {'Yellow'}
 			elseif (Invoke-Expression $Red) {'Red'} 
-			elseif (Invoke-Expression $Yellow) {'Yellow'} 
 			else {'None'}
 			} -PassThru -Force | Select-Object *
 	}
 	return $ColoredArray
 }
 
-function New-HTMLBarChartObject
-{
-<#
-	.SYNOPSIS
-		create a Bar chart object for use with Create-HTMLPieChart
-#>	
-	$ChartSize = New-Object PSObject -Property @{`
-		Width = 500
-		Height = 400
-		Left = 40
-		Top = 30
-	}
-	
-	$DataDefinition = New-Object PSObject -Property @{`
-		AxisXTitle = "AxisXTitle"
-		AxisYTitle = "AxisYTitle"
-		DrawingStyle = "Cylinder"
-		DataNameColumnName = "name"
-		DataValueColumnName = "count"
-		
-	}
-	
-	$ChartStyle = New-Object PSObject -Property @{`
-		BackColor = [System.Drawing.Color]::Transparent
-		ExplodeMaxValue = $false
-		Anchor = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Right -bor	[System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
-	}
-	
-	$ChartObject = New-Object PSObject -Property @{`
-		Type = "Column"
-		Title = "Chart Title"
-		Size = $ChartSize
-		DataDefinition = $DataDefinition
-		ChartStyle = $ChartStyle
-	}
-	return $ChartObject
-}
 
 function New-HTMLChart
 {
@@ -945,7 +922,6 @@ function New-HTMLChart
 			This is a custom object with Pie chart properties, Create-HTMLPieChartObject
 		.PARAMETER PieChartData
 			Required an array with the headings Name and Count.  Using Powershell Group-object on an array
-		    
 #>
 	param (
 		$ChartObject,
@@ -1057,10 +1033,10 @@ function New-HTMLPieChart {
 			Required an array with the headings Name and Count.  Using Powershell Group-object on an array
 		    
 #>
-	param(
-		$PieChartObject,
-		$PieChartData
-		)
+param(
+    $PieChartObject,
+    $PieChartData
+)
 	      
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms.DataVisualization")
@@ -1108,18 +1084,27 @@ function New-HTMLPieChart {
 
 function Get-HTMLColumn1of2
 {
+<#
+	.SYNOPSIS
+#>
 	$report = '<div class="first column">'
 	return $report
 }
 
 function Get-HTMLColumn2of2
 {
+<#
+	.SYNOPSIS
+#>
 	$report = '<div class="second column">'
 	return $report
 }
 
 function Get-HTMLColumnClose
 {
+<#
+	.SYNOPSIS
+#>
 	$report = '</div>'
 	return $report
 }
