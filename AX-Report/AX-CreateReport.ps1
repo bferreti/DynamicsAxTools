@@ -41,7 +41,7 @@ function Create-ReportSummary
     }
     #>
 
-    if(($Script:ReportDP.AxServices.DEL_Days -lt 1).Count -gt 0) {
+    if(($Script:ReportDP.AxServices.DEL_Days -lt 1 | Measure-Object).Count -gt 0) {
         $TmpStatus = "$(($Script:ReportDP.AxServices.DEL_Days -lt 1 | Measure-Object).Count) service(s) restarted."
         $TmpColor = 'Yellow'
     }
@@ -366,7 +366,7 @@ function Create-Report
 
     #Close Report
     $Script:AXReport += Get-HtmlContentClose
-    $Script:AXReport += Get-HtmlClose -FooterText "Guid: $($Guid)" -AxReport
+    $Script:AXReport += Get-HtmlClose -FooterTxt "Guid: $($Guid)" -AxReport
 }
 
 function Save-ReportFile
@@ -378,7 +378,7 @@ function Save-ReportFile
     $AXREmail += Get-HtmlContentOpen -HeaderText "Summary Information"
     $AXREmail += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
     $AXREmail += Get-HtmlContentClose
-    $AXREmail += Get-HtmlClose -FooterText "Guid: $($Guid)" -AxSummary
+    $AXREmail += Get-HtmlClose -FooterTxt "Guid: $($Guid)" -AxSummary
     #Save Summary
     $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate-Summary" + ".html")
     $AXREmail | Set-Content -Path $AXReportPath -Force

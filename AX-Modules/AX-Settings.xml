@@ -2,8 +2,7 @@
 <Settings>
   <General>
     <ReportPath>C:\Users\Administrator\Desktop\AxTools\Reports</ReportPath>
-    <LogPath>
-    </LogPath>
+    <LogPath></LogPath>
     <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
     <AutoCleanUp>$true</AutoCleanUp>
     <RetentionDays>7</RetentionDays>
@@ -18,6 +17,14 @@
   </Database>
   <AXReport>
   </AXReport>
+  <AXMonitor>
+	<Debug>$false</Debug>
+ 	<StatisticsPercentChange>10</StatisticsPercentChange> 
+	<StatisticsCheckInterval>30</StatisticsCheckInterval>
+	<StatisticsUpdateInterval>60</StatisticsUpdateInterval>
+	<StatisticsUpdateTop>15</StatisticsUpdateTop>	
+	<StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax>
+  </AXMonitor>
   <OtherSettings>
   </OtherSettings>
 </Settings>

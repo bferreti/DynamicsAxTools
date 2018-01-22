@@ -18,6 +18,7 @@ $ModuleFolder = $Dir + "\AX-Modules"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $ConfigFile = Load-ConfigFile
+$Script:Configuration = $ConfigFile #Load-ConfigFile
 
 $ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
@@ -54,7 +55,7 @@ function Get-SQLMonitoring
         }
     }
     else {
-        if(($Script:Settings.EnableStats -gt 0) -and ($(Get-SQLStatisticsInterval) -eq 0)) {
+        if(($Script:Settings.EnableStats -gt 0) -and (Get-SQLStatisticsInterval)) {
             Write-ExecLog "Statistics True"
             Get-SQLStatistics
         }
@@ -161,7 +162,7 @@ function Validate-Settings
         }
 
         if($Table.Tables.RunStats -match '0|1|2') {
-            $Script:Settings | Add-Member -Name EnableStats -Value $Table.Tables.Stats -MemberType NoteProperty
+            $Script:Settings | Add-Member -Name EnableStats -Value $Table.Tables.RunStats -MemberType NoteProperty
         }
         else {
             $Script:Settings | Add-Member -Name EnableStats -Value 0 -MemberType NoteProperty
@@ -731,10 +732,10 @@ Param(
 function Run-GRDStats
 {
     if($Script:Settings.SqlCredential) {
-        Start-Job -Credential $Script:Settings.SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+        Start-Job -Credential $Script:Settings.SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
     }
     else {
-        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AXM-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
     }
 }
 
@@ -765,6 +766,17 @@ function Get-JobStatus
 
 function Get-SQLStatisticsInterval
 {
+    $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
+                FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
+                WHERE [ENVIRONMENT] = '$($Script:Settings.Environment)'"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
+    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsCheckInterval) {
+        return $true
+    }
+    else {
+        return $false
+    }
+<#
     $Query =   "SELECT COUNT(1)
                 FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
                 WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-30))' 
@@ -772,6 +784,7 @@ function Get-SQLStatisticsInterval
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     $GRDStatsInterval = $Cmd.ExecuteScalar()
     return $GRDStatsInterval
+#>
 }
 
 function Get-SQLStatistics
@@ -816,21 +829,25 @@ function Get-SQLStatistics
                                                 @{n='LastUpdate';e={$_.LastUpdate}},
                                                 @{n='GUID';e={($Script:Settings.Guid)}})
     
-    SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATSTOTAL = $(($GRDStats | Where {$_.PercentChange -gt 10}).Count) WHERE GUID = '$($Script:Settings.Guid)'"
+    SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATSTOTAL = $(($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange}).Count) WHERE GUID = '$($Script:Settings.Guid)'"
 
-    $Query =   "SELECT COUNT(1)
+    $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
                 FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDLog]
                 WHERE [JOBNAME] LIKE 'SQL_%' 
-                AND [ENVIRONMENT] = '$($Script:Settings.Environment)'
-                AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
-
+                AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
+                #AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    $GRDStatsCount = $Cmd.ExecuteScalar()
+    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsUpdateInterval) {
+        $GRDStatsCount = $true
+    }
+    else {
+        $GRDStatsCount = $false
+    }
 
     $GRDJobRun = @()
-    if(($Script:Settings.EnableStats -eq 2) -and (($GRDStatsCount -eq 0) -and ($(($GRDStats | Where {$_.PercentChange -gt 10}).Count) -gt 0)) -and ($Script:Settings.CPUTotal -le 50)) {
+    if(($Script:Settings.EnableStats -eq 2) -and ($GRDStatsCount) -and ($(($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange}).Count) -gt 0) -and ($Script:Settings.CPUTotal -le $Script:Configuration.Settings.AXMonitor.StatisticsUpdateCpuMax)) {
         SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATS = '1' WHERE GUID = '$($Script:Settings.Guid)'"
-        foreach($Table in $($GRDStats | Where {$_.PercentChange -gt 10} | Group Schema,TableName | Sort Count -Descending | Select -First 15)) {
+        foreach($Table in $($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange} | Group Schema,TableName | Sort Count -Descending | Select -First $Script:Configuration.Settings.AXMonitor.StatisticsUpdateTop)) {
             While ($(Get-Job -state Running).Count -ge 5){
                 Start-Sleep -Milliseconds 5000
             }
