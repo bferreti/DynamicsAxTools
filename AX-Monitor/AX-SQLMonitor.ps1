@@ -807,7 +807,7 @@ function Get-SQLStatistics
                    AND (((sqrt(1000 * si.rowcnt) < 1.0*si.rowmodctr/(si.rowcnt)) 
 	               AND sqrt(1000 * si.rowcnt) > si.rowmodctr)
 	               OR (sqrt(1000 * si.rowcnt) > 1.0*si.rowmodctr/(si.rowcnt)
-	               AND 1.0*si.rowmodctr/(si.rowcnt) > 0.05))--tables with more than 20% changes
+	               AND 1.0*si.rowmodctr/(si.rowcnt) > 0.05))--tables with more than 5% changes
                    AND si.indid > 0 --exclude heaps(value 0)"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -984,15 +984,20 @@ function GRD-CreateReport
 
 function GRD-SendEmail
 {
-    $Query =   "SELECT COUNT(1) AS Report
+    $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
                     FROM AXMonitor_ExecutionLog
-                    WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-15))' AND [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
+                    WHERE [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    $GRDReportChk = $Cmd.ExecuteScalar()
+    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendLowRiskEmailsInterval) {
+        $GRDReportChk = $true
+    }
+    else {
+        $GRDReportChk = $false
+    }
 
     if(($($Script:Settings.CPUTotal) -le $Script:Settings.CPUThold) -and
         ($($Script:Settings.Blocking.Spid.Count) -le $($Script:Settings.BlockThold)) -and
-        ($GRDReportChk -gt 0)) {
+        (!$GRDReportChk)) {
         Write-ExecLog "Email Suppressed"
         continue
     }

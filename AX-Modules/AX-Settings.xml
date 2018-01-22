@@ -19,7 +19,8 @@
   </AXReport>
   <AXMonitor>
 	<Debug>$false</Debug>
- 	<StatisticsPercentChange>10</StatisticsPercentChange> 
+	<SendLowRiskEmailsInterval>15</SendLowRiskEmailsInterval>
+ 	<StatisticsPercentChange>1</StatisticsPercentChange> 
 	<StatisticsCheckInterval>30</StatisticsCheckInterval>
 	<StatisticsUpdateInterval>60</StatisticsUpdateInterval>
 	<StatisticsUpdateTop>15</StatisticsUpdateTop>	
