@@ -125,12 +125,13 @@ function Validate-Settings
        
         try {
             if($Table.Tables.DBUser) {
-                $Query = "SELECT Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
-                $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-                $UserPassword = $Cmd.ExecuteScalar()
-                $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserPassword | ConvertTo-SecureString)))
+                $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
+                $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnection)
+                $UserAccount = New-Object System.Data.DataSet
+                $Adapter.Fill($UserAccount) | Out-Null
+                $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables[0].Password | ConvertTo-SecureString)))
                 $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $Table.Tables.DBUser, $secureUserPassword
+                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables[0].UserName, $secureUserPassword
                 $Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
@@ -780,9 +781,16 @@ function Get-JobStatus
 {
     While ($(Get-Job).Count -gt 0) {
         Start-Sleep -Milliseconds 3000
-        $GRDJobs = Get-Job | Where-Object { $_.State -eq 'Completed' }
+        $GRDJobs = Get-Job | Where-Object { $_.State -ne 'Running' }
         foreach ($Job in $GRDJobs) {
-            SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
+            if($Job.State -eq 'Failed') {
+                SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
+                SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $(Receive-Job -Name $($Job.Name)) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
+
+            }
+            else {
+                SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
+            }
             Remove-Job –Name $($Job.Name)
         }
         Start-Sleep -Milliseconds 2000
