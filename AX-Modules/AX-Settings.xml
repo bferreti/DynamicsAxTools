@@ -4,7 +4,7 @@
     <ReportPath>C:\Users\Administrator\Desktop\AxTools\Reports</ReportPath>
     <LogPath></LogPath>
     <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
-    <AutoCleanUp>$true</AutoCleanUp>
+    <AutoCleanUp>true</AutoCleanUp>
     <RetentionDays>7</RetentionDays>
   </General>
   <Database>
@@ -18,8 +18,8 @@
   <AXReport>
   </AXReport>
   <AXMonitor>
-	<Debug>$false</Debug>
-	<SendLowRiskEmailsInterval>15</SendLowRiskEmailsInterval>
+	<Debug>false</Debug>
+	<SendEmailLowRiskInterval>15</SendEmailLowRiskInterval>
  	<StatisticsPercentChange>1</StatisticsPercentChange> 
 	<StatisticsCheckInterval>30</StatisticsCheckInterval>
 	<StatisticsUpdateInterval>60</StatisticsUpdateInterval>

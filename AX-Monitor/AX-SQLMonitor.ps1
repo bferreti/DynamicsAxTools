@@ -17,15 +17,13 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$ConfigFile = Load-ConfigFile
-$Script:Configuration = $ConfigFile #Load-ConfigFile
 
-$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
-$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
-$LogFilesDays = $ConfigFile.Settings.General.RetentionDays
-$AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
+$Script:Configuration = Load-ConfigFile
+$ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
 $FileDateTime = Get-Date -f yyyyMMdd-HHmm
-$Debug = $false
+$AutoCleanUp = [boolean]::Parse($Script:Configuration.Settings.General.AutoCleanUp)
+$Debug = [boolean]::Parse($Script:Configuration.Settings.AXMonitor.Debug)
 
 function Get-SQLMonitoring
 {
@@ -38,9 +36,9 @@ function Get-SQLMonitoring
             Get-AXJobs
             Get-PerfData
             Get-SQLConfig
-            GRD-CreateReport
+            Get-CreateReport
             if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
-                GRD-SendEmail
+                Get-SendEmail
             }
         }
         else {
@@ -48,9 +46,9 @@ function Get-SQLMonitoring
             Get-AXJobs
             Get-PerfData
             Get-SQLConfig
-            GRD-CreateReport
+            Get-CreateReport
             if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
-                GRD-SendEmail
+                Get-SendEmail
             }
         }
     }
@@ -873,7 +871,7 @@ function Get-SQLStatistics
     }
 }
 
-function GRD-CreateReport
+function Get-CreateReport
 {
     $GRDReport = @()
     $GRDReport += Get-HtmlOpen -TitleText ("SQL Monitoring Alert $($Script:Settings.DBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
@@ -982,13 +980,13 @@ function GRD-CreateReport
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET REPORT = '$GRDReportPath' WHERE GUID = '$($Script:Settings.Guid)'"
 }
 
-function GRD-SendEmail
+function Get-SendEmail
 {
     $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
                     FROM AXMonitor_ExecutionLog
                     WHERE [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendLowRiskEmailsInterval) {
+    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendEmailLowRiskInterval) {
         $GRDReportChk = $true
     }
     else {
@@ -1011,7 +1009,7 @@ function GRD-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$LogFilesDays))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
+    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Configuration.Settings.General.RetentionDays))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }
