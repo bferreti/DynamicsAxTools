@@ -15,20 +15,18 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$ConfigFile = Load-ConfigFile
-
-$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
-$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
-$DataCollectorName = $ConfigFile.Settings.General.PerfmonCollectorName
-$LogFilesDays = $ConfigFile.Settings.General.RetentionDays
-$AutoCleanUp = $ConfigFile.Settings.General.AutoCleanUp
+$Script:Configuration = Load-ConfigFile
+$ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
+$LogFilesDays = $Script:Configuration.Settings.General.RetentionDays
+$AutoCleanUp = [boolean]::Parse($Script:Configuration.Settings.General.AutoCleanUp)
 
 $Global:Guid = ([Guid]::NewGuid()).Guid
 $Script:Settings = New-Object -TypeName System.Object
 $Script:Settings | Add-Member -Name GUID -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
-$Script:Settings | Add-Member -Name DataCollectorName -Value $DataCollectorName -MemberType NoteProperty
+$Script:Settings | Add-Member -Name DataCollectorName -Value $Script:Configuration.Settings.General.PerfmonCollectorName -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 $Script:Settings.Guid
@@ -572,7 +570,7 @@ function Get-PerfmonFile
     if($AutoCleanUp) {
         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
         $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
-        $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays($LogFilesDays * -1))}  | Sort-Object -Property LastWriteTime
+        $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(-$Script:Configuration.Settings.General.RetentionDays))}  | Sort-Object -Property LastWriteTime
         if($BlgFiles.Count -ge 5) {
             if(!(Test-Path("$Path\Temp\"))) {
                 New-Item -ItemType Directory -Force -Path "$Path\Temp" | Out-Null
@@ -824,7 +822,7 @@ function AXR-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$LogFilesDays))) }
+    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Configuration.Settings.General.RetentionDays))) }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }

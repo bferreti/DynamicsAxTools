@@ -14,9 +14,9 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$ConfigFile = Load-ConfigFile
-$ReportFolder = if(!$ConfigFile.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.ReportPath)\$Environment" }
-$LogFolder = if(!$ConfigFile.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($ConfigFile.Settings.General.LogPath)\$Environment" }
+$Script:Configuration = Load-ConfigFile
+$ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
+$LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
 $ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
 
@@ -80,10 +80,10 @@ function Create-ReportSummary
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Batch Jobs"; Status = "$($Script:ReportDP.AxBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
     }
     if($Script:ReportDP.AxLongBatchJobs.Count -eq 0) {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>15min)"; Status = "Ok."; RowColor = 'Green' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min)"; Status = "Ok."; RowColor = 'Green' }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>15min)"; Status = "$($Script:ReportDP.AxLongBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min)"; Status = "$($Script:ReportDP.AxLongBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
     }
 
     #AxRetailJobs
