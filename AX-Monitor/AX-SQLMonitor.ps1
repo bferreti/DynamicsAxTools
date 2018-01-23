@@ -807,7 +807,8 @@ function Get-SQLStatisticsInterval
                 FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
                 WHERE [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsCheckInterval) {
+    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsCheckInterval) {
         return $true
     }
     else {
@@ -874,7 +875,8 @@ function Get-SQLStatistics
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
                 #AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsUpdateInterval) {
+    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsUpdateInterval) {
         $GRDStatsCount = $true
     }
     else {
@@ -1025,7 +1027,8 @@ function Get-SendEmail
                     FROM AXMonitor_ExecutionLog
                     WHERE [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([Math]::Truncate((New-TimeSpan ($Cmd.ExecuteScalar()) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendEmailLowRiskInterval) {
+    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendEmailLowRiskInterval) {
         $GRDReportChk = $true
     }
     else {

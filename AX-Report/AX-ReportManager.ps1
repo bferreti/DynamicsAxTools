@@ -65,7 +65,7 @@ $Script:Settings = New-Object -TypeName System.Object
 $Script:Settings | Add-Member -Name GUID -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
-$Script:Settings | Add-Member -Name DataCollectorName -Value $Script:Configuration.Settings.General.PerfmonCollectorName -MemberType NoteProperty
+$Script:Settings | Add-Member -Name DataCollectorName -Value $Script:Configuration.Settings.AxReport.PerfmonCollectorName -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 $Script:Settings.Guid
