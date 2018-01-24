@@ -46,7 +46,6 @@ Param (
 
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
-#[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SmoExtended") | Out-Null
 
 ## Get PS script directory and assign to DIR variable.
 $Scriptpath = $MyInvocation.MyCommand.Path
@@ -55,7 +54,6 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
-
 
 $Script:Configuration = Load-ConfigFile
 $ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
@@ -76,7 +74,7 @@ function Get-SQLMonitoring
             Get-PerfData
             Get-SQLConfig
             Get-CreateReport
-            if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
+            if(![String]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
                 Get-SendEmail
             }
         }
@@ -86,7 +84,7 @@ function Get-SQLMonitoring
             Get-PerfData
             Get-SQLConfig
             Get-CreateReport
-            if(![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
+            if(![String]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
                 Get-SendEmail
             }
         }
@@ -117,7 +115,7 @@ function Validate-Settings
     $Table = New-Object System.Data.DataSet
     $Adapter.Fill($Table) | Out-Null
 
-    if (![string]::IsNullOrEmpty($Table.Tables))
+    if (![String]::IsNullOrEmpty($Table.Tables))
     {
         $Script:Settings = New-Object -TypeName System.Object
         $Script:Settings | Add-Member -Name GUID -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
@@ -162,7 +160,7 @@ function Validate-Settings
             break
         }
     
-        if(![string]::IsNullOrEmpty($Table.Tables.Environment)) {
+        if(![String]::IsNullOrEmpty($Table.Tables.Environment)) {
             $Script:Settings | Add-Member -Name Environment -Value $Table.Tables.Environment -MemberType NoteProperty
         }
         else {
@@ -170,21 +168,21 @@ function Validate-Settings
             break
         }
     
-        if(([string]::IsNullOrEmpty($Table.Tables.CPUThold)) -or ($Table.Tables.CPUThold -le 0)) {
+        if(([String]::IsNullOrEmpty($Table.Tables.CPUThold)) -or ($Table.Tables.CPUThold -le 0)) {
             $Script:Settings | Add-Member -Name CPUThold -Value 65 -MemberType NoteProperty
         }
         else {
             $Script:Settings | Add-Member -Name CPUThold -Value $Table.Tables.CPUThold -MemberType NoteProperty
         }
 
-        if(([string]::IsNullOrEmpty($Table.Tables.BlockThold)) -or ($Table.Tables.BlockThold -le 0)) {
+        if(([String]::IsNullOrEmpty($Table.Tables.BlockThold)) -or ($Table.Tables.BlockThold -le 0)) {
             $Script:Settings | Add-Member -Name BlockThold -Value 15 -MemberType NoteProperty
         }
         else {
             $Script:Settings | Add-Member -Name BlockThold -Value $Table.Tables.BlockThold -MemberType NoteProperty
         }
 
-        if(([string]::IsNullOrEmpty($Table.Tables.WaitingThold)) -or ($Table.Tables.WaitingThold -le 0)) {
+        if(([String]::IsNullOrEmpty($Table.Tables.WaitingThold)) -or ($Table.Tables.WaitingThold -le 0)) {
             $Script:Settings | Add-Member -Name WaitingThold -Value 1800000 -MemberType NoteProperty
         }
         else {
@@ -220,7 +218,6 @@ function Get-SQLStatus
     else {
         $Script:Settings | Add-Member -Name Processes -Value $($Script:Settings.SQLServer.EnumProcesses()) -MemberType NoteProperty
     }
- 
     $Script:Settings | Add-Member -Name Blocking -Value $($Script:Settings.Processes | Select Spid, BlockingSpid | Where { $_.BlockingSpid -ne 0 }) -MemberType NoteProperty
     
     $HBlockers = @()
@@ -811,25 +808,16 @@ function Get-JobStatus
 function Get-SQLStatisticsInterval
 {
     $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
-                FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
+                FROM [dbo].[AXMonitor_GRDStatistics]
                 WHERE [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
     if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsCheckInterval) {
         return $true
     }
     else {
         return $false
     }
-<#
-    $Query =   "SELECT COUNT(1)
-                FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDStatistics]
-                WHERE [CREATEDDATETIME] > '$((Get-Date).AddMinutes(-30))' 
-                AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    $GRDStatsInterval = $Cmd.ExecuteScalar()
-    return $GRDStatsInterval
-#>
 }
 
 function Get-SQLStatistics
@@ -877,12 +865,11 @@ function Get-SQLStatistics
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATSTOTAL = $(($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange}).Count) WHERE GUID = '$($Script:Settings.Guid)'"
 
     $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
-                FROM [DynamicsAXTools].[dbo].[AXMonitor_GRDLog]
+                FROM [dbo].[AXMonitor_GRDLog]
                 WHERE [JOBNAME] LIKE 'SQL_%' 
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
-                #AND [STARTED] >= '$((Get-Date).AddMinutes(-60))'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
     if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsUpdateInterval) {
         $GRDStatsCount = $true
     }
@@ -1034,7 +1021,7 @@ function Get-SendEmail
                     FROM AXMonitor_ExecutionLog
                     WHERE [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
-    if([string]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
+    if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
     if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendEmailLowRiskInterval) {
         $GRDReportChk = $true
     }
@@ -1100,14 +1087,14 @@ function GRD-RunCheck
 function Write-ExecLog
 {
 param (
-    [string]$MSg
+    [String]$MSg
 )
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET LOG = CASE WHEN LOG = '' THEN '$Msg' ELSE LOG + ' | ' +  '$Msg' END WHERE GUID = '$($Script:Settings.Guid)'"
 }
 
 function Check-Folder {
 param(
-    [string]$Path
+    [String]$Path
 )
     if(!(Test-Path($Path))) {
         New-Item -ItemType Directory -Force -Path $Path | Out-Null
