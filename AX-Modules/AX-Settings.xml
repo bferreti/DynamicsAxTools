@@ -21,7 +21,7 @@
   <AXMonitor>
 	<Debug>false</Debug>
 	<SendEmailLowRiskInterval>15</SendEmailLowRiskInterval>
- 	<StatisticsPercentChange>1</StatisticsPercentChange> 
+ 	<StatisticsPercentChange>10</StatisticsPercentChange> 
 	<StatisticsCheckInterval>30</StatisticsCheckInterval>
 	<StatisticsUpdateInterval>60</StatisticsUpdateInterval>
 	<StatisticsUpdateTop>15</StatisticsUpdateTop>	
