@@ -71,6 +71,7 @@ try
     $Db = $Server.Databases["$AXDatabase"]
     if($Schema) { $Db.DefaultSchema = $Schema }
     $Server.ConnectionContext.StatementTimeout = 0
+    $Server.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
     
     if($StatsType -match 'FullScan') {
         #$Server.ConnectionContext.StatementTimeout = 900

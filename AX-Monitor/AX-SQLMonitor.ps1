@@ -43,7 +43,6 @@ Param (
     [Parameter(Position=1,Mandatory=$false,ValueFromPipeline=$true)]
     [Switch]$Rerun
 )
-
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
 
