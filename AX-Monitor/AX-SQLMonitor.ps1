@@ -785,8 +785,7 @@ function Get-JobStatus
         foreach ($Job in $GRDJobs) {
             if($Job.State -eq 'Failed') {
                 SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
-                SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $(Receive-Job -Name $($Job.Name)) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
-
+                SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $((Get-Job $Job.Name | Receive-Job 2>&1).Exception.Message) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
             }
             else {
                 SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
