@@ -68,17 +68,17 @@ try
     }
 
     $Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $SQLInstance
+    $Server.ConnectionContext.ApplicationName = 'Ax Tools Monitoring'
+    $Server.ConnectionContext.StatementTimeout = 0
     $Db = $Server.Databases["$AXDatabase"]
     if($Schema) { $Db.DefaultSchema = $Schema }
-    $Server.ConnectionContext.StatementTimeout = 0
-    $Server.ConnectionContext.ApplicationName = 'SQL Monitoring Script'
     
     if($StatsType -match 'FullScan') {
         #$Server.ConnectionContext.StatementTimeout = 900
         $Db.Tables["$Table"].UpdateStatistics('All','FullScan')
     }
     else {
-        $Server.ConnectionContext.StatementTimeout = 540 #270
+        $Server.ConnectionContext.StatementTimeout = 810 #270
         $Db.Tables["$Table"].UpdateStatistics()        
     }
 }
@@ -87,3 +87,5 @@ catch
     $Msg = "ERROR - {0}" -f $_.Exception.Message
     SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $($Msg) "JOBNAME = '$GRDJobName'"
 }
+
+$Server.ConnectionContext.Disconnect()

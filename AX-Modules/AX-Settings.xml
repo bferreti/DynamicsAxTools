@@ -2,7 +2,8 @@
 <Settings>
   <General>
     <ReportPath>C:\Users\Administrator\Desktop\AxTools\Reports</ReportPath>
-    <LogPath></LogPath>
+    <LogPath>
+    </LogPath>
     <AutoCleanUp>true</AutoCleanUp>
     <RetentionDays>7</RetentionDays>
   </General>
@@ -10,22 +11,22 @@
     <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
     <DBServer>DAX2012R3</DBServer>
     <DBName>DynamicsAXTools</DBName>
-	<!-- Leave Username/Password blank if it is the same user running the task -->
-    <UserName>CONTOSO\AxUser</UserName>
-    <Password>01000000d08c9ddf0115d1118c7a00c04fc297eb0100000091dd10e26e895e46a0a0e64d7029233b0000000002000000000003660000c000000010000000a4fb865ff9d4760d706e94d5457af03d0000000004800000a00000001000000025fc71a992508b73086fa3ea2464d027180000004b968d3c7e81df11f493cbb2fbb51051b34bf51991f4967314000000439de1d0389ea0cb3b5b51dbd28385e5cbc74c13</Password>
+    <!-- Leave Username/Password blank if it is the same user running the task -->
+    <UserName>CONTOSO\AXUSER</UserName>
+    <Password>2IdSiTJw/ccLn8B6huGxCmmyVwyTpfCnQZynu793tlMzeEetDzjWDk1DNtRR4M9PZS0Xk2Efw8SccuzMS7ggiG5qLuU=</Password>
   </Database>
   <AXReport>
-	<PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
-	<LongBatchJobsThreshold>15</LongBatchJobsThreshold>
+    <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
+    <LongBatchJobsThreshold>15</LongBatchJobsThreshold>
   </AXReport>
   <AXMonitor>
-	<Debug>false</Debug>
-	<SendEmailLowRiskInterval>15</SendEmailLowRiskInterval>
- 	<StatisticsPercentChange>10</StatisticsPercentChange> 
-	<StatisticsCheckInterval>30</StatisticsCheckInterval>
-	<StatisticsUpdateInterval>60</StatisticsUpdateInterval>
-	<StatisticsUpdateTop>15</StatisticsUpdateTop>	
-	<StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax>
+    <Debug>false</Debug>
+    <SendEmailLowRiskInterval>15</SendEmailLowRiskInterval>
+    <StatisticsPercentChange>10</StatisticsPercentChange>
+    <StatisticsCheckInterval>30</StatisticsCheckInterval>
+    <StatisticsUpdateInterval>60</StatisticsUpdateInterval>
+    <StatisticsUpdateTop>15</StatisticsUpdateTop>
+    <StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax>
   </AXMonitor>
   <OtherSettings>
   </OtherSettings>

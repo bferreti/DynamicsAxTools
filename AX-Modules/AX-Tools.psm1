@@ -61,14 +61,14 @@ function Get-ConnectionString
 param (
     [String]$ApplicationName
 )
-    if($ApplicationName -eq '') { $ApplicationName = 'AX Powershell Script' }
+    if($ApplicationName -eq '') { $ApplicationName = 'Ax Tools Powershell' }
     $ConfigFile = Load-ConfigFile
     $ParamDBServer = $ConfigFile.Settings.Database.DBServer
     $ParamDBName = $ConfigFile.Settings.Database.DBName
     $ParamUserName = $ConfigFile.Settings.Database.UserName
     $ParamPassword = $ConfigFile.Settings.Database.Password
     if($ParamUserName) {
-        $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ParamPassword | ConvertTo-SecureString)))
+        $UserPassword = Read-EncryptedString -InputString $ParamPassword -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
         $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
         $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $ParamUserName, $secureUserPassword
         $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
@@ -112,12 +112,13 @@ param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$Account
 )
+    [System.Management.Automation.Credential()]$UserCreds = [System.Management.Automation.PSCredential]::Empty
     if($Account) {
         $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Account)'"
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
         $UserAcct = New-Object System.Data.DataSet
         $Adapter.Fill($UserAcct) | Out-Null
-        $UserPwd = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAcct.Tables.Password | ConvertTo-SecureString)))
+        $UserPwd = Read-EncryptedString -InputString $UserAcct.Tables.Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
         $secureUserPwd = $UserPwd | ConvertTo-SecureString -AsPlainText -Force 
         $UserCreds = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAcct.Tables.UserName, $secureUserPwd
         return $UserCreds
@@ -134,7 +135,7 @@ param (
     [String]$DBName,
     [String]$ApplicationName
 )
-    if($ApplicationName -eq '') { $ApplicationName = 'AX Powershell Script' }
+    if($ApplicationName -eq '') { $ApplicationName = 'Ax Tools Powershell' }
     try {
         if($SQLAccount) {
             $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($SQLAccount)'"
@@ -226,7 +227,8 @@ function Write-EncryptedString {
 [CmdletBinding()]
 param (
     [String]$InputString, 
-    [String]$DTKey
+    [String]$DTKey,
+    [Switch]$Compress
 )
     if (($args -contains '-?') -or (-not $InputString) -or (-not $DTKey)) {
         return
@@ -239,7 +241,7 @@ param (
 	$AES = New-Object Security.Cryptography.RijndaelManaged
 	$AESEncryptor = $AES.CreateEncryptor($AESKey, $AESIV)
 	$InputDataStream = New-Object System.IO.MemoryStream
-	if ($Compress) { $InputEncodingStream = (New-Object System.IO.Compression.GZipStream($InputDataStream, 'Compress', $True)) }
+	if ($Compress) { $InputEncodingStream = (New-Object System.IO.Compression.GZipStream($InputDataStream, ([IO.Compression.CompressionMode]::Compress), $True)) }
 	else { $InputEncodingStream = $InputDataStream }
 	$StreamWriter = New-Object System.IO.StreamWriter($InputEncodingStream, (New-Object System.Text.Utf8Encoding($true)))
 	$StreamWriter.Write($InputString)
@@ -252,6 +254,7 @@ param (
 	[Array]::Copy($AuthCode, 0, $OutputData, 32, 20)
 	[Array]::Copy($EncryptedEncodedInputString, 0, $OutputData, 52, $EncryptedEncodedInputString.Length)
 	$OutputDataAsString = [Convert]::ToBase64String($OutputData)
+    return $OutputDataAsString
 }
 
 function Read-EncryptedString {
@@ -384,7 +387,7 @@ param (
         $SMTPServer = $Table.Tables.SMTPServer
         $SMTPPort = $Table.Tables.SMTPPort
         $SMTPUserName = $Table.Tables.UserName
-        $SMTPPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($Table.Tables.Password | ConvertTo-SecureString)))
+        $SMTPPassword = Read-EncryptedString -InputString $($Table.Tables.Password) -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
         $SMTPSSL = $Table.Tables.SMTPSSL
         $SMTPFrom = $Table.Tables.From
         $SMTPTo = $Table.Tables.To

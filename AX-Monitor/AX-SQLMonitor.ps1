@@ -122,18 +122,19 @@ function Validate-Settings
        
         try {
             if($Table.Tables.DBUser) {
-                $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
-                $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnection)
-                $UserAccount = New-Object System.Data.DataSet
-                $Adapter.Fill($UserAccount) | Out-Null
-                $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables[0].Password | ConvertTo-SecureString)))
-                $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-                $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables[0].UserName, $secureUserPassword
+                #$Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
+                #$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnection)
+                #$UserAccount = New-Object System.Data.DataSet
+                #$Adapter.Fill($UserAccount) | Out-Null
+                #$UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables[0].Password | ConvertTo-SecureString)))
+                #$secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force
+                $SqlCredential = Get-UserCredentials $($Table.Tables.DBUser)
+                #$SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables[0].UserName, $secureUserPassword
                 $Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
                 $SqlConn.DatabaseName = $Table.Tables.DBName
-                $SqlConn.ApplicationName = 'SQL Monitoring Script'
+                $SqlConn.ApplicationName = 'Ax Tools Monitoring'
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.ConnectAsUser = $true
                 $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
@@ -144,7 +145,7 @@ function Validate-Settings
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
                 $SqlConn.DatabaseName = $Table.Tables.DBName
-                $SqlConn.ApplicationName = 'SQL Monitoring Script'
+                $SqlConn.ApplicationName = 'Ax Tools Monitoring'
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.Connect()
             }

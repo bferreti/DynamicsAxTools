@@ -15,7 +15,6 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 function Validate-User
 {
-    #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
     $Query = "SELECT UserName FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $UserExists = $Cmd.ExecuteScalar()
@@ -37,18 +36,20 @@ function Delete-User
 
 function Insert-User
 {
-    $SecureStringAsPlainText = $Credential.Password | ConvertFrom-SecureString
+    $SecureStringAsPlainText = Write-EncryptedString -InputString $Credential.GetNetworkCredential().Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
+
+    if($RunAs) {
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+        $ConfigFile.Settings.Database.UserName = $UserName
+        $ConfigFile.Settings.Database.Password = $SecureStringAsPlainText.ToString()
+        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
+    }
+
+    #$SecureStringAsPlainText = $Credential.Password | ConvertFrom-SecureString
     $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD])
                 VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
-
-    if($RunAs) {
-        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
-        $ConfigFile.Settings.Database.Impersonation.UserName = $UserName
-        $ConfigFile.Settings.Database.Impersonation.Password = $SecureStringAsPlainText.ToString()
-        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
-    }
 }
 
 $Credential = Get-Credential -Message "<DOMAIN\Username> OR <user@emailserver.com>" -ErrorAction SilentlyContinue
