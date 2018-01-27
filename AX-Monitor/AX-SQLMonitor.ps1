@@ -910,7 +910,7 @@ function Get-SQLStatistics
 function Get-CreateReport
 {
     $GRDReport = @()
-    $GRDReport += Get-HtmlOpen -TitleText ("SQL Monitoring Alert $($Script:Settings.DBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
+    $GRDReport += Get-HtmlOpen -Title ("SQL Monitoring Alert $($Script:Settings.DBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
 
     $GRDSummary = @()
     
@@ -952,27 +952,27 @@ function Get-CreateReport
         $GRDSummary += @($Script:Settings | Select @{n='Name';e={'Memory Load %'}}, @{n='Value';e={$_.MemoryLoad}}, @{n='RowColor';e={'LightGreen'}})
     }
     
-    $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "GRD Threshold"
+    $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "GRD Threshold"
     $GRDReport += Get-HtmlContentTable($GRDSummary | Select Name, Value, RowColor)
     $GRDReport += Get-HtmlContentClose
 
     if($Script:Settings.GRDJobs) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "GRD Jobs"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "GRD Jobs"
         $GRDReport += Get-HtmlContentTable($Script:Settings.GRDJobs | Select @{n='Table';e={$_.TableName}}, Statement, Started)
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.AXBatches) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Active AX Batch Jobs"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "Active AX Batch Jobs"
         $GRDReport += Get-HtmlContentTable($Script:Settings.AXBatches | Select Status, @{n='Name';e={$_.Caption}}, @{n='Started';e={$_.StartDateTime}}, CreatedBy)
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.AxNumSequences) { 
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Active AX Number Sequences"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "Active AX Number Sequences"
         $GRDReport += Get-HtmlContentTable($Script:Settings.AxNumSequences | Select NumberSequence, Format, Status, Continuous, SessionID, UserID, ModifiedBy, TransID, @{n='SessionTime';e={$_.SessionLoginDateTime}})
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.ProcessesInfo) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Running Queries"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "Running Queries"
         $GRDReport += Get-HtmlContentTable($Script:Settings.ProcessesInfo | Select  @{n='Database';e={$_.Database}}, 
                                                                                     @{n='HostName';e={$_.Host_Name}},
                                                                                     @{n='User';e={$_.context_info.Split('-')[0].Trim()}}, 
@@ -992,21 +992,21 @@ function Get-CreateReport
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.SQLConfiguration) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SQL Configuration"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "SQL Configuration"
         $GRDReport += Get-HtmlContentTable($Script:Settings.SQLConfiguration | Select @{n='Name';e={$_.DisplayName}}, Description, RunValue, ConfigValue | Sort-Object DisplayName)
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.SQLInformation) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SQL Information"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "SQL Information"
         $GRDReport += Get-HtmlContentTable($Script:Settings.SQLInformation | Select Name, Value | Sort-Object Name)
         $GRDReport += Get-HtmlContentClose
     }
     if($Script:Settings.PerfmonData) {
-        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Performance Counters"
+        $GRDReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "Performance Counters"
         $GRDReport += Get-HtmlContentTable($Script:Settings.PerfmonData | Select @{n='Counter';e={$_.Path}}, Value | Sort-Object Path)
         $GRDReport += Get-HtmlContentClose
     }
-    $GRDReport += Get-HtmlClose -FooterText "Guid: $($Script:Settings.Guid)"
+    $GRDReport += Get-HtmlClose -Footer "Guid: $($Script:Settings.Guid)"
     $Script:Settings | Add-Member -Name GRDReport -Value $GRDReport -MemberType NoteProperty
 
     #Save HTML

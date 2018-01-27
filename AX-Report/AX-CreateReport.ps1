@@ -242,13 +242,13 @@ function Create-Report
 {
     #Start Report
     $Script:AXReport = @()
-    $Script:AXReport += Get-HtmlOpen -TitleText ($ReportName) -AxReport
-    $Script:AXReport += Get-HtmlContentOpen -HeaderText "AX Daily Report"
+    $Script:AXReport += Get-HtmlOpen -Title ($ReportName) -AxReport
+    $Script:AXReport += Get-HtmlContentOpen -Header "AX Daily Report"
 
     ###First
     ##Summary Report
     $Script:AXReport += Get-HtmlColumn1of2
-    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "Summary Information"
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "Summary Information"
     $Script:AXReport += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
     $Script:AXReport += Get-HtmlContentClose
     $Script:AXReport += Get-HtmlColumnClose
@@ -258,7 +258,7 @@ function Create-Report
     $Green = '($this.Status -match "Running") -and ($this.DEL_Days -ge 1)'
     $Yellow = '($this.DEL_Days -lt 1) -and ($this.Status -notmatch "Stopped")'
     $Red = '$this.Status -match "Stopped"'
-    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Services Status"
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "AX Services Status"
     $AxServicesColored = Set-RowColor $Script:ReportDP.AxServices -Red $Red -Green $Green -Yellow $Yellow
     $Script:AXReport += Get-HtmlContentTable($AxServicesColored | Select ServerName, Name, Status, UpTime, RowColor)
     $Script:AXReport += Get-HtmlContentClose
@@ -273,7 +273,7 @@ function Create-Report
         $Yellow = '$this.TotalTime -gt 45 -and $this.TotalTime -le 60'
         $Red = '$this.TotalTime -eq 0 -or $this.TotalTime -gt 60'
         $AxMRPColor = Set-RowColor $Script:ReportDP.AxMRPLogs -Green $Green -Yellow $Yellow -Red $Red
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "MRP Run Status"
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "MRP Run Status"
         $Script:AXReport += Get-HtmlContentTable($AxMRPColor)
         $Script:AXReport += Get-HtmlContentClose
     }
@@ -282,11 +282,11 @@ function Create-Report
     ##Perfmon Logs
     $Script:AXReport += Get-HtmlContentOpen
     $Script:AXReport += Get-HtmlColumn1of2
-        $Script:AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor by Server [Total - $($Script:ReportDP.AxPerfmonCLR.Count)]" -BackgroundShade 1
+        $Script:AXReport += Get-HtmlContentOpen -Header "Performance Monitor by Server [Total - $($Script:ReportDP.AxPerfmonCLR.Count)]" -BackgroundShade 1
         foreach ($Type in ($Script:ReportDP.AxPerfmonCLR | Group ServerType | Sort Name ) ) {
-            $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
+            $Script:AXReport += Get-HtmlContentOpen -Header ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
             foreach ($Group in ($Script:ReportDP.AxPerfmonCLR | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
-                $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
+                $Script:AXReport += Get-HtmlContentOpen -Header ($Group.Name) -IsHidden -BackgroundShade 1
                 $Script:AXReport += Get-HtmlContentTable ($Group.Group | Select Counter, Max, Min, Avg, RowColor)
                 $Script:AXReport += Get-HtmlContentClose
             }
@@ -296,7 +296,7 @@ function Create-Report
     $Script:AXReport += Get-HtmlColumnClose
     #
     $Script:AXReport += Get-HtmlColumn2of2
-    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Performance Monitor Alerts by Threshold" -BackgroundShade 1
+    $Script:AXReport += Get-HtmlContentOpen -Header "Performance Monitor Alerts by Threshold" -BackgroundShade 1
         $AxPerfMonGrp = $Script:ReportDP.AxPerfmonCLR | Where {($_.RowColor -like 'Red') -or ($_.RowColor -like 'Yellow')} | Group RowColor | Sort Name
         $Script:AXReport += Get-HtmlContentTable ($AxPerfMonGrp.Group | Select ServerName, Counter, Max, Min, Avg, RowColor)
     $Script:AXReport += Get-HtmlContentClose
@@ -318,18 +318,18 @@ function Create-Report
     
     $Script:AXReport += Get-HtmlContentOpen
     $Script:AXReport += Get-HtmlColumn1of2
-    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server (Top 5)"
+    $Script:AXReport += Get-HtmlContentOpen -Header "Event Logs by Server (Top 5)"
     $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject2 -PieChartData ($Script:ReportDP.AxEventLogsChart | Group ServerName | Sort Count -Descending | Select -First 5)
     $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxEventLogsChart | Group ServerName | Select Name, Count | Sort Count -Descending | Select -First 5)
     $Script:AXReport += Get-HtmlContentClose
     $Script:AXReport += Get-HtmlColumnClose
 
     $Script:AXReport += Get-HtmlColumn2of2
-    $Script:AXReport += Get-HtmlContentOpen -HeaderText "Event Logs by Server" -BackgroundShade 1
+    $Script:AXReport += Get-HtmlContentOpen -Header "Event Logs by Server" -BackgroundShade 1
     foreach ($Type in ($Script:ReportDP.AxEventLogsChart | Group ServerType | Sort Name ) ) {
-        $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
+        $Script:AXReport += Get-HtmlContentOpen -Header ($Type.Name + " Servers") -IsHidden -BackgroundShade 1
         foreach ($Group in ($Script:ReportDP.AxEventLogsChart | Where-Object {$_.ServerType -match $Type.Name} | Group ServerName | Sort Name ) ) {
-            $Script:AXReport += Get-HtmlContentOpen -HeaderText ($Group.Name) -IsHidden -BackgroundShade 1
+            $Script:AXReport += Get-HtmlContentOpen -Header ($Group.Name) -IsHidden -BackgroundShade 1
             $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxEventLogs | Where {$_.ServerName -match $Group.Name} | Select LogName, Type, Id, Source, Count | Sort Count -Descending)
             $Script:AXReport += Get-HtmlContentClose
         }
@@ -342,7 +342,7 @@ function Create-Report
 
     #Batch Jobs Errors
     if($Script:ReportDP.AxBatchJobs.Count -gt 0) {
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "AX Batch Jobs Errors [Total - $($Script:ReportDP.AxBatchJobs.Count)]"
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "AX Batch Jobs Errors [Total - $($Script:ReportDP.AxBatchJobs.Count)]"
         $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxBatchJobs)
         $Script:AXReport += Get-HtmlContentClose
     }
@@ -356,13 +356,13 @@ function Create-Report
 
         $Script:AXReport += Get-HtmlContentOpen
         $Script:AXReport += Get-HtmlColumn1of2
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Error Logs [Total - $($Script:ReportDP.SSRSErrorLogs.Count)]"
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "SSRS Error Logs [Total - $($Script:ReportDP.SSRSErrorLogs.Count)]"
         $Script:AXReport += Get-HtmlContentTable(Set-RowColor($Script:ReportDP.SSRSErrorLogs | Select Instance, Message, Report, Count) -Alternating)
         $Script:AXReport += Get-HtmlContentClose
         $Script:AXReport += Get-HtmlColumnClose
         #
         $Script:AXReport += Get-HtmlColumn2of2
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SSRS Errors by User (Top 5)"
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "SSRS Errors by User (Top 5)"
         $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject3 -PieChartData ($Script:ReportDP.SSRSUsers | Sort Count -Descending | Select -First 5)
         $Script:AXReport += Get-HtmlContentTable($Script:ReportDP.SSRSUsers | Select User, Count | Sort Count -Descending | Select -First 5)
         $Script:AXReport += Get-HtmlContentClose
@@ -372,13 +372,13 @@ function Create-Report
 
     #CDX Jobs Errors
     if($Script:ReportDP.AxCDXJobs.Rows.Count -gt 0) {
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Rows.Count)]" 
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "CDX Jobs Errors [Total - $($Script:ReportDP.AxCDXJobs.Rows.Count)]" 
         $Script:AXReport += Get-HtmlContentTable (Set-RowColor $Script:ReportDP.AxCDXJobs -Alternating)
         $Script:AXReport += Get-HtmlContentClose
     }
 
     ##SQL Error Logs
-    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -HeaderText "SQL Server Error Logs [Total - $($Script:ReportDP.SQLErrorLogs.Count)]" 
+    $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "SQL Server Error Logs [Total - $($Script:ReportDP.SQLErrorLogs.Count)]" 
     $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SQLErrorLogs) 
     $Script:AXReport += Get-HtmlContentClose
 
@@ -391,7 +391,7 @@ function Create-Report
     #
     #    $Script:AXReport += Get-HtmlContentOpen
     #    $Script:AXReport += Get-HtmlColumn1of2
-    #    $Script:AXReport += Get-HtmlContentOpen -HeaderText "SSRS Errors 7 Days"
+    #    $Script:AXReport += Get-HtmlContentOpen -Header "SSRS Errors 7 Days"
     #    $Script:AXReport += New-HTMLPieChart -PieChartObject $PieChartObject4 -PieChartData ($Script:ReportDP.SSRSWeek | Sort Date)
     #    $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.SSRSWeek | Select Date, Count | Sort Date -Descending)
     #    $Script:AXReport += Get-HtmlContentClose
@@ -405,7 +405,7 @@ function Create-Report
 
     #Close Report
     $Script:AXReport += Get-HtmlContentClose
-    $Script:AXReport += Get-HtmlClose -FooterTxt "Guid: $($Guid)" -AxReport
+    $Script:AXReport += Get-HtmlClose -Footer "Guid: $($Guid)" -AxReport
 }
 
 function Save-ReportFile
@@ -413,11 +413,11 @@ function Save-ReportFile
     ##Add Summary Email Info
     $Script:AxSummary += New-Object PSObject -Property @{ Name = '**Please see the attached report for details.'; Status = ''; RowColor = 'None' }
     $AXREmail = @()
-    $AXREmail += Get-HtmlOpen -TitleText ($ReportName) -AxSummary
-    $AXREmail += Get-HtmlContentOpen -HeaderText "Summary Information"
+    $AXREmail += Get-HtmlOpen -Title ($ReportName) -AxSummary
+    $AXREmail += Get-HtmlContentOpen -Header "Summary Information"
     $AXREmail += Get-HtmlContentTable($Script:AxSummary | Select Name, Status, RowColor)
     $AXREmail += Get-HtmlContentClose
-    $AXREmail += Get-HtmlClose -FooterTxt "Guid: $($Guid)" -AxSummary
+    $AXREmail += Get-HtmlClose -Footer "Guid: $($Guid)" -AxSummary
     #Save Summary
     $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate-Summary" + ".html")
     $AXREmail | Set-Content -Path $AXReportPath -Force

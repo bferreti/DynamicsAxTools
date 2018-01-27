@@ -467,7 +467,7 @@ function Get-HtmlOpen {
 #>
 [CmdletBinding()]
 param (
-	[String]$TitleText,
+	[String]$Title,
 	[Switch]$SimpleHTML,
     [Switch]$AxReport,
     [Switch]$AxSummary
@@ -479,7 +479,7 @@ if($SimpleHTML) {
 $Report = @"
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>$($TitleText)</title>
+<head><title>$($Title)</title>
       <style type=text/css>
       *{font-family:Segoe UI Symbol;margin-top:4px;margin-bottom:4px}
        body{margin:8px 5px}
@@ -511,7 +511,7 @@ $Report = @"
        </style>
 </head>
 <div class="section">
-    <div class="ReportName">$($TitleText)</div>
+    <div class="ReportName">$($Title)</div>
     <hr/>
 </div>
 "@
@@ -529,7 +529,7 @@ Content-Transfer-Encoding: 7bit
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <html>
 
-<head><title>$($TitleText)</title>
+<head><title>$($Title)</title>
 <style type="text/css">
     * {margin: 0px;font-family: sans-serif;font-size: 8pt;}
     body {margin: 8px 5px 8px 5px;}
@@ -574,7 +574,7 @@ function hide(obj) {
 <body onload="hide();">
 
 <div class="section">
-    <div class="ReportName">$($TitleText) - $((Get-Date).AddDays(-1) | Get-Date -Format "D")</div>
+    <div class="ReportName">$($Title) - $((Get-Date).AddDays(-1) | Get-Date -Format "D")</div>
     <hr/>
 </div>
 "@
@@ -584,7 +584,7 @@ elseif($AxSummary) {
 $Report = @"
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> 
 <html>
-<head><title>$($TitleText)</title> 
+<head><title>$($Title)</title> 
     <style type="text/css"> * {margin: 0px;font-family: sans-serif;font-size: 8pt;}
     body {margin: 8px 5px 8px 5px;}
     hr {height: 4px;background-color: #337e94;border: 0px;}
@@ -609,7 +609,7 @@ $Report = @"
 </head>
 
 <div class="section"> 
-    <div class="reportname">$($TitleText)</div> 
+    <div class="reportname">$($Title)</div> 
     <hr/>
     <br></br> 
 </div>
@@ -620,7 +620,7 @@ else {
 $Report = @"
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
 <html><head>
-<title>$($TitleText)</title>
+<title>$($Title)</title>
     <style type="text/css">*{font:8pt sans-serif;margin:0px}
     body{margin:8px 5px 8px 5px}
     hr{background:#337e94;border:0px;height:4px}
@@ -669,7 +669,7 @@ function hide(obj) {
 <body onload="hide();">
 
 <div class="section">
-    <div class="ReportName">$($TitleText) - $((Get-Date).AddDays(-1) | Get-Date -Format "D")</div>
+    <div class="ReportName">$($Title) - $((Get-Date).AddDays(-1) | Get-Date -Format "D")</div>
     <hr/>
 </div>
 "@
@@ -690,12 +690,12 @@ function Get-HtmlClose
 		CSS for AX Report Summary email
 #>
 Param(
-	[string]$FooterTxt,
+	[string]$Footer,
     [Switch]$AxReport,
     [Switch]$AxSummary    	
 )
 
-$Footer = "Date: {0} | UserName: {1}\{2} | {3}" -f $(Get-Date),$env:UserDomain,$env:UserName,$FooterTxt
+$Footer = "Date: {0} | UserName: {1}\{2} | {3}" -f $(Get-Date),$env:UserDomain,$env:UserName,$Footer
 
 if($AxReport) {
 $Report = @"
@@ -750,7 +750,7 @@ function Get-HtmlContentOpen {
 		    An int for 1 to 6 that defines background shading
 #>	
 Param(
-	[string]$HeaderText, 
+	[string]$Header, 
 	[switch]$IsHidden, 
 	[validateset(1,2,3,4,5,6)][int]$BackgroundShade
 )
@@ -770,7 +770,7 @@ if ($IsHidden) {
 	$Report = @"
 <div class="section">
     <div class="header">
-        <a name="$($HeaderText)">$($HeaderText)</a> (<a id="show_$JavaScriptRdm" href="javascript:void(0);" onclick="show('$JavaScriptRdm');" style="color: #ffffff;">Show</a><a id="hide_$JavaScriptRdm" href="javascript:void(0);" onclick="hide('$JavaScriptRdm');" style="color: #ffffff; display:none;">Hide</a>)
+        <a name="$($Header)">$($Header)</a> (<a id="show_$JavaScriptRdm" href="javascript:void(0);" onclick="show('$JavaScriptRdm');" style="color: #ffffff;">Show</a><a id="hide_$JavaScriptRdm" href="javascript:void(0);" onclick="hide('$JavaScriptRdm');" style="color: #ffffff; display:none;">Hide</a>)
     </div>
     <div class="content" id="$JavaScriptRdm" style="display:none;background-color:$($bgColorCode);"> 
 "@	
@@ -779,7 +779,7 @@ else {
 	$Report = @"
 <div class="section">
     <div class="header">
-        <a name="$($HeaderText)">$($HeaderText)</a>
+        <a name="$($Header)">$($Header)</a>
     </div>
     <div class="content" style="background-color:$($bgColorCode);"> 
 "@
