@@ -61,7 +61,7 @@ function Get-ConnectionString
 param (
     [String]$ApplicationName
 )
-    if($ApplicationName -eq '') { $ApplicationName = 'Ax Tools Powershell' }
+    if($ApplicationName -eq '') { $ApplicationName = 'Ax Powershell Tools' }
     $ConfigFile = Load-ConfigFile
     $ParamDBServer = $ConfigFile.Settings.Database.DBServer
     $ParamDBName = $ConfigFile.Settings.Database.DBName
@@ -135,16 +135,17 @@ param (
     [String]$DBName,
     [String]$ApplicationName
 )
-    if($ApplicationName -eq '') { $ApplicationName = 'Ax Tools Powershell' }
+    if($ApplicationName -eq '') { $ApplicationName = 'Ax Powershell Tools' }
     try {
         if($SQLAccount) {
-            $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($SQLAccount)'"
-            $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
-            $UserAccount = New-Object System.Data.DataSet
-            $Adapter.Fill($UserAccount) | Out-Null
-            $UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables.Password | ConvertTo-SecureString)))
-            $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
-            $SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables.UserName, $secureUserPassword
+            $SqlCredential = Get-UserCredentials $($SQLAccount)
+            #$Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($SQLAccount)'"
+            #$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
+            #$UserAccount = New-Object System.Data.DataSet
+            #$Adapter.Fill($UserAccount) | Out-Null
+            #$UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables.Password | ConvertTo-SecureString)))
+            #$secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
+            #$SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables.UserName, $secureUserPassword
             $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
             $SqlConn.ServerInstance = $DBServer
             $SqlConn.DatabaseName = $DBName

@@ -37,19 +37,17 @@ function Delete-User
 function Insert-User
 {
     $SecureStringAsPlainText = Write-EncryptedString -InputString $Credential.GetNetworkCredential().Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
-
+    #$SecureStringAsPlainText = $Credential.Password | ConvertFrom-SecureString
+    $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD])
+                VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd.ExecuteNonQuery() | Out-Null
     if($RunAs) {
         [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
         $ConfigFile.Settings.Database.UserName = $UserName
         $ConfigFile.Settings.Database.Password = $SecureStringAsPlainText.ToString()
         $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
     }
-
-    #$SecureStringAsPlainText = $Credential.Password | ConvertFrom-SecureString
-    $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD])
-                VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
-    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
-    $Cmd.ExecuteNonQuery() | Out-Null
 }
 
 $Credential = Get-Credential -Message "<DOMAIN\Username> OR <user@emailserver.com>" -ErrorAction SilentlyContinue

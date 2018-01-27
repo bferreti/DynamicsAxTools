@@ -130,11 +130,12 @@ function Validate-Settings
                 #$secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force
                 $SqlCredential = Get-UserCredentials $($Table.Tables.DBUser)
                 #$SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables[0].UserName, $secureUserPassword
-                $Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
+                #$Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
+                $Script:Settings | Add-Member -Name SqlUsername -Value $($Table.Tables.DBUser) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
                 $SqlConn.DatabaseName = $Table.Tables.DBName
-                $SqlConn.ApplicationName = 'Ax Tools Monitoring'
+                $SqlConn.ApplicationName = 'Ax Powershell Tools (SQL)'
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.ConnectAsUser = $true
                 $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
@@ -145,7 +146,7 @@ function Validate-Settings
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
                 $SqlConn.DatabaseName = $Table.Tables.DBName
-                $SqlConn.ApplicationName = 'Ax Tools Monitoring'
+                $SqlConn.ApplicationName = 'Ax Powershell Tools (SQL)'
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.Connect()
             }
@@ -766,8 +767,8 @@ Param(
 
 function Run-GRDStats
 {
-    if($Script:Settings.SqlCredential) {
-        Start-Job -Credential $Script:Settings.SqlCredential -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+    if($Script:Settings.SqlUsername) {
+        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5] $args[6]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($Script:Settings.SqlUsername), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
     }
     else {
         Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
@@ -1058,7 +1059,7 @@ function GRD-RunCheck
     foreach ($block in $blocks) {
         $blockedby = $server.EnumProcesses() | Where-Object { $_.spid -eq $block.blockingspid }
         $db = $server.Databases[$blockedby.database]
-        $blockingTransaction =  $db.EnumTransactions() | Where-Object { $_.spid -eq $blockedby.spid }
+        $blockingTransaction =  $db.EnumTransactions() | Where-Object { $_.spid -eq $blockedby.spid }
         $currentime = Get-Date
         $transactionBegin = $blockingTransaction.BeginTime
         $blockingSeconds = ($currentime - $transactionBegin).TotalSeconds

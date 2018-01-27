@@ -42,6 +42,8 @@ Param (
     [String]$SQLInstance,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$AXDatabase,
+    [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+    [String]$SQLUsername,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$Table,
     [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
@@ -49,7 +51,8 @@ Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$GRDJobName
 )
-[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
 
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
@@ -67,8 +70,13 @@ try
         $Table = $Table.Split('.')[1]
     }
 
-    $Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $SQLInstance
-    $Server.ConnectionContext.ApplicationName = 'Ax Tools Monitoring'
+    if($SQLUsername) {
+        $Server = Get-SQLObject -DBServer $SQLInstance -DBName $AXDatabase -SQLAccount $SQLUsername -ApplicationName 'Ax Powershell Tools (SQL STATS)' -SQLServerObject
+    }
+    else {
+        $Server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $SQLInstance
+        $Server.ConnectionContext.ApplicationName = 'Ax Powershell Tools (SQL STATS)'
+    }
     $Server.ConnectionContext.StatementTimeout = 0
     $Db = $Server.Databases["$AXDatabase"]
     if($Schema) { $Db.DefaultSchema = $Schema }
@@ -84,7 +92,7 @@ try
 }
 catch
 {
-    $Msg = "ERROR - {0}" -f $_.Exception.Message
+    $Msg = "ERROR - {0}" -f $_.Exception #.Message
     SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $($Msg) "JOBNAME = '$GRDJobName'"
 }
 
