@@ -331,7 +331,7 @@ function Get-AOSServices
     #>
     $AOSServices = @()
     if($Script:Settings.LocalAdminAccount -and $WrkServer.ServerName -ne $env:COMPUTERNAME) {
-        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
+        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
         if($Services) { 
             foreach($Service in $Services) {
                 $AOSTemp  = New-Object -TypeName System.Object
@@ -350,7 +350,7 @@ function Get-AOSServices
         }
     }
     else {
-        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "*Microsoft Dynamics AX*" }
+        $Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
         if($Services) { 
             foreach($Service in $Services) {
                 $AOSTemp  = New-Object -TypeName System.Object

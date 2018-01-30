@@ -346,6 +346,11 @@ function Create-Report
         $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxBatchJobs)
         $Script:AXReport += Get-HtmlContentClose
     }
+    if($Script:ReportDP.AxLongBatchJobs.Count -gt 0) {
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "AX Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min) [Total - $($Script:ReportDP.AxLongBatchJobs.Count)]"
+        $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxLongBatchJobs)
+        $Script:AXReport += Get-HtmlContentClose
+    }
     #
     if($Script:ReportDP.SSRSErrorLogs.Count -gt 0) {
         $PieChartObject3 = New-HTMLPieChartObject

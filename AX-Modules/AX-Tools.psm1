@@ -37,6 +37,9 @@
 #    Copyright 2017
 #
 
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
+
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
@@ -301,7 +304,7 @@ param (
     $TLogStamp = (Get-Date -DisplayHint Time)
     $ExecLog = New-Object -TypeName System.Object
     $ExecLog | Add-Member -Name CreatedDateTime -Value $TLogStamp -MemberType NoteProperty
-    $ExecLog | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
+    $ExecLog | Add-Member -Name Guid -Value $(if($Global:Guid) {$Global:Guid} else {'0'}) -MemberType NoteProperty
     $ExecLog | Add-Member -Name Log -Value $LogData.Trim() -MemberType NoteProperty
     SQL-BulkInsert 'AXTools_ExecutionLog' $ExecLog
 }
@@ -1150,4 +1153,150 @@ function Get-HTMLColumnClose
 #>
 	$report = '</div>'
 	return $report
+}
+
+function Test-AosServices
+{
+[CmdletBinding()]
+param (
+	[String]$AxEnvironment,
+	[String]$AosInstance,
+	[Switch]$Start
+)
+    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE = 'AOS' AND ACTIVE = '1'"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
+    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+    $Adapter.SelectCommand = $Cmd
+    $Servers = New-Object System.Data.DataSet
+    $TotalServers = $Adapter.Fill($Servers)
+
+    $Stopped = 0
+    $Running = 0
+
+    if($TotalServers -gt 0) {
+        $Query = "SELECT LocalAdminUser FROM [AXTools_Environments] WHERE ENVIRONMENT = '$AXEnvironment'"
+        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
+        $LocalAdminAccount = $Cmd.ExecuteScalar()
+        if(![String]::IsNullOrEmpty($LocalAdminAccount)) { $LocalAdminAccount = Get-UserCredentials -Account $LocalAdminAccount }
+
+        foreach($Server in $Servers.Tables[0]) {
+            if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
+                if($LocalAdminAccount -and $Server.ServerName -ne $env:COMPUTERNAME) {
+                    $Services = Get-WmiObject -Class Win32_Service -ComputerName $($Server.ServerName) -Credential $LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+                    if($Services) { 
+                        foreach($Service in $Services) {
+                            if($Service.State -match 'Stopped') {
+                                if($Start) { $Service.StartService() }
+                                Write-Log "ERROR: AOS Check $($Service.SystemName) | $($Service.Name) | $($Service.State)"
+                                $Stopped++
+                            }
+                            else {
+                                $Running++
+                            }
+                        }
+                    }
+                }
+                else {
+                    $Services = Get-WmiObject -Class Win32_Service -ComputerName $($Server.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+                    if($Services) { 
+                        foreach($Service in $Services) {
+                            if($Service.State -match 'Stopped') {
+                                if($Start) { $Service.StartService() }
+                                Write-Log "ERROR: AOS Check $($Service.SystemName) | $($Service.Name) | $($Service.State)"
+                                $Stopped++
+                            }
+                            else {
+                                $Running++
+                            }
+                        }
+                    }
+                }
+            }
+            else {
+                Write-Log "ERROR: AOS Check - Server unavailable $($Server.ServerName)."
+            }
+        }
+        Write-Log "AOS Check - Servers $TotalServers - Running $Running | Failed $Stopped."
+    }
+    else {
+        Write-Log "ERROR: AOS Check environment $AXEnvironment not found."
+    }
+}
+
+function Test-Perfmon
+{
+[CmdletBinding()]
+param (
+	[String]$AxEnvironment,
+	[Switch]$Start
+)
+
+    $Configuration = Load-ConfigFile
+
+    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE = 'AOS' AND ACTIVE = '1'"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
+    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+    $Adapter.SelectCommand = $Cmd
+    $Servers = New-Object System.Data.DataSet
+    $TotalServers = $Adapter.Fill($Servers)
+
+    $Stopped = 0
+    $Running = 0
+
+    if($TotalServers -gt 0) {
+        $Query =   "SELECT LocalAdminUser FROM [AXTools_Environments] WHERE ENVIRONMENT = '$AXEnvironment'"
+        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
+        $LocalAdminAccount = $Cmd.ExecuteScalar()
+        if(![String]::IsNullOrEmpty($LocalAdminAccount)) { $LocalAdminAccount = Get-UserCredentials -Account $LocalAdminAccount }
+
+        foreach($Server in $Servers.Tables[0]) {
+            if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
+                if($LocalAdminAccount -and $Server.ServerName -ne $env:COMPUTERNAME) {
+                    try {
+                        Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
+                            Param($DataCollectorName, $Server)
+                            $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
+                            $DataCollectorSet.Query("$DataCollectorName", $Server)
+                            if($DataCollectorSet.Status -eq 0) {
+                                if($Start) { $DataCollectorSet.Start($false) }
+                                $Msg = "ERROR: Perfmon Check $Server | $DataCollectorName | Stopped."
+                            }
+                            else {
+                                $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
+                            }
+                            return $Msg
+                        } -OutVariable Msg
+                        if($Msg) { Write-Log $Msg }
+                    }
+                    catch {
+                        Write-Log "ERROR: Perfmon Check $($Server.ServerName) - $($_.exception.message)"
+                    }
+                }
+                else {
+                    try {
+                        Invoke-Command -ComputerName $Server.ServerName -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
+                            Param($DataCollectorName, $Server)
+                            $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
+                            $DataCollectorSet.Query("$DataCollectorName", $Server)
+                            if($DataCollectorSet.Status -eq 0) {
+                                if($Start) { $DataCollectorSet.Start($false) }
+                                $Msg = "ERROR: Perfmon Check $Server | $DataCollectorName | Stopped."
+                            }
+                            else {
+                                $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
+                            }
+                            return $Msg
+                        } -OutVariable Msg
+                        if($Msg) { Write-Log $Msg }
+                    }
+                    catch {
+                        Write-Log "ERROR: Perfmon Check $($Server.ServerName) - $($_.exception.message)"
+                    }
+                }
+            }
+        }
+    }
+    else {
+        Write-Log "ERROR: Perfmon Check environment $AXEnvironment not found."
+    }
 }
