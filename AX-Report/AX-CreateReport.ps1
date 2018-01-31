@@ -71,15 +71,6 @@ function Create-ReportSummary
 {
     $Script:AxSummary = @()
     #AxServices
-    <#
-    if($Script:ReportDP.AxServices.Count -eq ($Script:ReportDP.AxServices | Where {$_.Status -match 'Running'}).Count) { 
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = "Ok. All Services Running."; RowColor = 'Green' }
-    }
-    else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = "AOS Services Failure Found."; RowColor = 'Red' }
-    }
-    #>
-
     if(($Script:ReportDP.AxServices.DEL_Days -lt 1 | Measure-Object).Count -gt 0) {
         $TmpStatus = "$(($Script:ReportDP.AxServices.DEL_Days -lt 1 | Measure-Object).Count) service(s) restarted."
         $TmpColor = 'Yellow'
@@ -97,13 +88,12 @@ function Create-ReportSummary
 
 
     #MRP Runtime
-    if($Script:ReportDP.AxMRPLogs.Count -gt 0) {
+    if($Script:ReportDP.AxMRPLogs) {
         $MRPTotalTime = $Script:ReportDP.AxMRPLogs.TotalTime | Measure-Object  -Maximum -Average
         switch -wildcard ($MRPTotalTime) {
-            {$($MRPTotalTime.Maximum) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) with no execution time."; RowColor = 'Red' }}
+            {$($MRPTotalTime.Maximum) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) with no end time."; RowColor = 'Red' }}
             {($($MRPTotalTime.Maximum) -gt 0) -and ($($MRPTotalTime.Maximum) -le 45)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Green' }}
-            #{($($Script:ReportDP.AxMRPLogs.TotalTime) -gt 45) -and ($($Script:ReportDP.AxMRPLogs.TotalTime) -le 60)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($Script:ReportDP.AxMRPLogs.TotalTime) minutes."; RowColor = 'Yellow' }}
-            {($($MRPTotalTime.Maximum) -gt 45)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Yellow' }}
+            {($($MRPTotalTime.Maximum) -gt 45) -and ($($MRPTotalTime.Maximum) -le 60)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Yellow' }}
             Default {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP Failed $(if($MRPTotalTime.Maximum -gt 0){ "- $($MRPTotalTime.Maximum) minutes."} else {"."})"; RowColor = 'Red' }}
         }
     }
@@ -205,7 +195,7 @@ function Create-ReportSummary
                 }
                 $Script:AxSummary += New-Object PSObject -Property @{ 
                                 Name = "`t"; 
-                                Status = " -› $($Crash.Name) - $TmpSummary"; 
+                                Status = " -› $($Crash.Name) - $TmpSummary"; 
                                 RowColor = if($TmpSummary -match ("server crash")) {'Red'} else {'Yellow'} }
             }
         }
