@@ -18,6 +18,7 @@
   <AXReport>
     <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
     <LongBatchJobsThreshold>15</LongBatchJobsThreshold>
+	<MRPThreshold>60</MRPThreshold>	
   </AXReport>
   <AXMonitor>
     <Debug>false</Debug>
