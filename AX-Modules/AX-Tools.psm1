@@ -354,6 +354,18 @@ param (
     $Conn.Close()
 }
 
+function Set-SQLUpdate
+{
+[CmdletBinding()]
+param (
+    [String]$Query
+)
+    $Conn = Get-ConnectionString 
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd.ExecuteNonQuery()
+    $Conn.Close()
+}
+
 function SQL-WriteLog
 {
 [CmdletBinding()]

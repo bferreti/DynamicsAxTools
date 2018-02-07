@@ -69,6 +69,9 @@ $Script:Settings | Add-Member -Name DataCollectorName -Value $Script:Configurati
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 $Script:Settings.Guid
+
+SQL-BulkInsert 'AXReport_ExecutionLog' ($Script:Settings | Select Environment, @{n='StartTime';e={Get-Date}} , Guid)
+
 function Get-WrkProcess
 {
   switch ($psCmdlet.ParameterSetName)
@@ -881,4 +884,5 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-WrkProcess
+Set-SQLUpdate "UPDATE AXReport_ExecutionLog SET EndTime = '$(Get-Date)', LOG = '$($Log)' WHERE GUID = '$($Script:Settings.Guid)'"
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }

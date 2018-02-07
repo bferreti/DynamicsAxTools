@@ -56,9 +56,9 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 $Script:Configuration = Load-ConfigFile
 $ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
-if($Script:Configuration.Settings.AXReport.MRPThreshold -eq 0 -or [string]::IsNullOrEmpty($Script:Configuration.Settings.AXReport.MRPThreshold)) {$MRPThreshold = 60} else {$MRPThreshold = $Script:Configuration.Settings.AXReport.MRPThreshold }
 $ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
+
 
 function Run-Report
 {
@@ -90,12 +90,13 @@ function Create-ReportSummary
 
     #MRP Runtime
     if($Script:ReportDP.AxMRPLogs) {
+        Get-MRPThreshold
         $MRPTotalTime = $Script:ReportDP.AxMRPLogs.TotalTime | Measure-Object  -Maximum -Average
         switch -wildcard ($MRPTotalTime) {
-            {$($MRPTotalTime.Maximum) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) with no end time."; RowColor = 'Red' }}
-            {($($MRPTotalTime.Maximum) -gt 0) -and ($($MRPTotalTime.Maximum) -le $MRPThreshold)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Green' }}
-            {($($MRPTotalTime.Maximum) -gt $MRPThreshold) } {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Yellow' }}
-            Default {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status"; Status = "MRP Failed $(if($MRPTotalTime.Maximum -gt 0){ "- $($MRPTotalTime.Maximum) minutes."} else {"."})"; RowColor = 'Red' }}
+            {$($MRPTotalTime.Maximum) -eq 0} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status (>$($Script:ReportDP.MRPThreshold)min)"; Status = "$($MRPTotalTime.Count) MRP run(s) with no end time."; RowColor = 'Red' }}
+            {($($MRPTotalTime.Maximum) -gt 0) -and ($($MRPTotalTime.Maximum) -le $Script:ReportDP.MRPThreshold)} {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status (>$($Script:ReportDP.MRPThreshold)min)"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Green' }}
+            {($($MRPTotalTime.Maximum) -gt $Script:ReportDP.MRPThreshold) } {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status (>$($Script:ReportDP.MRPThreshold)min)"; Status = "$($MRPTotalTime.Count) MRP run(s) - $($MRPTotalTime.Maximum) minutes."; RowColor = 'Yellow' }}
+            Default {$Script:AxSummary += New-Object PSObject -Property @{ Name = "MRP Status (>$($Script:ReportDP.MRPThreshold)min)"; Status = "MRP Failed $(if($MRPTotalTime.Maximum -gt 0){ "- $($MRPTotalTime.Maximum) minutes."} else {"."})"; RowColor = 'Red' }}
         }
     }
     else {
@@ -260,9 +261,9 @@ function Create-Report
     #MRP Status
     if($Script:ReportDP.AxMRPLogs)
     {
-        $Green = '$this.TotalTime -gt 0 -and $this.TotalTime -le 45'
-        $Yellow = '$this.TotalTime -gt 45 -and $this.TotalTime -le 60'
-        $Red = '$this.TotalTime -eq 0 -or $this.TotalTime -gt 60'
+        $Green = "`$this.TotalTime -gt 0 -and `$this.TotalTime -le $($Script:ReportDP.MRPThreshold)"
+        $Yellow = "`$this.TotalTime -gt $($Script:ReportDP.MRPThreshold)"
+        $Red = '$this.TotalTime -eq 0 -or [string]::IsNullOrEmpty($this.TotalTime)'
         $AxMRPColor = Set-RowColor $Script:ReportDP.AxMRPLogs -Green $Green -Yellow $Yellow -Red $Red
         $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "MRP Run Status"
         $Script:AXReport += Get-HtmlContentTable($AxMRPColor)
@@ -586,6 +587,26 @@ function Run-ReportDP
     $PermonDataLogs = New-Object System.Data.DataSet
     $Adapter.Fill($PermonDataLogs)
     $Script:ReportDP | Add-Member -Name PermonDataLogs -Value $($PermonDataLogs.Tables[0] | Select ServerName, ServerType, Counter, CounterType, Max, Min, Avg) -MemberType NoteProperty
+}
+
+function Get-MRPThreshold
+{
+    if($Script:Configuration.Settings.AXReport.MRPThreshold -eq 0 -or [string]::IsNullOrEmpty($Script:Configuration.Settings.AXReport.MRPThreshold)) {
+        $Query = "SELECT ISNULL(AVG(((TIMECOPY+TIMECOVERAGE+TIMEUPDATE)/60)),0) AS [AvgTime]
+                    FROM AXReport_AxMRP 
+                    WHERE COMPLETEUPDATE = '1'"
+        $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:ReportDP.ToolsConnectionObject)
+        $MRPThreshold = $Cmd.ExecuteScalar()
+        if($MRPThreshold -eq 0) {
+            $Script:ReportDP | Add-Member -Name MRPThreshold -Value 60 -MemberType NoteProperty
+        }
+        else {
+            $Script:ReportDP | Add-Member -Name MRPThreshold -Value $MRPThreshold -MemberType NoteProperty
+        }
+    }
+    else {
+        $Script:ReportDP | Add-Member -Name MRPThreshold -Value $Script:Configuration.Settings.AXReport.MRPThreshold -MemberType NoteProperty
+    }
 }
 
 Run-Report
