@@ -121,7 +121,7 @@ function Validate-Settings
         $Script:Settings | Add-Member -Name ToolsConnection -Value $($Conn) -MemberType NoteProperty
        
         try {
-            if($Table.Tables.DBUser) {
+            if(![String]::IsNullOrEmpty($Table.Tables.DBUser)) {
                 #$Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
                 #$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnection)
                 #$UserAccount = New-Object System.Data.DataSet
@@ -160,6 +160,8 @@ function Validate-Settings
             Write-Host "Failed to connect to AX Database. $($_.Exception.Message)"
             break
         }
+
+        $SqlServer.ConnectionContext.Disconnect()
     
         if(![String]::IsNullOrEmpty($Table.Tables.Environment)) {
             $Script:Settings | Add-Member -Name Environment -Value $Table.Tables.Environment -MemberType NoteProperty
@@ -1106,4 +1108,5 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-SQLMonitoring
+$Script:Settings.SQLServer.ConnectionContext.Disconnect()
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }
