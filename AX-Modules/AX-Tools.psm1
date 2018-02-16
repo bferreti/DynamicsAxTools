@@ -1173,9 +1173,10 @@ function Test-AosServices
 param (
 	[String]$AxEnvironment,
 	[String]$AosInstance,
+    [String]$ServerType,
 	[Switch]$Start
 )
-    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE = 'AOS' AND ACTIVE = '1'"
+    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE IN ($ServerType) AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -1193,7 +1194,7 @@ param (
 
         foreach($Server in $Servers.Tables[0]) {
             if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
-                if($LocalAdminAccount -and $Server.ServerName -ne $env:COMPUTERNAME) {
+                if(![String]::IsNullOrEmpty($LocalAdminAccount) -and $Server.ServerName -ne $env:COMPUTERNAME) {
                     $Services = Get-WmiObject -Class Win32_Service -ComputerName $($Server.ServerName) -Credential $LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
                     if($Services) { 
                         foreach($Service in $Services) {
@@ -1235,17 +1236,15 @@ param (
     }
 }
 
-function Test-Perfmon
+function Test-PerfmonSet
 {
 [CmdletBinding()]
 param (
 	[String]$AxEnvironment,
 	[Switch]$Start
 )
-
     $Configuration = Load-ConfigFile
-
-    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE = 'AOS' AND ACTIVE = '1'"
+    $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -1260,13 +1259,12 @@ param (
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
         $LocalAdminAccount = $Cmd.ExecuteScalar()
         if(![String]::IsNullOrEmpty($LocalAdminAccount)) { $LocalAdminAccount = Get-UserCredentials -Account $LocalAdminAccount }
-
         foreach($Server in $Servers.Tables[0]) {
             if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
-                if($LocalAdminAccount -and $Server.ServerName -ne $env:COMPUTERNAME) {
-                    try {
-                        Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
-                            Param($DataCollectorName, $Server)
+                if(![String]::IsNullOrEmpty($LocalAdminAccount) -and $Server.ServerName -ne $env:COMPUTERNAME) {
+                    Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
+                        Param($DataCollectorName, $Server)
+                        try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
                             $DataCollectorSet.Query("$DataCollectorName", $Server)
                             if($DataCollectorSet.Status -eq 0) {
@@ -1276,18 +1274,18 @@ param (
                             else {
                                 $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
                             }
-                            return $Msg
-                        } -OutVariable Msg
-                        if($Msg) { Write-Log $Msg }
-                    }
-                    catch {
-                        Write-Log "ERROR: Perfmon Check $($Server.ServerName) - $($_.exception.message)"
-                    }
+                        }
+                        catch {
+                            $Msg = "ERROR: Perfmon $($Server) - $($_.exception.message)"
+                        }
+                        return $Msg
+                    } -OutVariable Msg
+                    if($Msg) { Write-Log $Msg }
                 }
                 else {
-                    try {
-                        Invoke-Command -ComputerName $Server.ServerName -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
-                            Param($DataCollectorName, $Server)
+                    Invoke-Command -ComputerName $Server.ServerName -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
+                        Param($DataCollectorName, $Server)
+                        try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
                             $DataCollectorSet.Query("$DataCollectorName", $Server)
                             if($DataCollectorSet.Status -eq 0) {
@@ -1297,13 +1295,13 @@ param (
                             else {
                                 $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
                             }
-                            return $Msg
-                        } -OutVariable Msg
-                        if($Msg) { Write-Log $Msg }
-                    }
-                    catch {
-                        Write-Log "ERROR: Perfmon Check $($Server.ServerName) - $($_.exception.message)"
-                    }
+                        }
+                        catch {
+                            $Msg = "ERROR: Perfmon $($Server) - $($_.exception.message)"
+                        }
+                        return $Msg
+                    } -OutVariable Msg
+                    if($Msg) { Write-Log $Msg }
                 }
             }
         }

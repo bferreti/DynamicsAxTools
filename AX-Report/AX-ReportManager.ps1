@@ -614,24 +614,30 @@ function Get-PerfmonFile
         $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
         $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(-$Script:Configuration.Settings.General.RetentionDays))}  | Sort-Object -Property LastWriteTime
         if($BlgFiles.Count -ge 5) {
-            if(!(Test-Path("$Path\Temp\"))) {
-                New-Item -ItemType Directory -Force -Path "$Path\Temp" | Out-Null
-            }
-            Move-Item $BlgFiles.FullName -Destination "$Path\Temp\" #-Force
-            $FileServer = ($BlgFiles.Name | Select -First 1).Split("_")[0]
-            $FileSTLog = (($BlgFiles.Name | Select -First 1).Split(" ")).Split(".")[2]
-            $FileLTLog = (($BlgFiles.Name | Select -Last 1).Split(" ")).Split(".")[2]
-            ## Create zip file
-            [System.IO.Compression.ZipFile]::CreateFromDirectory("$Path\Temp\","$Path\$FileServer`_$FileSTLog-$FileLTLog.zip",$CompressionLevel,$false)
-            ## Delete Temp Folder
-            Remove-Item -Path "$Path\Temp\" -Recurse -Force
-            $ZipFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.zip'}  | Sort-Object -Property LastWriteTime
-            $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$')
-            if($ZipFiles) {
-                if(!(Test-Path("$DestPath\$($WrkServer.ServerName)\"))) {
-                    New-Item -ItemType Directory -Force -Path "$DestPath\$($WrkServer.ServerName)" | Out-Null
+            if($BlgArchive) {
+                if(!(Test-Path("$Path\Temp\"))) {
+                    New-Item -ItemType Directory -Force -Path "$Path\Temp" | Out-Null
                 }
-                Move-Item $ZipFiles.FullName -Destination "$DestPath\$($WrkServer.ServerName)"
+                Move-Item $BlgFiles.FullName -Destination "$Path\Temp\" #-Force
+                $FileServer = ($BlgFiles.Name | Select -First 1).Split("_")[0]
+                $FileSTLog = (($BlgFiles.Name | Select -First 1).Split(" ")).Split(".")[2]
+                $FileLTLog = (($BlgFiles.Name | Select -Last 1).Split(" ")).Split(".")[2]
+                ## Create zip file
+                [System.IO.Compression.ZipFile]::CreateFromDirectory("$Path\Temp\","$Path\$FileServer`_$FileSTLog-$FileLTLog.zip",$CompressionLevel,$false)
+                ## Delete Temp Folder
+                Remove-Item -Path "$Path\Temp\" -Recurse -Force
+                $ZipFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.zip'}  | Sort-Object -Property LastWriteTime
+                $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$')
+                if($ZipFiles) {
+                    if(!(Test-Path("$DestPath\$($WrkServer.ServerName)\"))) {
+                        New-Item -ItemType Directory -Force -Path "$DestPath\$($WrkServer.ServerName)" | Out-Null
+                    }
+                    Move-Item $ZipFiles.FullName -Destination "$DestPath\$($WrkServer.ServerName)"
+                }
+
+            }
+            else {
+                Remove-Item $BlgFiles.FullName
             }
         }
     }
