@@ -57,8 +57,9 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 $Script:Configuration = Load-ConfigFile
 $ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
-$LogFilesDays = $Script:Configuration.Settings.General.RetentionDays
 $AutoCleanUp = [boolean]::Parse($Script:Configuration.Settings.General.AutoCleanUp)
+$PerfmonArchive = $true
+$CleanupDays = $Script:Configuration.Settings.General.RetentionDays
 
 $Global:Guid = ([Guid]::NewGuid()).Guid
 $Script:Settings = New-Object -TypeName System.Object
@@ -611,10 +612,11 @@ function Get-PerfmonFile
     }
     if($AutoCleanUp) {
         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
+        $CompressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
         $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
-        $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(-$Script:Configuration.Settings.General.RetentionDays))}  | Sort-Object -Property LastWriteTime
-        if($BlgFiles.Count -ge 5) {
-            if($BlgArchive) {
+        $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(-$CleanupDays))}  | Sort-Object -Property LastWriteTime
+        if($BlgFiles.Count -ge $CleanupDays) {
+            if($PerfmonArchive) {
                 if(!(Test-Path("$Path\Temp\"))) {
                     New-Item -ItemType Directory -Force -Path "$Path\Temp" | Out-Null
                 }
@@ -627,14 +629,20 @@ function Get-PerfmonFile
                 ## Delete Temp Folder
                 Remove-Item -Path "$Path\Temp\" -Recurse -Force
                 $ZipFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.zip'}  | Sort-Object -Property LastWriteTime
-                $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$')
                 if($ZipFiles) {
-                    if(!(Test-Path("$DestPath\$($WrkServer.ServerName)\"))) {
-                        New-Item -ItemType Directory -Force -Path "$DestPath\$($WrkServer.ServerName)" | Out-Null
+                    $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$') + '\PerfmonArchive\' + $WrkServer.ServerName.ToUpper()
+                    if(!(Test-Path $DestPath)) {
+                        New-Item -ItemType Directory -Force -Path $DestPath | Out-Null
                     }
-                    Move-Item $ZipFiles.FullName -Destination "$DestPath\$($WrkServer.ServerName)"
+                    try {
+                        #Move-Item $ZipFiles.FullName -Destination "$DestPath\$($WrkServer.ServerName)"
+                        $ZipFiles.FullName | % { Start-BitsTransfer -Source $_ -Destination $DestPath }
+                        Remove-Item $ZipFiles.FullName -Force
+                    }
+                    catch {
+                        Write-Log "ERROR - BLGCOPY $($WrkServer.ServerName) - $($_.Exception.Message)"
+                    }
                 }
-
             }
             else {
                 Remove-Item $BlgFiles.FullName
@@ -870,7 +878,7 @@ function AXR-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Configuration.Settings.General.RetentionDays))) }
+    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$CleanupDays))) }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }
