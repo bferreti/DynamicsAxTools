@@ -157,6 +157,7 @@ param (
             $SqlServer.ConnectionContext.ConnectAsUser = $true
             $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
             $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
+			$SqlServer.ConnectionContext.StatementTimeout = 0
             $SqlServer.ConnectionContext.Connect()
         }
         else {
@@ -165,12 +166,13 @@ param (
             $SqlConn.DatabaseName = $DBName
             $SqlConn.ApplicationName = $ApplicationName
             $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+			$SqlServer.ConnectionContext.StatementTimeout = 0
             $SqlServer.ConnectionContext.Connect()
         }
     }
     catch {
         Write-Host "Failed to connect to AX Database. $($_.Exception.Message)"
-        break
+        #break
     }
 
     if($SQLServerObject) {
@@ -451,13 +453,13 @@ param (
     catch
     {
         $Sent = '0'
-        $Log = $_.Exception
+        $Log = $_.Exception.Message.ToString()
     }
 
     SQL-BulkInsert AXTools_EmailLog @($SMTPMessage | Select @{n='Sent';e={[int]$Sent}}, 
                                         @{n='EmailProfile';e={$EmailProfile}},
                                         @{n='Subject';e={$Subject}},
-                                        @{n='Body';e={$Body.ToString()}},
+                                        @{n='Body';e={[String]$Body}},
                                         @{n='Attachment';e={$Attachment}}, 
                                         @{n='Log';e={$Log}},
                                         @{n='Guid';e={$Guid}})
@@ -1244,6 +1246,7 @@ param (
 	[Switch]$Start
 )
     $Configuration = Load-ConfigFile
+
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
@@ -1262,42 +1265,42 @@ param (
         foreach($Server in $Servers.Tables[0]) {
             if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
                 if(![String]::IsNullOrEmpty($LocalAdminAccount) -and $Server.ServerName -ne $env:COMPUTERNAME) {
-                    Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
-                        Param($DataCollectorName, $Server)
+                    Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $($Configuration.Settings.AXReport.PerfmonCollectorName), $Server.ServerName, $Start -ScriptBlock {
+                        Param($DataCollectorName, $ServerName, $Start)
                         try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
-                            $DataCollectorSet.Query("$DataCollectorName", $Server)
+                            $DataCollectorSet.Query("$DataCollectorName", $ServerName)
                             if($DataCollectorSet.Status -eq 0) {
                                 if($Start) { $DataCollectorSet.Start($false) }
-                                $Msg = "ERROR: Perfmon Check $Server | $DataCollectorName | Stopped."
+                                $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
                             else {
-                                $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
+                                $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
                             }
                         }
                         catch {
-                            $Msg = "ERROR: Perfmon $($Server) - $($_.exception.message)"
+                            $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
                         }
                         return $Msg
                     } -OutVariable Msg
                     if($Msg) { Write-Log $Msg }
                 }
                 else {
-                    Invoke-Command -ComputerName $Server.ServerName -ArgumentList $Configuration.Settings.AXReport.PerfmonCollectorName, $Server.ServerName -ScriptBlock {
-                        Param($DataCollectorName, $Server)
+                    Invoke-Command -ComputerName $Server.ServerName -ArgumentList $($Configuration.Settings.AXReport.PerfmonCollectorName), $Server.ServerName, $Start -ScriptBlock {
+                        Param($DataCollectorName, $ServerName, $Start)
                         try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
-                            $DataCollectorSet.Query("$DataCollectorName", $Server)
+                            $DataCollectorSet.Query("$DataCollectorName", $ServerName)
                             if($DataCollectorSet.Status -eq 0) {
                                 if($Start) { $DataCollectorSet.Start($false) }
-                                $Msg = "ERROR: Perfmon Check $Server | $DataCollectorName | Stopped."
+                                $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
                             else {
-                                $Msg = "Perfmon Check - $Server | $DataCollectorName | Running."
+                                $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
                             }
                         }
                         catch {
-                            $Msg = "ERROR: Perfmon $($Server) - $($_.exception.message)"
+                            $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
                         }
                         return $Msg
                     } -OutVariable Msg

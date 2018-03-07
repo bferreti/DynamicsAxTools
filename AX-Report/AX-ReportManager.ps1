@@ -58,7 +58,7 @@ $Script:Configuration = Load-ConfigFile
 $ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
 $LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
 $AutoCleanUp = [boolean]::Parse($Script:Configuration.Settings.General.AutoCleanUp)
-$PerfmonArchive = $true
+$PerfmonArchive = [boolean]::Parse($Script:Configuration.Settings.AXReport.PerfmonArchive)
 $CleanupDays = $Script:Configuration.Settings.General.RetentionDays
 
 $Global:Guid = ([Guid]::NewGuid()).Guid
@@ -70,8 +70,6 @@ $Script:Settings | Add-Member -Name DataCollectorName -Value $Script:Configurati
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 $Script:Settings.Guid
-
-SQL-BulkInsert 'AXReport_ExecutionLog' ($Script:Settings | Select Environment, @{n='StartTime';e={Get-Date}} , Guid)
 
 function Get-WrkProcess
 {
@@ -85,6 +83,7 @@ function Get-WrkProcess
         break
     }
     default {
+		SQL-BulkInsert 'AXReport_ExecutionLog' ($Script:Settings | Select Environment, @{n='StartTime';e={Get-Date}} , Guid)
         $ScriptName = 'AX Report Script'
         Get-AxReport(Get-WrkServers)
         break
@@ -105,7 +104,9 @@ function Validate-Settings
         $Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
         $Script:Settings | Add-Member -Name EmailDescription -Value $Table.Tables.Description -MemberType NoteProperty
         $Script:Settings | Add-Member -Name SQLAccount -Value $Table.Tables.DBUser -MemberType NoteProperty
-        if($Table.Tables.LocalAdminUser) {
+        $Script:Settings | Add-Member -Name EnvDBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
+        $Script:Settings | Add-Member -Name EnvDBName -Value $Table.Tables.DBName -MemberType NoteProperty
+        if(![string]::IsNullOrEmpty($Table.Tables.LocalAdminUser)) {
             $Script:Settings | Add-Member -Name LocalAdminAccount -Value $(Get-UserCredentials $Table.Tables.LocalAdminUser) -MemberType NoteProperty
         }
     }
@@ -160,6 +161,10 @@ param(
                 Get-AXConfiguration $WrkServer
                 Get-AOSServices $WrkServer
             }
+            'IIS' {
+                Get-AXConfiguration $WrkServer
+                Get-AOSServices $WrkServer
+            }
             'SQL' {
                 Add-SQLInstance $WrkServer.ServerName '' 'Other Database (Non-AX)'
             }
@@ -167,6 +172,7 @@ param(
                 Add-SQLInstance $WrkServer.ServerName '' 'Regional Database (StoreDB)'
             }
             'SRS' {
+				##TODO: ADD SSRS version based on SQL version
                 $RSObject = Get-WmiObject -class "MSReportServer_ConfigurationSetting" -namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v13\Admin" -ComputerName $WrkServer.ServerName
                 Add-SQLInstance $RSObject.DatabaseServerName $RSObject.DatabaseName 'SSRS Database'
             }
@@ -183,6 +189,7 @@ param(
         AXR-SendEmail
     }
     if($AutoCleanUp) { Do-CleanUp }
+    Set-SQLUpdate "UPDATE AXReport_ExecutionLog SET EndTime = '$(Get-Date)', LOG = '$($Log)' WHERE GUID = '$($Script:Settings.Guid)'"
     Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
 
@@ -267,6 +274,13 @@ function Get-AXConfiguration
 
 function Add-SQLInstance($DBServer, $DBName, $Details)
 {
+    $Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
+    if([string]::IsNullOrEmpty($Server.Version)) {
+        $DBServer = $Script:Settings.EnvDBServer
+        $DBName = $Script:Settings.EnvDBName
+        $Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
+    }
+	
     $Query = "SELECT COUNT(DBServer) FROM AXReport_SqlDatabases WHERE DBServer = '$DBServer' and DBNAME = '$DBName' and Guid = '$($Script:Settings.Guid)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnectionObject)
     $DBCount = $Cmd.ExecuteScalar()
@@ -280,7 +294,7 @@ function Add-SQLInstance($DBServer, $DBName, $Details)
        
     if(!$ok) {
         $SQLInstance = @()
-        $Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
+        #$Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLTmp = New-Object -TypeName System.Object
         $SQLTmp | Add-Member -Name Environment -Value $Script:Settings.Environment -MemberType NoteProperty
         $SQLTmp | Add-Member -Name DBServer -Value $DBServer -MemberType NoteProperty
@@ -569,6 +583,15 @@ function Get-AXLogs
         $SQLConn = Get-SQLObject -DBServer $SQLInstance.DBServer -DBName 'master' -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
         $SQLLogs = $SQLConn.ReadErrorLog() | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) } |
                 Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}} #| Where-Object {($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) }
+
+		#$SQLLogs = $SQLConn.ReadErrorLog(0) | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) -and ($_.ProcessInfo -notmatch "Logon|Backup") } |
+        #        Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+        #
+        #$SQLLogs += $SQLConn.ReadErrorLog(1) | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) -and ($_.ProcessInfo -notmatch "Logon|Backup") } |
+        #        Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
+		#
+        #$SQLLogs += $SQLConn.ReadErrorLog(2) | Where-Object { ($_.LogDate -ge $((Get-Date).AddDays(-1).Date)) -and ($_.LogDate -lt $((Get-Date).AddDays(0).Date)) -and ($_.ProcessInfo -notmatch "Logon|Backup") } |
+        #        Select LogDate, ProcessInfo,  @{n='Text';e={($_.Text -replace '\t|\r|\n', " ").Trim()}}, @{n='Server';e={$SQLInstance.DBServer}}, @{n='Database';e={$SQLInstance.DBName}}, @{n='Guid';e={$Script:Settings.Guid}}, @{n='ReportDate';e={$Script:Settings.ReportDate}}
         SQL-BulkInsert 'AXReport_SQLLog' $SQLLogs
 
     $Conn.Close()
@@ -615,6 +638,7 @@ function Get-PerfmonFile
         $CompressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
         $Path = "\\$($WrkServer.ServerName)\C$\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
         $BlgFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(-$CleanupDays))}  | Sort-Object -Property LastWriteTime
+        ##TODO: IMPROVE IF
         if($BlgFiles.Count -ge $CleanupDays) {
             if($PerfmonArchive) {
                 if(!(Test-Path("$Path\Temp\"))) {
@@ -630,13 +654,21 @@ function Get-PerfmonFile
                 Remove-Item -Path "$Path\Temp\" -Recurse -Force
                 $ZipFiles = Get-ChildItem -Path $Path | Where {$_.Extension -match '.zip'}  | Sort-Object -Property LastWriteTime
                 if($ZipFiles) {
-                    $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$') + '\PerfmonArchive\' + $WrkServer.ServerName.ToUpper()
+                    #$DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $LogFolder).Replace(':','$') + '\PerfmonArchive\' + $WrkServer.ServerName.ToUpper()
+                    if(!$Script:Configuration.Settings.AXReport.PerfmonArchivePath) { 
+                        $PerfmonArchivePath = $Dir + "\Logs\AX-Report\$Environment"
+                        $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $PerfmonArchivePath).Replace(':','$') + '\PerfmonArchive\' + $WrkServer.ServerName.ToUpper
+                    } 
+                    else { 
+                        $PerfmonArchivePath = $Script:Configuration.Settings.AXReport.PerfmonArchivePath
+                        $DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $PerfmonArchivePath).Replace(':','$') + "\$($WrkServer.ServerName.ToUpper())"
+                    }
                     if(!(Test-Path $DestPath)) {
                         New-Item -ItemType Directory -Force -Path $DestPath | Out-Null
                     }
                     try {
-                        #Move-Item $ZipFiles.FullName -Destination "$DestPath\$($WrkServer.ServerName)"
-                        $ZipFiles.FullName | % { Start-BitsTransfer -Source $_ -Destination $DestPath }
+                        Move-Item $ZipFiles.FullName -Destination $DestPath -Force
+                        #$ZipFiles.FullName | % { Start-BitsTransfer -Source $_ -Destination $DestPath }
                         Remove-Item $ZipFiles.FullName -Force
                     }
                     catch {
@@ -898,5 +930,4 @@ Check-Folder $ReportFolder
 Check-Folder $LogFolder
 
 Get-WrkProcess
-Set-SQLUpdate "UPDATE AXReport_ExecutionLog SET EndTime = '$(Get-Date)', LOG = '$($Log)' WHERE GUID = '$($Script:Settings.Guid)'"
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }

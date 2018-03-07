@@ -17,6 +17,8 @@
   </Database>
   <AXReport>
     <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
+	<PerfmonArchive>true</PerfmonArchive>
+	<PerfmonArchivePath>D:\PerfmonArchive</PerfmonArchivePath>
     <LongBatchJobsThreshold>15</LongBatchJobsThreshold>
 	<MRPThreshold>0</MRPThreshold>	
   </AXReport>
