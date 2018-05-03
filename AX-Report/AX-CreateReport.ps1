@@ -41,7 +41,8 @@ Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$Guid,
     [String]$Environment,
-    [String]$ReportDate
+    [String]$ReportPath,
+    [String]$LogPath
 )
 [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
@@ -50,15 +51,11 @@ $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
-
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$Script:Configuration = Load-ConfigFile
-$ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
-$LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Report\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
+$Script:ConfigurationXml = Import-ConfigFile
 $ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
-
 
 function Run-Report
 {
@@ -87,7 +84,6 @@ function Create-ReportSummary
     }
     $Script:AxSummary += New-Object PSObject -Property @{ Name = "AOS Services"; Status = $TmpStatus; RowColor = $TmpColor }
 
-
     #MRP Runtime
     if($Script:ReportDP.AxMRPLogs) {
         Get-MRPThreshold
@@ -111,10 +107,10 @@ function Create-ReportSummary
         $Script:AxSummary += New-Object PSObject -Property @{ Name = "Batch Jobs"; Status = "$($Script:ReportDP.AxBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
     }
     if($Script:ReportDP.AxLongBatchJobs.Count -eq 0) {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min)"; Status = "Ok."; RowColor = 'Green' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:ConfigurationXml.Settings.AXReport.LongJobThreshold)min)"; Status = "Ok."; RowColor = 'Green' }
     }
     else {
-        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min)"; Status = "$($Script:ReportDP.AxLongBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
+        $Script:AxSummary += New-Object PSObject -Property @{ Name = "Long Batch Jobs (>$($Script:ConfigurationXml.Settings.AXReport.LongJobThreshold)min)"; Status = "$($Script:ReportDP.AxLongBatchJobs.Count) Jobs Found."; RowColor = 'Red' }
     }
 
     #AxRetailJobs
@@ -339,7 +335,7 @@ function Create-Report
         $Script:AXReport += Get-HtmlContentClose
     }
     if($Script:ReportDP.AxLongBatchJobs.Count -gt 0) {
-        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "AX Long Batch Jobs (>$($Script:Configuration.Settings.AXReport.LongBatchJobsThreshold)min) [Total - $($Script:ReportDP.AxLongBatchJobs.Count)]"
+        $Script:AXReport += Get-HtmlContentOpen -BackgroundShade 1 -Header "AX Long Batch Jobs (>$($Script:ConfigurationXml.Settings.AXReport.LongJobThreshold)min) [Total - $($Script:ReportDP.AxLongBatchJobs.Count)]"
         $Script:AXReport += Get-HtmlContentTable ($Script:ReportDP.AxLongBatchJobs)
         $Script:AXReport += Get-HtmlContentClose
     }
@@ -416,10 +412,11 @@ function Save-ReportFile
     $AXREmail += Get-HtmlContentClose
     $AXREmail += Get-HtmlClose -Footer "Guid: $($Guid)" -AxSummary
     #Save Summary
-    $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate-Summary" + ".html")
+    Check-Folder $ReportPath
+    $AXReportPath = Join-Path $ReportPath ("AXReport-$ReportDate-Summary" + ".html")
     $AXREmail | Set-Content -Path $AXReportPath -Force
     #Save Report
-    $AXReportPath = Join-Path $ReportFolder ("AXReport-$ReportDate" + ".mht")
+    $AXReportPath = Join-Path $ReportPath ("AXReport-$ReportDate" + ".mht")
     $Script:AXReport | Set-Content -Path $AXReportPath -Force
 }
 
@@ -591,7 +588,7 @@ function Run-ReportDP
 
 function Get-MRPThreshold
 {
-    if($Script:Configuration.Settings.AXReport.MRPThreshold -eq 0 -or [string]::IsNullOrEmpty($Script:Configuration.Settings.AXReport.MRPThreshold)) {
+    if($Script:ConfigurationXml.Settings.AXReport.MRPThreshold -eq 0 -or [string]::IsNullOrEmpty($Script:ConfigurationXml.Settings.AXReport.MRPThreshold)) {
         $Query = "SELECT ISNULL(AVG(((TIMECOPY+TIMECOVERAGE+TIMEUPDATE)/60)),0) AS [AvgTime]
                     FROM AXReport_AxMRP 
                     WHERE COMPLETEUPDATE = '1'"
@@ -605,7 +602,7 @@ function Get-MRPThreshold
         }
     }
     else {
-        $Script:ReportDP | Add-Member -Name MRPThreshold -Value $Script:Configuration.Settings.AXReport.MRPThreshold -MemberType NoteProperty
+        $Script:ReportDP | Add-Member -Name MRPThreshold -Value $Script:ConfigurationXml.Settings.AXReport.MRPThreshold -MemberType NoteProperty
     }
 }
 

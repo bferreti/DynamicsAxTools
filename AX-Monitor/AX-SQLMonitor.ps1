@@ -54,12 +54,20 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$Script:Configuration = Load-ConfigFile
-$ReportFolder = if(!$Script:Configuration.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($Script:Configuration.Settings.General.ReportPath)\$Environment" }
-$LogFolder = if(!$Script:Configuration.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($Script:Configuration.Settings.General.LogPath)\$Environment" }
-$FileDateTime = Get-Date -f yyyyMMdd-HHmm
-$AutoCleanUp = [boolean]::Parse($Script:Configuration.Settings.General.AutoCleanUp)
-$Debug = [boolean]::Parse($Script:Configuration.Settings.AXMonitor.Debug)
+$ConfigurationXml = Import-ConfigFile
+$Script:Settings = New-Object -TypeName System.Object
+$Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name ReportPath -Value $(if(!$ConfigurationXml.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigurationXml.Settings.General.ReportPath)\$Environment" }) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name LogPath -Value $(if(!$ConfigurationXml.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigurationXml.Settings.General.LogPath)\$Environment" }) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AXMonitor.KeepReports -MemberType NoteProperty
+$Script:Settings | Add-Member -Name Debug -Value $([boolean]::Parse($ConfigurationXml.Settings.AXMonitor.Debug)) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name SendLowRiskEmail -Value $ConfigurationXml.Settings.AXMonitor.SendLowRiskEmail -MemberType NoteProperty
+$Script:Settings | Add-Member -Name StatisticsPercentChange -Value $ConfigurationXml.Settings.AXMonitor.StatisticsPercentChange -MemberType NoteProperty
+$Script:Settings | Add-Member -Name StatisticsCheck -Value $ConfigurationXml.Settings.AXMonitor.StatisticsCheck -MemberType NoteProperty
+$Script:Settings | Add-Member -Name StatisticsUpdate -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdate -MemberType NoteProperty
+$Script:Settings | Add-Member -Name StatisticsUpdateTop -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateTop -MemberType NoteProperty
+$Script:Settings | Add-Member -Name StatisticsUpdateCpuMax -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateCpuMax -MemberType NoteProperty
 
 function Get-SQLMonitoring
 {
@@ -102,7 +110,7 @@ function Get-SQLMonitoring
         Get-JobStatus
     }
     ## Clean log files from folder
-    if($AutoCleanUp) { Do-CleanUp }
+    if($Script:Settings.KeepReports -gt 0) { Do-CleanUp }
 }
 
 function Validate-Settings
@@ -116,8 +124,6 @@ function Validate-Settings
 
     if (![String]::IsNullOrEmpty($Table.Tables))
     {
-        $Script:Settings = New-Object -TypeName System.Object
-        $Script:Settings | Add-Member -Name GUID -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
         $Script:Settings | Add-Member -Name ToolsConnection -Value $($Conn) -MemberType NoteProperty
        
         try {
@@ -191,7 +197,6 @@ function Validate-Settings
         else {
             $Script:Settings | Add-Member -Name WaitingThold -Value $Table.Tables.WaitingThold -MemberType NoteProperty
         }
-
 
         if($Table.Tables.RunGRD -match '1') {
             $Script:Settings | Add-Member -Name EnableGRD -Value $true -MemberType NoteProperty
@@ -410,6 +415,7 @@ function Get-AXJobs
                                         @{n='GUID';e={($Script:Settings.Guid)}})
 
     Write-ExecLog "Started Number Sequences Status"
+
     $Query = 'SELECT C.NumberSequence, C.Txt, C.Format, 
                     Status = CASE B.STATUS
 		                WHEN 0 THEN ''Free''
@@ -473,10 +479,7 @@ function Get-SQLConfig
 function Get-PerfData
 {
     Write-ExecLog "Started Perfmon Collectors"
-    if(($Script:Settings.DBServer).Contains('\')) { $InstanceName = ($Script:Settings.DBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.DBServer } 
-    
-    #-listset *
-
+    if(($Script:Settings.DBServer).Contains('\')) { $InstanceName = ($Script:Settings.DBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.DBServer }
     $PerformanceCounters = '\Memory\Available MBytes', '\Processor(_total)\% Processor Time', "\MSSQL`$$InstanceName`:Buffer Manager\Buffer cache hit ratio", "\MSSQL`$$InstanceName`:Buffer Manager\Page life expectancy", 
                             "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Waits/sec", "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Wait Time (ms)", "\MSSQL`$$InstanceName`:Locks(_Total)\Number of Deadlocks/sec",
                             '\SQLServer:Buffer Manager\Buffer cache hit ratio', '\SQLServer:Buffer Manager\Page life expectancy', '\SQLServer:Buffer Manager\Lock Waits/sec', '\SQLServer:Buffer Manager\Lock Wait Time (ms)',
@@ -523,12 +526,12 @@ function Get-GRDTables
 
     Write-ExecLog "Started GRD (Guardian Defense - Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
 
-    if($Debug) { 
-        $Script:Settings.Processes | Export-Csv $LogFolder\40-GRD_Processes_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
-        $Script:Settings.Blocking | Export-Csv $LogFolder\41-GRD_Blocking_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
-        $Script:Settings | Export-Csv $LogFolder\00-GRD_Settings_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
-        $Script:Settings.ProcessesInfo | Export-Csv $LogFolder\01-GRD_ProcessesInfo_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append
-        $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv $LogFolder\10-GRD_SQLTextNoFilter_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append 
+    if($Script:Settings.Debug) { 
+        $Script:Settings.Processes | Export-Csv "$($Script:Settings.LogPath)\40-GRD_Processes_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings.Blocking | Export-Csv "$($Script:Settings.LogPath)\41-GRD_Blocking_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings | Export-Csv "$($Script:Settings.LogPath)\00-GRD_Settings_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings.ProcessesInfo | Export-Csv "$($Script:Settings.LogPath)\01-GRD_ProcessesInfo_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv "$($Script:Settings.LogPath)\10-GRD_SQLTextNoFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append 
     }
     
     $SQLText = $Script:Settings.ProcessesInfo | 
@@ -538,7 +541,7 @@ function Get-GRDTables
                 ($_.Status -ne 'sleeping') -and ($_.Sql_Text -notlike '') )} | 
                 Select-Object Sql_Text #, Logical_Reads, Host_Name
 
-    if($Debug) { $SQLText | Export-Csv $LogFolder\11-GRD_SQLTextFilter_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
+    if($Script:Settings.Debug) { $SQLText | Export-Csv "$($Script:Settings.LogPath)\11-GRD_SQLTextFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
 
     [Array]$Tables = $SQLText.Sql_Text.Split(' ') | % { (($_.Replace('[','')).Replace(']','')).Trim() } | 
                     Where-Object { 
@@ -552,7 +555,7 @@ function Get-GRDTables
                     } | Select-Object -Unique
 
     if($Tables) {            
-        if($Debug) { $Tables | Out-File $LogFolder\20-GRD_TablesFilter_$($Environment)_$($FileDateTime).txt -Append }
+        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\20-GRD_TablesFilter_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         if($Tables.Contains('SCANWORKX_BLOCKEDQTY')) {
             $ScanWorksSpids = $Script:Settings.ProcessesInfo | Where {$_.sql_text -match 'SCANWORKX_BLOCKEDQTY' }
@@ -634,24 +637,24 @@ function Get-GRDTables
             $Tables += 'ax.RETAILLOYALTYCARD'
         }
 
-        if($Debug) { $Tables | Out-File $LogFolder\21-GRD_TablesViews_$($Environment)_$($FileDateTime).txt -Append }
+        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\21-GRD_TablesViews_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         $Tables = $Tables | Where-Object { ($_ -notlike "*SCANWORKX_BLOCKEDQTY*") } | Select-Object -Unique
         $Tables = $Tables | Where-Object { ($_ -notlike "*VIEW") } | Select-Object -Unique
         $Tables = $Tables | Where-Object { ($_ -notlike "*CRT*") } | Select-Object -Unique
 
-        if($Debug) { $Tables | Out-File $LogFolder\22-GRD_TablesFinal_$($Environment)_$($FileDateTime).txt -Append }
+        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\22-GRD_TablesFinal_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         $TablesRet = GRD-CheckTables $Tables
 
-        if($Debug) { $TablesRet | Out-File $LogFolder\23-GRD_TablesRetCheck_$($Environment)_$($FileDateTime).txt -Append }
+        if($Script:Settings.Debug) { $TablesRet | Out-File "$($Script:Settings.LogPath)\23-GRD_TablesRetCheck_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         if($TablesRet) {
             GRD-StartJobs $TablesRet
         }
     }
     else {
-        if($Debug) { $Tables | Out-File $LogFolder\24-GRD_NoTables_$($Environment)_$($FileDateTime).txt -Append }
+        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\24-GRD_NoTables_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
     }
 }
 
@@ -760,11 +763,11 @@ Param(
                                                 @{n='GUID';e={($Script:Settings.Guid)}})
                 
         if($GRDJobTemp.GRDJobRun -eq 1) {Run-GRDStats $GRDJobTemp}
-        if($Debug) { $GRDJobTemp | Export-Csv $LogFolder\30-GRD_JobsCreation_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
+        if($Script:Settings.Debug) { $GRDJobTemp | Export-Csv "$($Script:Settings.LogPath)\30-GRD_JobsCreation_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
         $GRDJobRun += $GRDJobTemp
     }
     $Script:Settings | Add-Member -Name GRDJobs -Value $GRDJobRun -MemberType NoteProperty
-    if($Debug) { $(Get-Job) | Export-Csv $LogFolder\31-GRD_Jobs_$($Environment)_$($FileDateTime).csv -NoTypeInformation -Append }
+    if($Script:Settings.Debug) { $(Get-Job) | Export-Csv "$($Script:Settings.LogPath)\31-GRD_Jobs_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
 }
 
 function Run-GRDStats
@@ -804,7 +807,6 @@ function Get-JobStatus
                 $Script:Settings.SQLServer.KillProcess($($Spid.Spid))
             }
         }
-
     }
 }
 
@@ -815,7 +817,7 @@ function Get-SQLStatisticsInterval
                 WHERE [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
-    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsCheckInterval) {
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Settings.StatisticsCheck) {
         return $true
     }
     else {
@@ -865,7 +867,7 @@ function Get-SQLStatistics
                                                 @{n='LastUpdate';e={$_.LastUpdate}},
                                                 @{n='GUID';e={($Script:Settings.Guid)}})
     
-    SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATSTOTAL = $(($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange}).Count) WHERE GUID = '$($Script:Settings.Guid)'"
+    SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATSTOTAL = $(($GRDStats | Where {$_.PercentChange -gt $Script:Settings.StatisticsPercentChange}).Count) WHERE GUID = '$($Script:Settings.Guid)'"
 
     $Query =   "SELECT TOP 1 MAX(CREATEDDATETIME)
                 FROM [dbo].[AXMonitor_GRDLog]
@@ -873,7 +875,7 @@ function Get-SQLStatistics
                 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
-    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.StatisticsUpdateInterval) {
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Settings.StatisticsUpdate) {
         $GRDStatsCount = $true
     }
     else {
@@ -881,9 +883,9 @@ function Get-SQLStatistics
     }
 
     $GRDJobRun = @()
-    if(($Script:Settings.EnableStats -eq 2) -and ($GRDStatsCount) -and ($(($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange}).Count) -gt 0) -and ($Script:Settings.CPUTotal -le $Script:Configuration.Settings.AXMonitor.StatisticsUpdateCpuMax)) {
+    if(($Script:Settings.EnableStats -eq 2) -and ($GRDStatsCount) -and ($(($GRDStats | Where {$_.PercentChange -gt $Script:Settings.StatisticsPercentChange}).Count) -gt 0) -and ($Script:Settings.CPUTotal -le $Script:Settings.StatisticsUpdateCpuMax)) {
         SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET STATS = '1' WHERE GUID = '$($Script:Settings.Guid)'"
-        foreach($Table in $($GRDStats | Where {$_.PercentChange -gt $Script:Configuration.Settings.AXMonitor.StatisticsPercentChange} | Group Schema,TableName | Sort Count -Descending | Select -First $Script:Configuration.Settings.AXMonitor.StatisticsUpdateTop)) {
+        foreach($Table in $($GRDStats | Where {$_.PercentChange -gt $Script:Settings.StatisticsPercentChange} | Group Schema,TableName | Sort Count -Descending | Select -First $Script:Settings.StatisticsUpdateTop)) {
             While ($(Get-Job -state Running).Count -ge 5){
                 Start-Sleep -Milliseconds 5000
             }
@@ -1012,7 +1014,7 @@ function Get-CreateReport
     $Script:Settings | Add-Member -Name GRDReport -Value $GRDReport -MemberType NoteProperty
 
     #Save HTML
-    $GRDReportPath = join-path $ReportFolder ("GRD-$($Script:Settings.NetBios)-$FileDateTime" + ".html")
+    $GRDReportPath = Join-Path $Script:Settings.ReportPath ("GRD-$($Script:Settings.NetBios)-$($Script:Settings.FileDateTime)" + ".html")
     $GRDReport | Set-Content -Path $GRDReportPath -Force
     $Script:Settings | Add-Member -Name GRDReportPath -Value $GRDReportPath -MemberType NoteProperty
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET REPORT = '$GRDReportPath' WHERE GUID = '$($Script:Settings.Guid)'"
@@ -1025,7 +1027,7 @@ function Get-SendEmail
                     WHERE [EMAIL] = 1 AND [ENVIRONMENT] = '$($Script:Settings.Environment)'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Script:Settings.ToolsConnection)
     if([String]::IsNullOrEmpty($Cmd.ExecuteScalar())) { $CreatedDateTime = Get-Date('1/1/1900') } else { $CreatedDateTime = $Cmd.ExecuteScalar() }
-    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Configuration.Settings.AXMonitor.SendEmailLowRiskInterval) {
+    if([Math]::Truncate((New-TimeSpan ($CreatedDateTime) $(Get-Date)).TotalMinutes) -ge $Script:Settings.SendLowRiskEmail) {
         $GRDReportChk = $true
     }
     else {
@@ -1048,7 +1050,7 @@ function Get-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Configuration.Settings.General.RetentionDays))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
+    $Files = Get-ChildItem -Path $Script:Settings.ReportPath | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Settings.KeepReports))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }
@@ -1104,8 +1106,8 @@ param(
     }
 }
 
-Check-Folder $ReportFolder
-Check-Folder $LogFolder
+Check-Folder $Script:Settings.ReportPath
+Check-Folder $Script:Settings.LogPath
 
 Get-SQLMonitoring
 $Script:Settings.SQLServer.ConnectionContext.Disconnect()

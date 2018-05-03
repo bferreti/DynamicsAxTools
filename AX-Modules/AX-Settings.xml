@@ -1,36 +1,32 @@
 <?xml version="1.0"?>
 <Settings>
   <General>
-    <ReportPath>C:\Users\Administrator\Desktop\AxTools\Reports</ReportPath>
-    <LogPath>
-    </LogPath>
-    <AutoCleanUp>true</AutoCleanUp>
-    <RetentionDays>7</RetentionDays>
+    <ReportFolder>C:\Users\Administrator\Desktop\AxTools\Reports</ReportFolder>
+    <LogFolder></LogFolder>
   </General>
   <Database>
-    <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
-    <DBServer>DAX2012R3</DBServer>
-    <DBName>DynamicsAXTools</DBName>
-    <!-- Leave Username/Password blank if it is the same user running the task -->
+    <DBServer>DAX2012R3</DBServer> <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
+    <DBName>DynamicsAXTools</DBName> <!-- Leave Username/Password blank if it is the same user running the task -->
     <UserName>CONTOSO\AXUSER</UserName>
     <Password>2IdSiTJw/ccLn8B6huGxCmmyVwyTpfCnQZynu793tlMzeEetDzjWDk1DNtRR4M9PZS0Xk2Efw8SccuzMS7ggiG5qLuU=</Password>
   </Database>
   <AXReport>
-    <PerfmonCollectorName>AxPerfmon</PerfmonCollectorName>
-	<PerfmonArchive>true</PerfmonArchive>
-	<PerfmonArchivePath>D:\PerfmonArchive</PerfmonArchivePath>
-    <LongBatchJobsThreshold>15</LongBatchJobsThreshold>
-	<MRPThreshold>0</MRPThreshold>	
+	<KeepReports>7</KeepReports> <!-- Days -->
+	<KeepPerfmon>5</KeepPerfmon> <!-- Days -->
+    <PerfmonName>AxPerfmon</PerfmonName>
+	<BlgArchiveFolder>D:\PerfmonArchive</BlgArchiveFolder>
+	<KeepBlgArchive>180</KeepBlgArchive> <!-- Days -->
+    <LongJobThreshold>15</LongJobThreshold> <!-- Minutes -->
+	<MRPThreshold>0</MRPThreshold> <!-- Minutes -->
   </AXReport>
   <AXMonitor>
     <Debug>false</Debug>
-    <SendEmailLowRiskInterval>15</SendEmailLowRiskInterval>
+	<KeepReports>7</KeepReports> <!-- Days -->	
     <StatisticsPercentChange>10</StatisticsPercentChange>
-    <StatisticsCheckInterval>30</StatisticsCheckInterval>
-    <StatisticsUpdateInterval>60</StatisticsUpdateInterval>
+	<SendLowRiskEmail>15</SendLowRiskEmail> <!-- Minutes -->
+    <StatisticsCheck>30</StatisticsCheck> <!-- Minutes -->
+    <StatisticsUpdate>60</StatisticsUpdate> <!-- Minutes -->
     <StatisticsUpdateTop>15</StatisticsUpdateTop>
-    <StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax>
+    <StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax> <!-- Do not update statistics if CPU above % -->
   </AXMonitor>
-  <OtherSettings>
-  </OtherSettings>
 </Settings>

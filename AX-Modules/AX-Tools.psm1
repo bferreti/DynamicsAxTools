@@ -45,7 +45,7 @@ $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
-function Load-ConfigFile
+function Import-ConfigFile
 {
     if(Test-Path "$ModuleFolder\AX-Settings.xml") {
         # Import settings from config file
@@ -58,6 +58,34 @@ function Load-ConfigFile
     return $ConfigFile
 }
 
+function Load-ScriptSettings
+{
+    if(Test-Path "$ModuleFolder\AX-Settings_v2.xml") {
+        # Import settings from config file
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings_v2.xml"
+        $PSObject = New-Object PSObject
+        foreach ($Object in @($ConfigFile.Settings)) {
+            foreach ($Property in @($Object.Setting)) {
+                $PSObject | Add-Member NoteProperty $Property.Key $Property.Value
+            }
+        }
+    }
+    else {
+        Write-Warning "Configuration file does not exists."
+    }
+
+    return $PSObject
+}
+
+function Check-Folder {
+param(
+    [string]$Path
+)
+    if(!(Test-Path($Path))) {
+        New-Item -ItemType Directory -Force -Path $Path | Out-Null
+    }
+}
+
 function Get-ConnectionString 
 {
 [CmdletBinding()]
@@ -65,7 +93,7 @@ param (
     [String]$ApplicationName
 )
     if($ApplicationName -eq '') { $ApplicationName = 'Ax Powershell Tools' }
-    $ConfigFile = Load-ConfigFile
+    $ConfigFile = Import-ConfigFile
     $ParamDBServer = $ConfigFile.Settings.Database.DBServer
     $ParamDBName = $ConfigFile.Settings.Database.DBName
     $ParamUserName = $ConfigFile.Settings.Database.UserName
@@ -1245,7 +1273,7 @@ param (
 	[String]$AxEnvironment,
 	[Switch]$Start
 )
-    $Configuration = Load-ConfigFile
+    $Configuration = Import-ConfigFile
 
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
