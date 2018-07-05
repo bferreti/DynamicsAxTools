@@ -45,7 +45,7 @@ $WorkFolder = $Dir + "\WorkFolder"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $Global:Guid = ([guid]::NewGuid()).GUID
-$Script:Settings = Load-ScriptSettings
+$Script:Settings = Load-ScriptSettings -ScriptName 'AxRefresh'
 $Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
 
 Clear-Host
@@ -493,8 +493,12 @@ function Import-Environment
 	$SqlQuery = “SELECT DBNAME FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.keyDBName = $SqlCommand.ExecuteScalar()
-	$SqlConn.Close()
+    #
 	Test-SQLSettings $Script:Environment.keyDbServer $Script:Environment.keyDBName
+	$SqlQuery = “SELECT EMAILPROFILE FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+	$Script:Environment.EmailProfile = $SqlCommand.ExecuteScalar()
+	$SqlConn.Close()
 	Invoke-BackupManager -Check
 	Get-EnvironmentServers
 }
@@ -862,6 +866,7 @@ function Clear-EnvironmentData
     $Script:Environment | Add-Member -Name MachineName -Value $null -MemberType NoteProperty -Force
     $Script:Environment | Add-Member -Name MachineFullName -Value $null -MemberType NoteProperty -Force
     $Script:Environment | Add-Member -Name MachineInstance -Value $null -MemberType NoteProperty -Force
+    $Script:Environment | Add-Member -Name EmailProfile -Value $null -MemberType NoteProperty -Force
     $Script:Environment | Add-Member -Name SQLBackup -Value $null -MemberType NoteProperty -Force
 }
 
@@ -921,7 +926,7 @@ param(
 			$DestTable = $($Table.SourceTable)
 			$Table = $($Table.TargetTable)
 			Write-Host "- Source Table: $Table --> Target Table: $DestTable" -Fore Yellow
-			if ($Script:Settings.RFR_SqlTruncate) {
+			if ($Script:Settings.SqlTruncate) {
 				SQL-TruncateTable
 			}
 			SQL-BulkInsert
@@ -959,7 +964,7 @@ param(
 
 function Get-ScriptTable
 {
-	foreach ($Table in $Script:Settings.RFR_SaveTables.Split(',')) {
+	foreach ($Table in $Script:Settings.SaveTables.Split(',')) {
 		$DestTable = "RFR_$($Script:Environment.Name)`_$Table"
 		$Server = New-Object "Microsoft.SqlServer.Management.Smo.Server" $SrcServer
 		$Database = $Server.Databases[$SrcDatabase]
@@ -969,7 +974,7 @@ function Get-ScriptTable
 		    if ($TableSet.FileGroup) { $TableSet.FileGroup = 'PRIMARY' }
 		    $Script = $TableSet.Script().Replace("CREATE TABLE [dbo].[$Table]","CREATE TABLE [dbo].[$DestTable]")
 		    SQL-CreateTable $Script
-		    if ($Script:Settings.RFR_SqlCompression) { SQL-CompressTable -ColumnStore } else { $Script:SqlCompression = 'None' }
+		    if ($Script:Settings.SqlCompression) { SQL-CompressTable -ColumnStore } else { $Script:SqlCompression = 'None' }
 		    SQL-BulkInsert
 		    RFR-InsertStore
         }
@@ -993,7 +998,7 @@ param(
 		$SqlCommand.ExecuteNonQuery() | Out-Null
 	}
 	catch [System.Management.Automation.MethodInvocationException]{
-		if ($Script:Settings.RFR_SqlTruncate) {
+		if ($Script:Settings.SqlTruncate) {
 			SQL-TruncateTable
 		}
 	}
@@ -1079,7 +1084,7 @@ function SQL-BulkInsert
 
 function RFR-InsertStore
 {
-	if ($Script:Settings.RFR_SqlStoreScript) { $InsertScript = $Script } else { $InsertScript = '' }
+	if ($Script:Settings.SqlStoreScript) { $InsertScript = $Script } else { $InsertScript = '' }
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
@@ -1217,7 +1222,7 @@ function SQL-CleanUpTable
 
     $CurrEnvTables = Get-EnvTables
     [Array]$TruncateAll = $CurrEnvTables.Tables.SourceTable
-    [Array]$TruncateAll += $Script:Settings.RFR_DeleteTables.Split(',')
+    [Array]$TruncateAll += $Script:Settings.DeleteTables.Split(',')
 
 	foreach ($Table in $TruncateAll) {
 		Write-Host "- $Table" -Fore Yellow
@@ -1234,7 +1239,7 @@ function SQL-CleanUpTable
 				$SqlCommand.ExecuteNonQuery() | Out-Null
 				#$SqlQuery
 			}
-			if ($Script:Settings.RFR_DataScrub) { RFR-DataScrub }
+			if ($Script:Settings.DataScrub) { RFR-DataScrub }
 		}
 		'N' {
 			$Script:WarningMsg = 'Canceled.'
@@ -1248,12 +1253,12 @@ function SQL-CleanUpTable
 
 function RFR-DataScrub
 {
-	if ($Script:Settings.RFR_ScrubTables)
+	if ($Script:Settings.ScrubTables)
 	{
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 		$SqlConn.ConnectionString = "Server=$($Script:Environment.keyDbServer);Database=$($Script:Environment.keyDBName);Integrated Security=True"
 		$SqlConn.Open()
-		foreach ($Update in $Script:Settings.RFR_ScrubTables.Split(','))
+		foreach ($Update in $Script:Settings.ScrubTables.Split(','))
 		{
 			$TableName = "[$($Update.Split('|')[0])]"
 			$FieldName = "[$($Update.Split('|')[1])]"
@@ -1963,45 +1968,11 @@ function Set-SQLBKPFolder
 	}
 }
 
-function Send-Email
+function Get-SendEmail
 {
-	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
-	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
-	$SqlQuery = “SELECT * FROM AX_EmailProfile WHERE PROFILEID = 'RFR'"
-	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter ($SqlQuery,$SqlConn)
-	$Table = New-Object System.Data.DataSet
-	$Adapter.Fill($Table) | Out-Null
-
-	if (![string]::IsNullOrEmpty($Table.Tables))
-	{
-		$EmailSettings = New-Object -TypeName System.Object
-		$EmailSettings | Add-Member -Name SMTPServer -Value $($Table.Tables.ConnectionInfo.Split(',')[0]) -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPPort -Value $($Table.Tables.ConnectionInfo.Split(',')[1]) -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPUserName -Value $(Read-EncryptedString -InputString $Table.Tables.ConnectionInfo.Split(',')[2] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)") -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPPassword -Value $(Read-EncryptedString -InputString $Table.Tables.ConnectionInfo.Split(',')[3] -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)") -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPSSL -Value $($Table.Tables.ConnectionInfo.Split(',')[4]) -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPTo -Value $Table.Tables.To -MemberType NoteProperty
-		$EmailSettings | Add-Member -Name SMTPCC -Value $Table.Tables.CC -MemberType NoteProperty
-		$Table.Dispose()
-	}
-
-	#Message Parameters
-	$SMTPMessage = New-Object System.Net.Mail.MailMessage
-	$SMTPMessage.From = 'AX Refresh Job <>'
-	if ($EmailSettings.SMTPTo) { $EmailSettings.SMTPTo.Split(';') | ForEach-Object { $SMTPMessage.To.Add($_.Trim()) } } else { break } #add log for no To line
-	if ($EmailSettings.SMTPCC) { $EmailSettings.SMTPCC.Split(';') | ForEach-Object { $SMTPMessage.CC.Add($_.Trim()) } }
-	$SMTPMessage.Subject = "$(if($Script:Environment.RFROk){"SUCCESS "} else {"FAILED "})Environment $($Script:Environment.Name) has been refreshed on server $($Script:Environment.MachineFullName)."
-	#$SMTPMessage.IsBodyHtml = $true
-	$SMTPMessage.Body = "Script executed by $env:userdomain\$env:username on $env:ComputerName. Parameters: $Paramlist. $(if($Script:Environment.SQLBackup) {"SQL Backup: $($Script:Environment.SQLBackup.FullName) from $($Script:Environment.SQLBackup.CreationTime)."})"
-	#Create Message
-	$SMTPClient = New-Object System.Net.Mail.SmtpClient ($EmailSettings.SMTPServer,$EmailSettings.SMTPPort)
-	$SMTPClient.EnableSsl = $true
-	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential ($EmailSettings.SMTPUserName,$EmailSettings.SMTPPassword)
-	#Send Email
-	if ($EmailSettings.SMTPSSL -like 'True') {
-		[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
-	}
-	$SMTPClient.Send($SMTPMessage)
+    $Subject = "$(if($Script:Environment.RFROk){"SUCCESS "} else {"FAILED "})Environment $($Script:Environment.Name) has been refreshed on server $($Script:Environment.MachineFullName)."
+	$Body = "Script executed by $env:userdomain\$env:username on $env:ComputerName. Parameters: $Paramlist. $(if($Script:Environment.SQLBackup) {"SQL Backup: $($Script:Environment.SQLBackup.FullName) from $($Script:Environment.SQLBackup.CreationTime)."})"
+    Send-Email -Subject $Subject -Body $Body -EmailProfile $Script:Environment.EmailProfile -GUID $Script:Settings.Guid
 }
 
 function Write-Log
@@ -2066,5 +2037,12 @@ if ($Paramlist) {
 }
 
 Initialize-RFR
-if ($Script:Settings.RFR_SendEmail) { Send-Email }
+if($Script:Settings.SendEmail) {
+    if($Script:Environment.EmailProfile) { 
+        Get-SendEmail
+    }
+    else {
+        Write-Log 'There is no email profile on this enviroment.'
+    }
+}
 Write-Log ("Refresh Script has finished.")
