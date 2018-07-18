@@ -65,7 +65,7 @@ param(
 )
     if(Test-Path "$ModuleFolder\AX-Settings_v2.xml") {
         # Import settings from config file
-        [xml]$ConfigFile = Get-Content "C:\Users\Administrator\Documents\GitHub\DynamicsAxTools\AX-Modules\AX-Settings_v2.xml"
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings_v2.xml"
         $PSObject = New-Object PSObject
         foreach ($Object in @($ConfigFile.DynamicsAxTools)) {
             foreach ($Property in @($Object.Setting | Where {$_.Module -Match "$ScriptName|General"})) {
