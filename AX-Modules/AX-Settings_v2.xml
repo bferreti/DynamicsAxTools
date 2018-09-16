@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <DynamicsAxTools>
-  <Setting Module="General" Key="ReportFolder" Value="C:\Users\Administrator\Desktop\AxTools\Reports" />
+  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\GitHub\DynamicsAxTools\Reports" />
   <Setting Module="General" Key="LogFolder" Value="" />
   <Setting Module="General" Key="DBServer" Value="DAX2012R3" />
-  <Setting Module="General" Key="DBName" Value="DynamicsAXTools" />
-  <Setting Module="General" Key="UserName" Value="CONTOSO\AXUSER" />
-  <Setting Module="General" Key="Password" Value="2IdSiTJw/ccLn8B6huGxCmmyVwyTpfCnQZynu793tlMzeEetDzjWDk1DNtRR4M9PZS0Xk2Efw8SccuzMS7ggiG5qLuU=" />
+  <Setting Module="General" Key="DBName" Value="DynamicsAxTools" />
+  <Setting Module="General" Key="UserName" Value="" />
+  <Setting Module="General" Key="Password" Value="" />
   <Setting Module="AXReport" Key="KeepReports" Value="7" />
   <Setting Module="AXReport" Key="KeepPerfmon" Value="5" />
   <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" />
@@ -13,7 +13,7 @@
   <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" />
   <Setting Module="AXReport" Key="LongJobThreshold" Value="15" />
   <Setting Module="AXReport" Key="MRPThreshold" Value="0" />
-  <Setting Module="AXMonitor" Key="Debug" Value="false" />
+  <Setting Module="AXMonitor" Key="Debug" Value="true" />
   <Setting Module="AXMonitor" Key="KeepReports" Value="7" />
   <Setting Module="AXMonitor" Key="StatisticsPercentChange" Value="10" />
   <Setting Module="AXMonitor" Key="SendLowRiskEmail" Value="15" />

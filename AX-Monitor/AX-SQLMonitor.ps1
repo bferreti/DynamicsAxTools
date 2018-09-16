@@ -54,11 +54,16 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
+$Script:Settings = Load-ScriptSettings -ScriptName 'AxMonitor'
+$Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
+
+<#
 $ConfigurationXml = Import-ConfigFile
 $Script:Settings = New-Object -TypeName System.Object
 $Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ReportPath -Value $(if(!$ConfigurationXml.Settings.General.ReportPath) { $Dir + "\Reports\AX-Monitor\$Environment" } else { "$($ConfigurationXml.Settings.General.ReportPath)\$Environment" }) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name LogPath -Value $(if(!$ConfigurationXml.Settings.General.LogPath) { $Dir + "\Logs\AX-Monitor\$Environment" } else { "$($ConfigurationXml.Settings.General.LogPath)\$Environment" }) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name ReportPath -Value $(if(!$ConfigurationXml.Settings.General.ReportPath) { $Dir + "\Reports\$Environment\AX-Monitor" } else { "$($ConfigurationXml.Settings.General.ReportPath)\$Environment" }) -MemberType NoteProperty
+$Script:Settings | Add-Member -Name LogPath -Value $(if(!$ConfigurationXml.Settings.General.LogPath) { $Dir + "\Logs\$Environment\AX-Monitor" } else { "$($ConfigurationXml.Settings.General.LogPath)\$Environment" }) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AXMonitor.KeepReports -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Debug -Value $([boolean]::Parse($ConfigurationXml.Settings.AXMonitor.Debug)) -MemberType NoteProperty
@@ -68,6 +73,8 @@ $Script:Settings | Add-Member -Name StatisticsCheck -Value $ConfigurationXml.Set
 $Script:Settings | Add-Member -Name StatisticsUpdate -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdate -MemberType NoteProperty
 $Script:Settings | Add-Member -Name StatisticsUpdateTop -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateTop -MemberType NoteProperty
 $Script:Settings | Add-Member -Name StatisticsUpdateCpuMax -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateCpuMax -MemberType NoteProperty
+#>
+
 
 function Get-SQLMonitoring
 {
@@ -128,15 +135,7 @@ function Validate-Settings
        
         try {
             if(![String]::IsNullOrEmpty($Table.Tables.DBUser)) {
-                #$Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Table.Tables.DBUser)'"
-                #$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Script:Settings.ToolsConnection)
-                #$UserAccount = New-Object System.Data.DataSet
-                #$Adapter.Fill($UserAccount) | Out-Null
-                #$UserPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($UserAccount.Tables[0].Password | ConvertTo-SecureString)))
-                #$secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force
                 $SqlCredential = Get-UserCredentials $($Table.Tables.DBUser)
-                #$SqlCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $UserAccount.Tables[0].UserName, $secureUserPassword
-                #$Script:Settings | Add-Member -Name SqlCredential -Value $($SqlCredential) -MemberType NoteProperty
                 $Script:Settings | Add-Member -Name SqlUsername -Value $($Table.Tables.DBUser) -MemberType NoteProperty
                 $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
                 $SqlConn.ServerInstance = $Table.Tables.DBServer
@@ -156,8 +155,8 @@ function Validate-Settings
                 $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
                 $SqlServer.ConnectionContext.Connect()
             }
-            $Script:Settings | Add-Member -Name DBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
-            $Script:Settings | Add-Member -Name DBName -Value $Table.Tables.DBName -MemberType NoteProperty
+            $Script:Settings | Add-Member -Name AXDBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
+            $Script:Settings | Add-Member -Name AXDBName -Value $Table.Tables.DBName -MemberType NoteProperty
             $Script:Settings | Add-Member -Name Description -Value $Table.Tables.Description -MemberType NoteProperty
             $Script:Settings | Add-Member -Name SQLServer -Value $($SqlServer) -MemberType NoteProperty
             $Script:Settings | Add-Member -Name NetBios -Value $(($Script:Settings.SQLServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value) -MemberType NoteProperty
@@ -166,7 +165,6 @@ function Validate-Settings
             Write-Host "Failed to connect to AX Database. $($_.Exception.Message)"
             break
         }
-
         $SqlServer.ConnectionContext.Disconnect()
     
         if(![String]::IsNullOrEmpty($Table.Tables.Environment)) {
@@ -212,7 +210,25 @@ function Validate-Settings
             $Script:Settings | Add-Member -Name EnableStats -Value 0 -MemberType NoteProperty
         }
 
+        if(![String]::IsNullOrEmpty($Script:Settings.ReportFolder)) {
+            $Script:Settings.ReportFolder = Join-Path $Script:Settings.ReportFolder $Environment
+        }
+        else {
+            $Script:Settings.ReportFolder = Join-Path $Dir "Reports\$Environment"
+        }
+
+        if(![String]::IsNullOrEmpty($Script:Settings.LogFolder)) {
+            $Script:Settings.LogFolder = Join-Path $Script:Settings.LogFolder $Environment
+        }
+        else {
+            $Script:Settings.LogFolder = Join-Path $Dir "Logs\$Environment"
+        }
+
         $Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
+
+        Check-Folder $Script:Settings.ReportFolder
+        Check-Folder $Script:Settings.LogFolder
+
         $Table.Dispose()
     }
 }
@@ -298,7 +314,7 @@ function Get-SQLStatus
                 WHERE c.session_id NOT IN (SELECT session_id from sys.dm_exec_requests WHERE session_id <> @@SPID AND session_id > 50)"
 
     $Conn = New-Object System.Data.SqlClient.SQLConnection
-    $Conn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=Master;Integrated Security=True;Connect Timeout=30"
+    $Conn.ConnectionString = "Server=$($Script:Settings.AXDBServer);Database=Master;Integrated Security=True;Connect Timeout=30"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
@@ -479,7 +495,7 @@ function Get-SQLConfig
 function Get-PerfData
 {
     Write-ExecLog "Started Perfmon Collectors"
-    if(($Script:Settings.DBServer).Contains('\')) { $InstanceName = ($Script:Settings.DBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.DBServer }
+    if(($Script:Settings.AXDBServer).Contains('\')) { $InstanceName = ($Script:Settings.AXDBServer).Split('\')[1] } else { $InstanceName = $Script:Settings.AXDBServer }
     $PerformanceCounters = '\Memory\Available MBytes', '\Processor(_total)\% Processor Time', "\MSSQL`$$InstanceName`:Buffer Manager\Buffer cache hit ratio", "\MSSQL`$$InstanceName`:Buffer Manager\Page life expectancy", 
                             "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Waits/sec", "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Wait Time (ms)", "\MSSQL`$$InstanceName`:Locks(_Total)\Number of Deadlocks/sec",
                             '\SQLServer:Buffer Manager\Buffer cache hit ratio', '\SQLServer:Buffer Manager\Page life expectancy', '\SQLServer:Buffer Manager\Lock Waits/sec', '\SQLServer:Buffer Manager\Lock Wait Time (ms)',
@@ -526,22 +542,22 @@ function Get-GRDTables
 
     Write-ExecLog "Started GRD (Guardian Defense - Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
 
-    if($Script:Settings.Debug) { 
-        $Script:Settings.Processes | Export-Csv "$($Script:Settings.LogPath)\40-GRD_Processes_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
-        $Script:Settings.Blocking | Export-Csv "$($Script:Settings.LogPath)\41-GRD_Blocking_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
-        $Script:Settings | Export-Csv "$($Script:Settings.LogPath)\00-GRD_Settings_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
-        $Script:Settings.ProcessesInfo | Export-Csv "$($Script:Settings.LogPath)\01-GRD_ProcessesInfo_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
-        $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv "$($Script:Settings.LogPath)\10-GRD_SQLTextNoFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append 
+    if([boolean]::Parse($Script:Settings.Debug)) { 
+        $Script:Settings.Processes | Export-Csv "$($Script:Settings.LogFolder)\40-GRD_Processes_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings.Blocking | Export-Csv "$($Script:Settings.LogFolder)\41-GRD_Blocking_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings | Export-Csv "$($Script:Settings.LogFolder)\00-GRD_Settings_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $Script:Settings.ProcessesInfo | Export-Csv "$($Script:Settings.LogFolder)\01-GRD_ProcessesInfo_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
+        $($Script:Settings.ProcessesInfo | Select-Object Sql_Text, Logical_Reads, Host_Name) | Export-Csv "$($Script:Settings.LogFolder)\10-GRD_SQLTextNoFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append 
     }
     
     $SQLText = $Script:Settings.ProcessesInfo | 
-                Where-Object {(($_.Database -eq $Script:Settings.DBName) -and 
+                Where-Object {(($_.Database -eq $Script:Settings.AXDBName) -and 
                 #($_.Sql_Text -notmatch 'FETCH*|DECLARE*|CREATE INDEX*|CREATE PROCEDURE*|UPDATE*|INSERT*|sp_*|exec*') -and
                 #($_.Sql_Text -notmatch 'FETCH*|CREATE INDEX*') -and
                 ($_.Status -ne 'sleeping') -and ($_.Sql_Text -notlike '') )} | 
                 Select-Object Sql_Text #, Logical_Reads, Host_Name
 
-    if($Script:Settings.Debug) { $SQLText | Export-Csv "$($Script:Settings.LogPath)\11-GRD_SQLTextFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
+    if([boolean]::Parse($Script:Settings.Debug)) { $SQLText | Export-Csv "$($Script:Settings.LogFolder)\11-GRD_SQLTextFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
 
     [Array]$Tables = $SQLText.Sql_Text.Split(' ') | % { (($_.Replace('[','')).Replace(']','')).Trim() } | 
                     Where-Object { 
@@ -555,7 +571,7 @@ function Get-GRDTables
                     } | Select-Object -Unique
 
     if($Tables) {            
-        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\20-GRD_TablesFilter_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $Tables | Out-File "$($Script:Settings.LogFolder)\20-GRD_TablesFilter_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         if($Tables.Contains('SCANWORKX_BLOCKEDQTY')) {
             $ScanWorksSpids = $Script:Settings.ProcessesInfo | Where {$_.sql_text -match 'SCANWORKX_BLOCKEDQTY' }
@@ -637,24 +653,24 @@ function Get-GRDTables
             $Tables += 'ax.RETAILLOYALTYCARD'
         }
 
-        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\21-GRD_TablesViews_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $Tables | Out-File "$($Script:Settings.LogFolder)\21-GRD_TablesViews_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         $Tables = $Tables | Where-Object { ($_ -notlike "*SCANWORKX_BLOCKEDQTY*") } | Select-Object -Unique
         $Tables = $Tables | Where-Object { ($_ -notlike "*VIEW") } | Select-Object -Unique
         $Tables = $Tables | Where-Object { ($_ -notlike "*CRT*") } | Select-Object -Unique
 
-        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\22-GRD_TablesFinal_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $Tables | Out-File "$($Script:Settings.LogFolder)\22-GRD_TablesFinal_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         $TablesRet = GRD-CheckTables $Tables
 
-        if($Script:Settings.Debug) { $TablesRet | Out-File "$($Script:Settings.LogPath)\23-GRD_TablesRetCheck_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $TablesRet | Out-File "$($Script:Settings.LogFolder)\23-GRD_TablesRetCheck_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 
         if($TablesRet) {
             GRD-StartJobs $TablesRet
         }
     }
     else {
-        if($Script:Settings.Debug) { $Tables | Out-File "$($Script:Settings.LogPath)\24-GRD_NoTables_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $Tables | Out-File "$($Script:Settings.LogFolder)\24-GRD_NoTables_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
     }
 }
 
@@ -673,12 +689,12 @@ Param(
             $Schema = 'dbo'
             $TableName = $Table.ToUpper()
         }
-        if($Script:Settings.SQLServer.Databases[$Script:Settings.DBName].Tables.Contains($TableName, $Schema)) {
+        if($Script:Settings.SQLServer.Databases[$Script:Settings.AXDBName].Tables.Contains($TableName, $Schema)) {
             $TablesRet += "$Schema.$TableName"
         }
         else {
-            foreach($Schema in ($Script:Settings.SQLServer.Databases[$Script:Settings.DBName].Schemas | Where {$_.Owner -match 'dbo' -and $_.Name -notmatch 'dbo'}).Name) {
-                if($Script:Settings.SQLServer.Databases[$Script:Settings.DBName].Tables.Contains($TableName, $Schema) -and (!($TablesRet.Contains("$Schema.$TableName")))) { 
+            foreach($Schema in ($Script:Settings.SQLServer.Databases[$Script:Settings.AXDBName].Schemas | Where {$_.Owner -match 'dbo' -and $_.Name -notmatch 'dbo'}).Name) {
+                if($Script:Settings.SQLServer.Databases[$Script:Settings.AXDBName].Tables.Contains($TableName, $Schema) -and (!($TablesRet.Contains("$Schema.$TableName")))) { 
                     $TablesRet += "$Schema.$TableName"
                 }
             }
@@ -716,7 +732,7 @@ Param(
         $GRDJobTemp = New-Object -TypeName System.Object
         if(($GRDStats | Where-Object { $_.TableName -like $Table -and $_.Finished -like $null }) -and ($Script:Settings.Processes | WHERE { $_.Command -match 'UPDATE STATISTICS' })) {
             $Query = "SELECT session_id, start_time, status, text FROM sys.dm_exec_requests CROSS APPLY sys.dm_exec_sql_text(sql_handle) WHERE session_id IN ($(($Script:Settings.Processes | WHERE { $_.Command -match 'UPDATE STATISTICS' }).Spid -join ','))"
-            $DataSet = $Script:Settings.SQLServer.Databases[$Script:Settings.DBName].ExecuteWithResults($Query)
+            $DataSet = $Script:Settings.SQLServer.Databases[$Script:Settings.AXDBName].ExecuteWithResults($Query)
             if($DataSet.Tables[0] | Where { $_.Text -match $Table}) {
                 $GRDJobTemp | Add-Member -Name TableName -Value $Table -MemberType NoteProperty
                 $GRDJobTemp | Add-Member -Name StatsType -Value "GRD" -MemberType NoteProperty
@@ -763,20 +779,20 @@ Param(
                                                 @{n='GUID';e={($Script:Settings.Guid)}})
                 
         if($GRDJobTemp.GRDJobRun -eq 1) {Run-GRDStats $GRDJobTemp}
-        if($Script:Settings.Debug) { $GRDJobTemp | Export-Csv "$($Script:Settings.LogPath)\30-GRD_JobsCreation_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $GRDJobTemp | Export-Csv "$($Script:Settings.LogFolder)\30-GRD_JobsCreation_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
         $GRDJobRun += $GRDJobTemp
     }
     $Script:Settings | Add-Member -Name GRDJobs -Value $GRDJobRun -MemberType NoteProperty
-    if($Script:Settings.Debug) { $(Get-Job) | Export-Csv "$($Script:Settings.LogPath)\31-GRD_Jobs_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
+    if([boolean]::Parse($Script:Settings.Debug)) { $(Get-Job) | Export-Csv "$($Script:Settings.LogFolder)\31-GRD_Jobs_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
 }
 
 function Run-GRDStats
 {
     if($Script:Settings.SqlUsername) {
-        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5] $args[6]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($Script:Settings.SqlUsername), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5] $args[6]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.AXDBServer), $($Script:Settings.AXDBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName), $($Script:Settings.SqlUsername)
     }
     else {
-        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.DBServer), $($Script:Settings.DBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
+        Start-Job -Name $($GRDJobTemp.GRDJobName) -ScriptBlock {& $args[0] $args[1] $args[2] $args[3] $args[4] $args[5]} -ArgumentList @("$ScriptDir\AX-UpdateStats.ps1"), $($Script:Settings.AXDBServer), $($Script:Settings.AXDBName), $($GRDJobTemp.TableName), $($GRDJobTemp.StatsType), $($GRDJobTemp.GRDJobName)
     }
 }
 
@@ -793,16 +809,17 @@ function Get-JobStatus
             else {
                 SQL-UpdateTable 'AXMonitor_GRDLog' 'FINISHED' $($Job.PSEndTime) "JOBNAME = '$($Job.Name)' AND GUID = '$($Script:Settings.Guid)'"
             }
+            $Job
             Remove-Job –Name $($Job.Name)
         }
         Start-Sleep -Milliseconds 2000
         $Script:Settings | Add-Member -Name Processes -Value $($Script:Settings.SQLServer.EnumProcesses() | Where { $_.Spid -gt 50 }) -MemberType NoteProperty -Force
-        $GRDSpids = ($Script:Settings.Processes | WHERE { $_.Command -match 'UPDATE STATISTICS' -and $_.Database -match $Script:Settings.DBName -and $_.Host -match $env:COMPUTERNAME } | Sort CPU -Descending)
+        $GRDSpids = ($Script:Settings.Processes | WHERE { $_.Command -match 'UPDATE STATISTICS' -and $_.Database -match $Script:Settings.AXDBName -and $_.Host -match $env:COMPUTERNAME } | Sort CPU -Descending)
         foreach($Spid in $GRDSpids) {
             if($Script:Settings.Processes.BlockingSpid -eq $Spid.Spid ) { 
                 $BlockedSpid = $Script:Settings.Processes | Where {$_.BlockingSpid -eq $Spid.Spid}
                 $Query = "SELECT session_id, start_time, status, text FROM sys.dm_exec_requests CROSS APPLY sys.dm_exec_sql_text(sql_handle) WHERE session_id = $($Spid.Spid)"
-                $DataSet = $Script:Settings.SqlServer.Databases[$Script:Settings.DBName].ExecuteWithResults($Query)
+                $DataSet = $Script:Settings.SqlServer.Databases[$Script:Settings.AXDBName].ExecuteWithResults($Query)
                 Write-ExecLog "Killed $($Spid.Spid)-$($DataSet.Tables[0].Text) blocking $($BlockedSpid.Spid)-$($BlockedSpid.Host)"
                 $Script:Settings.SQLServer.KillProcess($($Spid.Spid))
             }
@@ -914,7 +931,7 @@ function Get-SQLStatistics
 function Get-CreateReport
 {
     $GRDReport = @()
-    $GRDReport += Get-HtmlOpen -Title ("SQL Monitoring Alert $($Script:Settings.DBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
+    $GRDReport += Get-HtmlOpen -Title ("SQL Monitoring Alert $($Script:Settings.AXDBServer) @ $($Script:Settings.NetBios)") -SimpleHTML
 
     $GRDSummary = @()
     
@@ -1014,7 +1031,7 @@ function Get-CreateReport
     $Script:Settings | Add-Member -Name GRDReport -Value $GRDReport -MemberType NoteProperty
 
     #Save HTML
-    $GRDReportPath = Join-Path $Script:Settings.ReportPath ("GRD-$($Script:Settings.NetBios)-$($Script:Settings.FileDateTime)" + ".html")
+    $GRDReportPath = Join-Path $Script:Settings.ReportFolder ("GRD-$($Script:Settings.NetBios)-$($Script:Settings.FileDateTime)" + ".html")
     $GRDReport | Set-Content -Path $GRDReportPath -Force
     $Script:Settings | Add-Member -Name GRDReportPath -Value $GRDReportPath -MemberType NoteProperty
     SQL-ExecUpdate "UPDATE AXMonitor_ExecutionLog SET REPORT = '$GRDReportPath' WHERE GUID = '$($Script:Settings.Guid)'"
@@ -1050,7 +1067,7 @@ function Get-SendEmail
 
 function Do-Cleanup
 {
-    $Files = Get-ChildItem -Path $Script:Settings.ReportPath | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Settings.KeepReports))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
+    $Files = Get-ChildItem -Path $Script:Settings.ReportFolder | Where { $_.LastWriteTime -lt $((Get-Date).AddDays((-$Script:Settings.KeepReports))) -and $_.Name -like "GRD-$($Script:Settings.NetBios)*" }
     if($Files) {
         Remove-Item -Path $Files.FullName -Force
     }
@@ -1105,9 +1122,6 @@ param(
         New-Item -ItemType Directory -Force -Path $Path | Out-Null
     }
 }
-
-Check-Folder $Script:Settings.ReportPath
-Check-Folder $Script:Settings.LogPath
 
 Get-SQLMonitoring
 $Script:Settings.SQLServer.ConnectionContext.Disconnect()

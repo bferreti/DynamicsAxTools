@@ -63,12 +63,13 @@ function Load-ScriptSettings
 param(
     [string]$ScriptName
 )
+    if($ScriptName) { $ScriptName = "$ScriptName|General" } else { $ScriptName = "General" } 
     if(Test-Path "$ModuleFolder\AX-Settings_v2.xml") {
         # Import settings from config file
         [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings_v2.xml"
         $PSObject = New-Object PSObject
         foreach ($Object in @($ConfigFile.DynamicsAxTools)) {
-            foreach ($Property in @($Object.Setting | Where {$_.Module -Match "$ScriptName|General"})) {
+            foreach ($Property in @($Object.Setting | Where {$_.Module -Match "$ScriptName"})) {
                 $PSObject | Add-Member NoteProperty $Property.Key $Property.Value
             }
         }

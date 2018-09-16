@@ -7,8 +7,8 @@
   <Database>
     <DBServer>DAX2012R3</DBServer> <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
     <DBName>DynamicsAXTools</DBName> <!-- Leave Username/Password blank if it is the same user running the task -->
-    <UserName>CONTOSO\AXUSER</UserName>
-    <Password>2IdSiTJw/ccLn8B6huGxCmmyVwyTpfCnQZynu793tlMzeEetDzjWDk1DNtRR4M9PZS0Xk2Efw8SccuzMS7ggiG5qLuU=</Password>
+    <UserName></UserName>
+    <Password></Password>
   </Database>
   <AXReport>
 	<KeepReports>7</KeepReports> <!-- Days -->

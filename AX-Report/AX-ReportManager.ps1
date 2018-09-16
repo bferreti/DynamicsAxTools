@@ -54,21 +54,29 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$Global:Guid = ([guid]::NewGuid()).GUID
-$ConfigurationXml = Import-ConfigFile
-$Script:Settings = New-Object -TypeName System.Object
+$Global:Guid = ([guid]::NewGuid()).Guid
+$Script:Settings = Load-ScriptSettings -ScriptName 'AxReport'
 $Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -Format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
-$Script:Settings | Add-Member -Name DataCollectorName -Value $ConfigurationXml.Settings.AxReport.PerfmonName -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ToolsConnectionObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ReportPath -Value $(if (!$ConfigurationXml.Settings.General.ReportFolder) { $Dir + "\Reports\AX-Report" } else { $ConfigurationXml.Settings.General.ReportFolder }) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name LogPath -Value $(if (!$ConfigurationXml.Settings.General.LogFolder) { $Dir + "\Logs\AX-Report" } else { $ConfigurationXml.Settings.General.LogFolder }) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AxReport.KeepReports -MemberType NoteProperty
-$Script:Settings | Add-Member -Name KeepBlgFiles -Value $ConfigurationXml.Settings.AxReport.KeepPerfmon -MemberType NoteProperty
-$Script:Settings | Add-Member -Name BlgArchiveFolder -Value $ConfigurationXml.Settings.AxReport.BlgArchiveFolder -MemberType NoteProperty
-$Script:Settings | Add-Member -Name KeepBlgArchive -Value $ConfigurationXml.Settings.AxReport.KeepBlgArchive -MemberType NoteProperty
+$Script:Settings | Add-Member -Name SqlConnObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
+
+
+#$ConfigurationXml = Import-ConfigFile
+#$Script:Settings = New-Object -TypeName System.Object
+#$Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -Format d) -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name DataCollectorName -Value $ConfigurationXml.Settings.AxReport.PerfmonName -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name SqlConnObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name ReportPath -Value $(if (!$ConfigurationXml.Settings.General.ReportFolder) { $Dir + "\Reports\AX-Report" } else { $ConfigurationXml.Settings.General.ReportFolder }) -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name LogPath -Value $(if (!$ConfigurationXml.Settings.General.LogFolder) { $Dir + "\Logs\AX-Report" } else { $ConfigurationXml.Settings.General.LogFolder }) -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AxReport.KeepReports -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name KeepBlgFiles -Value $ConfigurationXml.Settings.AxReport.KeepPerfmon -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name BlgArchiveFolder -Value $ConfigurationXml.Settings.AxReport.BlgArchiveFolder -MemberType NoteProperty
+#$Script:Settings | Add-Member -Name KeepBlgArchive -Value $ConfigurationXml.Settings.AxReport.KeepBlgArchive -MemberType NoteProperty
 
 function Get-WrkProcess
 {
@@ -92,7 +100,7 @@ function Validate-Settings
 {
 	$Query = "SELECT * FROM AXTools_Environments                
                 WHERE ENVIRONMENT = '$Environment'"
-	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter ($Query,$Script:Settings.ToolsConnectionObject)
+	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter ($Query,$Script:Settings.SqlConnObject)
 	$Table = New-Object System.Data.DataSet
 	$Adapter.Fill($Table) | Out-Null
 
@@ -101,11 +109,28 @@ function Validate-Settings
 		$Script:Settings | Add-Member -Name EmailProfile -Value $Table.Tables.EmailProfile -MemberType NoteProperty
 		$Script:Settings | Add-Member -Name EmailDescription -Value $Table.Tables.Description -MemberType NoteProperty
 		$Script:Settings | Add-Member -Name SQLAccount -Value $Table.Tables.DBUser -MemberType NoteProperty
-		$Script:Settings | Add-Member -Name EnvDBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
-		$Script:Settings | Add-Member -Name EnvDBName -Value $Table.Tables.DBName -MemberType NoteProperty
+		$Script:Settings | Add-Member -Name AxDBServer -Value $Table.Tables.DBServer -MemberType NoteProperty
+		$Script:Settings | Add-Member -Name AxDBName -Value $Table.Tables.DBName -MemberType NoteProperty
 		if (![string]::IsNullOrEmpty($Table.Tables.LocalAdminUser)) {
 			$Script:Settings | Add-Member -Name LocalAdminAccount -Value $(Get-UserCredentials $Table.Tables.LocalAdminUser) -MemberType NoteProperty
 		}
+
+        if(![String]::IsNullOrEmpty($Script:Settings.ReportFolder)) {
+            $Script:Settings.ReportFolder = Join-Path $Script:Settings.ReportFolder $Environment
+        }
+        else {
+            $Script:Settings.ReportFolder = Join-Path $Dir "Reports\$Environment"
+        }
+
+        if(![String]::IsNullOrEmpty($Script:Settings.LogFolder)) {
+            $Script:Settings.LogFolder = Join-Path $Script:Settings.LogFolder $Environment
+        }
+        else {
+            $Script:Settings.LogFolder = Join-Path $Dir "Logs\$Environment"
+        }
+
+        Check-Folder $Script:Settings.ReportFolder
+        Check-Folder $Script:Settings.LogFolder
 	}
 	else {
 		Write-Host 'Environment not found.'
@@ -117,7 +142,7 @@ function Get-WrkServers
 {
 	Validate-Settings
 	$Query = "SELECT [SERVERNAME], [SERVERTYPE] FROM [AXTools_Servers] WHERE [Environment] = '$Environment' AND [ACTIVE] = 1"
-	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.ToolsConnectionObject)
+	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $Cmd
 	$Servers = New-Object System.Data.DataSet
@@ -262,13 +287,13 @@ function Add-SQLInstance ($DBServer,$DBName,$Details)
 {
 	$Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
 	if ([string]::IsNullOrEmpty($Server.Version)) {
-		$DBServer = $Script:Settings.EnvDBServer
-		$DBName = $Script:Settings.EnvDBName
+		$DBServer = $Script:Settings.AxDBServer
+		$DBName = $Script:Settings.AxDBName
 		$Server = Get-SQLObject -DBServer $DBServer -DBName $DBName -SQLAccount $Script:Settings.SQLAccount -ApplicationName $Script:Settings.ApplicationName -SQLServerObject
 	}
 
 	$Query = "SELECT COUNT(DBServer) FROM AXReport_SqlDatabases WHERE DBServer = '$DBServer' and DBNAME = '$DBName' and Guid = '$($Script:Settings.Guid)'"
-	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.ToolsConnectionObject)
+	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$DBCount = $Cmd.ExecuteScalar()
 
 	if ($DBCount -gt 0) {
@@ -369,7 +394,7 @@ function Get-AXLogs
 {
 	Write-Log "Quering AX Database (Batch Jobs/Retail/MRP/SQL Errors)"
 	$Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'AX Database' GROUP BY DBServer, DBName"
-	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.ToolsConnectionObject)
+	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $Cmd
 	$SQLInstances = New-Object System.Data.DataSet
@@ -588,7 +613,7 @@ function Get-PerfmonFile
 		Remove-CimSession -ComputerName $($Script:Settings.DataCollectorName)
 		#
 		$Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
-		$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.ToolsConnectionObject)
+		$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 		$Xml = $Cmd.ExecuteScalar()
 		$DataCollectorSet.SetXml($Xml)
 		$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
@@ -818,7 +843,7 @@ function Add-PerfCounter ($Path,$Type,$ReportView)
 function Get-SSRSLogs
 {
 	$Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'SSRS Database' GROUP BY DBServer, DBName"
-	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.ToolsConnectionObject)
+	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $Cmd
 	$SRSInstances = New-Object System.Data.DataSet

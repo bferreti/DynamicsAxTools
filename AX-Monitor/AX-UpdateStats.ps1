@@ -42,14 +42,14 @@ Param (
     [String]$SQLInstance,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$AXDatabase,
-    [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
-    [String]$SQLUsername,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [String]$Table,
     [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
     [String]$StatsType,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]$GRDJobName
+    [String]$GRDJobName,
+    [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
+    [String]$SQLUsername
 )
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
@@ -94,6 +94,20 @@ catch
 {
     $Msg = "ERROR - {0}" -f $_.Exception #.Message
     SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $($Msg) "JOBNAME = '$GRDJobName'"
+}
+
+
+$JobSettings = Load-ScriptSettings -ScriptName 'AxMonitor'
+if([boolean]::Parse($JobSettings.Debug)) {
+    $Environment = $GRDJobName.Split('_')[1]
+    if(![String]::IsNullOrEmpty($JobSettings.LogFolder)) {
+        $JobSettings.LogFolder = Join-Path $JobSettings.LogFolder $Environment
+    }
+    else {
+        $JobSettings.LogFolder = Join-Path $Dir "Logs\$Environment"
+    }
+
+    "$GRDJobName - $SQLInstance - $AXDatabase - $Table - $StatsType `r`n $($SQLUsername.UserName) `r`n $Msg" | Out-File $(Join-Path $JobSettings.LogFolder "$GRDJobName.txt")
 }
 
 $Server.ConnectionContext.Disconnect()

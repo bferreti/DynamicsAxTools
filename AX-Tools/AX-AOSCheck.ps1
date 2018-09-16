@@ -40,7 +40,7 @@
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]$AXEnvironment,
+    [String]$Environment,
     [Parameter(Mandatory=$false,ValueFromPipeline=$true)]
     [Array]$ServerType = 'AOS',
     [Switch]$Start
@@ -60,10 +60,10 @@ if($ServerType.Split(',').Count -gt 0) {
 [String]$ServerType = ($ServerTypeQuery -join ',')
 
 if($Start) {
-    Test-AosServices -AxEnvironment $AXEnvironment -ServerType $ServerType -Start
+    Test-AosServices -AxEnvironment $Environment -ServerType $ServerType -Start
 }
 else {
-    Test-AosServices -AxEnvironment $AXEnvironment -ServerType $ServerType
+    Test-AosServices -AxEnvironment $Environment -ServerType $ServerType
 }
 
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }
@@ -83,7 +83,7 @@ function Get-WrkServers
         
     $Conn = New-Object System.Data.SqlClient.SQLConnection
     $Conn.ConnectionString = "Server=UDBSQCR3-MAX\MAX;Database=DynamicsAXTools;Integrated Security=True;Connect Timeout=5"
-    $Query = "SELECT SERVERNAME, SERVERTYPE FROM AXServers WHERE ENVIRONMENT = '$AXEnvironment' AND SERVERTYPE = '$ServerType' AND ACTIVE = '1'" 
+    $Query = "SELECT SERVERNAME, SERVERTYPE FROM AXServers WHERE ENVIRONMENT = '$Environment' AND SERVERTYPE = '$ServerType' AND ACTIVE = '1'" 
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd

@@ -1869,7 +1869,7 @@ param(
 		$Server = New-Object "Microsoft.SqlServer.Management.Smo.Server" "$ServerName"
 		if (!($Server.Databases.Name.ToUpper().Contains($DBName.ToUpper()))) {
 			Write-Warning 'Database does not exist.'
-			exit
+			#exit
 		}
 	}
 	catch {

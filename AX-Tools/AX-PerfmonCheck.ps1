@@ -40,7 +40,7 @@
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
-    [String]$AXEnvironment,
+    [String]$Environment,
     [Switch]$Start
 )
 
@@ -51,10 +51,10 @@ $ModuleFolder = $Dir + "\AX-Modules"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 if($Start) {
-    Test-PerfmonSet -AxEnvironment $AxEnvironment -Start
+    Test-PerfmonSet -AxEnvironment $Environment -Start
 }
 else {
-    Test-PerfmonSet -AxEnvironment $AxEnvironment
+    Test-PerfmonSet -AxEnvironment $Environment
 }
 
 Get-Module | Where-Object {$_.ModuleType -eq 'Script'} | % { Remove-Module $_.Name }
@@ -75,7 +75,7 @@ function Get-WrkServers
         
     $Conn = New-Object System.Data.SqlClient.SQLConnection
     $Conn.ConnectionString = "Server=UDBSQCR3-MAX\MAX;Database=DynamicsAXTools;Integrated Security=True;Connect Timeout=5"
-    $Query = "SELECT SERVERNAME, SERVERTYPE FROM AXServers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
+    $Query = "SELECT SERVERNAME, SERVERTYPE FROM AXServers WHERE ENVIRONMENT = '$Environment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
