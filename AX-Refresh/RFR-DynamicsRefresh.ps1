@@ -114,24 +114,24 @@ function Get-MainMenu
 		}
 		0 {
 			Get-EnviromentList
-			Invoke-BackupManager -Backup
-			Invoke-ServiceManager -Stop
+			Get-BackupManager -Backup
+			Get-AOSManager -Stop
 			SQL-DBRestore
 			SQL-CleanUpTable
-			Invoke-BackupManager -Restore
-			Invoke-ServiceManager -Start
+			Get-BackupManager -Restore
+			Get-AOSManager -Start
 			Write-Host ''
 			Write-Host 'Process completed.' -Fore Green
 			Get-MainMenu
 		}
 		1 {
 			Get-EnviromentList
-			Invoke-BackupManager -Backup
+			Get-BackupManager -Backup
 			Get-Menu
 		}
 		2 {
 			Get-EnviromentList
-			Invoke-ServiceManager -Stop
+			Get-AOSManager -Stop
 			Get-Menu
 		}
 		3 {
@@ -146,12 +146,12 @@ function Get-MainMenu
 		}
 		5 {
 			Get-EnviromentList
-			Invoke-BackupManager -Restore
+			Get-BackupManager -Restore
 			Get-Menu
 		}
 		6 {
 			Get-EnviromentList
-			Invoke-ServiceManager -Start
+			Get-AOSManager -Start
 			Get-Menu
 		}
 		9 {
@@ -235,7 +235,7 @@ function Get-MiscMenu
 		}
 		4 {
 			Get-EnviromentList
-			RFR-DeleteStore -HardDelete
+			Get-StoreManager -DeleteStore
             Clear-EnvironmentData
 			Get-Menu
 		}
@@ -315,17 +315,17 @@ function Get-BatchMenu
 		}
 		1 {
 			Get-EnviromentList
-			Invoke-BatchManager -DisableJobs
+			Get-BatchManager -DisableJobs
 			Get-Menu
 		}
 		2 {
 			Get-EnviromentList
-			Invoke-BatchManager -ChangeServer
+			Get-BatchManager -ChangeServer
 			Get-Menu
 		}
 		3 {
 			Get-EnviromentList
-			Invoke-BatchManager -HistoryCleanup
+			Get-BatchManager -HistoryCleanup
 			Get-Menu
 		}
 		Default {
@@ -389,19 +389,19 @@ function Get-ServicesMenu
 			exit
 		}
 		1 {
-			Invoke-ServiceManager -Start
+			Get-AOSManager -Start
 			Get-Menu
 		}
 		2 {
-			Invoke-ServiceManager -Stop
+			Get-AOSManager -Stop
 			Get-Menu
 		}
 		3 {
-			Invoke-ServiceManager -Restart
+			Get-AOSManager -Restart
 			Get-Menu
 		}
 		4 {
-			Invoke-ServiceManager -Status
+			Get-AOSManager -Status
 			Get-Menu
 		}
 		Default {
@@ -499,7 +499,7 @@ function Import-Environment
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.EmailProfile = $SqlCommand.ExecuteScalar()
 	$SqlConn.Close()
-	Invoke-BackupManager -Check
+	Get-BackupManager -Check
 	Get-EnvironmentServers
 }
 
@@ -870,7 +870,7 @@ function Clear-EnvironmentData
     $Script:Environment | Add-Member -Name SQLBackup -Value $null -MemberType NoteProperty -Force
 }
 
-function Invoke-BackupManager
+function Get-BackupManager
 {
 [CmdletBinding()]
 param(
@@ -879,14 +879,14 @@ param(
 	[switch]$Check
 )
 	if ($Backup) {
-		Invoke-BackupManager -Check
+		Get-BackupManager -Check
 		if ($Script:Environment.HasStore) {
 			do {
 				Write-Host ''
 				if ($Script:Environment.AsJob) { $Prompt = 'Y' } else { $Prompt = Read-Host "Delete $($Script:Environment.Name) Backups? (Y/N)" }
 				switch ($Prompt.ToUpper()) {
 					Y {
-						RFR-DeleteStore
+						Get-StoreManager -Delete
 						Write-Host ''
 						Write-Host "Exporting $($Script:Environment.Name) to Env. Store." -Fore Green
 						$SrcServer = $($Script:Environment.keyDbServer)
@@ -894,7 +894,7 @@ param(
 						$DestServer = $($Script:Settings.DBServer)
 						$DestDatabase = $($Script:Settings.DBName)
 						Get-ScriptTable
-						Invoke-BackupManager -Check
+						Get-BackupManager -Check
 					}
 					N {
 						$Script:WarningMsg = "Canceled."
@@ -911,7 +911,7 @@ param(
 			$DestServer = $($Script:Settings.DBServer)
 			$DestDatabase = $($Script:Settings.DBName)
 			Get-ScriptTable
-			Invoke-BackupManager -Check
+			Get-BackupManager -Check
 		}
 	}
 	if ($Restore) {
@@ -939,7 +939,7 @@ param(
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SqlCommand.ExecuteScalar() | Out-Null
 		$SqlConn.Close()
-		Invoke-BackupManager -Check
+		Get-BackupManager -Check
 	}
 	if ($Check) {
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
@@ -976,7 +976,7 @@ function Get-ScriptTable
 		    SQL-CreateTable $Script
 		    if ($Script:Settings.SqlCompression) { SQL-CompressTable -ColumnStore } else { $Script:SqlCompression = 'None' }
 		    SQL-BulkInsert
-		    RFR-InsertStore
+		    Get-StoreManager -Insert
         }
         catch {
             Write-Host $_.Exception.Message
@@ -1082,85 +1082,87 @@ function SQL-BulkInsert
 	$SqlConn.Dispose()
 }
 
-function RFR-InsertStore
-{
-	if ($Script:Settings.SqlStoreScript) { $InsertScript = $Script } else { $InsertScript = '' }
-	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
-	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
-	$SqlConn.Open()
-	$SqlQuery = “INSERT INTO [AXRefresh_EnvironmentStore] (ENVIRONMENT,SOURCEDBSERVER,SOURCEDBNAME,SOURCETABLE,TARGETTABLE,SQLSCRIPT,COUNT,CREATEDDATETIME,SQLCOMPRESSION,DELETED,DELETEDDATETIME)
-                 VALUES('$($Script:Environment.Name)','$SrcServer','$SrcDatabase','$Table','$DestTable','$InsertScript','$($TableSet.RowCount)','$DateTime','$Script:SqlCompression', 0, 0)"
-	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-	$SqlCommand.ExecuteNonQuery() | Out-Null
-	$SqlConn.Close()
-}
-
-function RFR-DeleteStore
+function Get-StoreManager
 {
 [CmdletBinding()]
 param(
-	[switch]$HardDelete
+	[switch]$Insert,
+	[switch]$Delete,
+	[switch]$DeleteStore
 )
-	if ($Script:Environment.Name) {
-        ##Get-EnvTables
-		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
-		$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
-		$SqlConn.Open()
-		$SqlQuery = "SELECT ENVIRONMENT, SOURCETABLE, TARGETTABLE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND DELETED = 0"
-		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-		$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
-		$Adapter.SelectCommand = $SqlCommand
-		$EnvTables = New-Object System.Data.DataSet
-		$Adapter.Fill($EnvTables) | Out-Null
-		if ($Script:Environment.AsJob) { $Prompt = 'Y' } else { $Prompt = Read-Host "Confirm Delete $($($Script:Environment.Name))? (Y/N)" }
-		switch ($Prompt.ToUpper()) {
-			'Y' {
-				Write-Host ''
-				Write-Host "Deleting $($Script:Environment.Name) from Env. Store." -Fore Green
-				foreach ($Table in $EnvTables.Tables[0]) {
-					$SqlQuery = “DROP TABLE [$($Table.TARGETTABLE)]"
-					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-					$SqlCommand.ExecuteNonQuery() | Out-Null
-				}
-				$SqlQuery = "UPDATE [AXRefresh_EnvironmentStore] SET DELETED = 1, DELETEDDATETIME = '$DateTime' WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
-				$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-				$SqlCommand.ExecuteNonQuery() | Out-Null
-				#
-				$SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME < '$DateTime'"
-				$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-				$SqlCommand.ExecuteNonQuery() | Out-Null
-				#
-				if ($HardDelete) {
-					$SqlQuery = “DELETE FROM [AXTools_Environments] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
-					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-					$SqlCommand.ExecuteNonQuery() | Out-Null
-                    #
-					$SqlQuery = “DELETE FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
-					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-					$SqlCommand.ExecuteNonQuery() | Out-Null
-					#
-					$SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
-					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-					$SqlCommand.ExecuteNonQuery() | Out-Null
-					#
-					$SqlQuery = “DELETE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
-					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-					$SqlCommand.ExecuteNonQuery() | Out-Null
-					Clear-EnvironmentData
-				}
-			}
-			'N' {
-				$Script:WarningMsg = "Canceled."
-			}
-			Default {
-				$Script:WarningMsg = "Invalid Option. Retry."
-			}
-		}
-		$SqlConn.Close()
-	}
-	else {
-		$Script:WarningMsg = "Canceled."
-	}
+    if($Insert) {
+	    if ($Script:Settings.SqlStoreScript) { $InsertScript = $Script } else { $InsertScript = '' }
+	    $SqlConn = New-Object System.Data.SqlClient.SqlConnection
+	    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
+	    $SqlConn.Open()
+	    $SqlQuery = “INSERT INTO [AXRefresh_EnvironmentStore] (ENVIRONMENT,SOURCEDBSERVER,SOURCEDBNAME,SOURCETABLE,TARGETTABLE,SQLSCRIPT,COUNT,CREATEDDATETIME,SQLCOMPRESSION,DELETED,DELETEDDATETIME)
+                     VALUES('$($Script:Environment.Name)','$SrcServer','$SrcDatabase','$Table','$DestTable','$InsertScript','$($TableSet.RowCount)','$DateTime','$Script:SqlCompression', 0, 0)"
+	    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+	    $SqlCommand.ExecuteNonQuery() | Out-Null
+	    $SqlConn.Close()
+    }
+    if($Delete -or $DeleteStore) {
+	    if ($Script:Environment.Name) {
+            ##Get-EnvTables
+		    $SqlConn = New-Object System.Data.SqlClient.SqlConnection
+		    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
+		    $SqlConn.Open()
+		    $SqlQuery = "SELECT ENVIRONMENT, SOURCETABLE, TARGETTABLE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND DELETED = 0"
+		    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+		    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+		    $Adapter.SelectCommand = $SqlCommand
+		    $EnvTables = New-Object System.Data.DataSet
+		    $Adapter.Fill($EnvTables) | Out-Null
+		    if ($Script:Environment.AsJob) { $Prompt = 'Y' } else { $Prompt = Read-Host "Confirm Delete $($($Script:Environment.Name))? (Y/N)" }
+		    switch ($Prompt.ToUpper()) {
+			    'Y' {
+				    Write-Host ''
+				    Write-Host "Deleting $($Script:Environment.Name) from Env. Store." -Fore Green
+				    foreach ($Table in $EnvTables.Tables[0]) {
+					    $SqlQuery = “DROP TABLE [$($Table.TARGETTABLE)]"
+					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					    $SqlCommand.ExecuteNonQuery() | Out-Null
+				    }
+				    $SqlQuery = "UPDATE [AXRefresh_EnvironmentStore] SET DELETED = 1, DELETEDDATETIME = '$DateTime' WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+				    $SqlCommand.ExecuteNonQuery() | Out-Null
+				    #
+				    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME < '$DateTime'"
+				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+				    $SqlCommand.ExecuteNonQuery() | Out-Null
+				    #
+				    if ($DeleteStore) {
+					    $SqlQuery = “DELETE FROM [AXTools_Environments] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					    $SqlCommand.ExecuteNonQuery() | Out-Null
+                        #
+					    $SqlQuery = “DELETE FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					    $SqlCommand.ExecuteNonQuery() | Out-Null
+					    #
+					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					    $SqlCommand.ExecuteNonQuery() | Out-Null
+					    #
+					    $SqlQuery = “DELETE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					    $SqlCommand.ExecuteNonQuery() | Out-Null
+					    Clear-EnvironmentData
+				    }
+			    }
+			    'N' {
+				    $Script:WarningMsg = "Canceled."
+			    }
+			    Default {
+				    $Script:WarningMsg = "Invalid Option. Retry."
+			    }
+		    }
+		    $SqlConn.Close()
+	    }
+	    else {
+		    $Script:WarningMsg = "Canceled."
+	    }
+    }
 }
 
 function SQL-DBRestore
@@ -1234,12 +1236,16 @@ function SQL-CleanUpTable
 		'Y' {
 			foreach ($Table in $TruncateAll)
 			{
-				$SqlQuery = "TRUNCATE TABLE [$Table]"
-				$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-				$SqlCommand.ExecuteNonQuery() | Out-Null
-				#$SqlQuery
+                try {
+				    $SqlQuery = "TRUNCATE TABLE [$Table]"
+				    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+				    $SqlCommand.ExecuteNonQuery() | Out-Null
+                }
+                catch {
+                    Write-Host $_.Exception.Message
+                }
 			}
-			if ($Script:Settings.DataScrub) { RFR-DataScrub }
+			if ($Script:Settings.DataScrub) { Get-DataScrub }
 		}
 		'N' {
 			$Script:WarningMsg = 'Canceled.'
@@ -1251,7 +1257,7 @@ function SQL-CleanUpTable
 	$SqlConn.Close()
 }
 
-function RFR-DataScrub
+function Get-DataScrub
 {
 	if ($Script:Settings.ScrubTables)
 	{
@@ -1260,19 +1266,23 @@ function RFR-DataScrub
 		$SqlConn.Open()
 		foreach ($Update in $Script:Settings.ScrubTables.Split(','))
 		{
-			$TableName = "[$($Update.Split('|')[0])]"
-			$FieldName = "[$($Update.Split('|')[1])]"
-			$Value = if ($Update.Split('|')[2] -like 'NULL') { "''" } else { "'$($Update.Split('|')[2])'" }
-			$SqlQuery = "UPDATE $TableName SET $FieldName = $Value"
-			$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
-			$SqlCommand.ExecuteScalar() | Out-Null
-			#$SqlQuery 
+            try {
+			    $TableName = "[$($Update.Split('|')[0])]"
+			    $FieldName = "[$($Update.Split('|')[1])]"
+			    $Value = if ($Update.Split('|')[2] -like 'NULL') { "''" } else { "'$($Update.Split('|')[2])'" }
+			    $SqlQuery = "UPDATE $TableName SET $FieldName = $Value"
+			    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+			    $SqlCommand.ExecuteScalar() | Out-Null
+            }
+            catch {
+                Write-Host $_.Exception.Message
+            }
 		}
 	}
 	$SqlConn.Close()
 }
 
-function Invoke-ServiceManager
+function Get-AOSManager
 {
 [CmdletBinding()]
 param(
@@ -1287,14 +1297,14 @@ param(
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	try {
-		$SqlQuery = "SELECT INSTANCE FROM AXTools_Servers WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND ACTIVE = 1"
+		$SqlQuery = "SELECT InstanceName FROM AXTools_Servers WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND ACTIVE = 1"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 		$Adapter.SelectCommand = $SqlCommand
 		$DSServers = New-Object System.Data.DataSet
 		$AOSCnt = $Adapter.Fill($DSServers)
 		if ($AOSCnt) {
-			$AOSServers = $DSServers.Tables[0] | Select-Object INSTANCE -ExpandProperty INSTANCE
+			$AOSServers = $DSServers.Tables[0] | Select-Object InstanceName -ExpandProperty InstanceName
 		}
 	}
 	catch {
@@ -1522,7 +1532,7 @@ function Set-TableRecId
     $SqlConn.Close()
 }
 
-function Invoke-BatchManager
+function Get-BatchManager
 {
 [CmdletBinding()]
 param(
@@ -1743,61 +1753,6 @@ param(
 	return $NextRecID
 }
 
-function RFR-BatchHistory
-{
-	Write-Host ''
-	$defaultValue = Get-Date
-	($defaultValue,(Read-Host "Delete all Batch History date or [Enter] for [$(Get-Date -Date $defaultValue -Format d)]")) -match '\S' | ForEach-Object { $delDate = $ret = $_ }
-	$DateFormat = 'mm/dd/yyyy' # hh HH mm ss dd yyyy
-	try {
-		[datetime]::TryParseExact(
-			$delDate,
-			$DateFormat,
-			[System.Globalization.DateTimeFormatInfo]::InvariantInfo,
-			[System.Globalization.DateTimeStyles]::None,
-			[ref]$ret) | Out-Null
-		Write-Host ''
-		Write-Host "Delete Batch History tables. Cut-off Date as $delDate" -Fore Green
-		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
-		$SqlConn.ConnectionString = "Server=$($Script:Environment.keyDbServer);Database=$($Script:Environment.keyDBName);Integrated Security=True"
-		$SqlConn.Open()
-
-		Write-Host '- Deleting BatchConstraintsHistory... ' -Fore Yellow -NoNewline
-		$SqlQuery = "DELETE FROM BATCHCONSTRAINTSHISTORY WHERE BATCHCONSTRAINTSHISTORY.BATCHID IN " +
-		"(SELECT BATCHID FROM BATCHHISTORY BH JOIN BATCHJOBHISTORY BJH " +
-		"ON BH.BATCHJOBHISTORYID = BJH.RECID " +
-		"WHERE BJH.STATUS IN (3,4,8) " +
-		"AND DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), BJH.CREATEDDATETIME) <= '$delDate')"
-		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-		$SqlCommand.CommandTimeout = 0
-		$SqlCommand.ExecuteNonQuery() | Out-Null
-		Write-Host 'Done.' -Fore Yellow
-
-		Write-Host '- Deleting BatchHistory... ' -Fore Yellow -NoNewline
-		$SqlQuery = "DELETE FROM BATCHHISTORY WHERE BATCHHISTORY.BATCHJOBHISTORYID " +
-		"IN (SELECT RECID FROM BATCHJOBHISTORY BJH " +
-		"WHERE BJH.STATUS IN (3,4,8) " +
-		"AND DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), BJH.CREATEDDATETIME) <= '$delDate')"
-		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-		$SqlCommand.CommandTimeout = 0
-		$SqlCommand.ExecuteNonQuery() | Out-Null
-		Write-Host 'Done.' -Fore Yellow
-
-		Write-Host '- Deleting BatchJobHistory... ' -Fore Yellow -NoNewline
-		$SqlQuery = "DELETE FROM BATCHJOBHISTORY WHERE BATCHJOBHISTORY.STATUS " +
-		"IN (3,4,8) " +
-		"AND DATEADD(mi, DATEDIFF(mi, GETUTCDATE(), GETDATE()), BATCHJOBHISTORY.CREATEDDATETIME) <= '$delDate'"
-		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-		$SqlCommand.CommandTimeout = 0
-		$SqlCommand.ExecuteNonQuery() | Out-Null
-		Write-Host 'Done.' -Fore Yellow
-		$SqlConn.Close()
-	}
-	catch {
-		$Script:WarningMsg = "Invalid Date --> $($_.Exception.Message)"
-	}
-}
-
 function Start-AsJob
 {
 	$Script:Environment.AsJob = $true
@@ -1826,11 +1781,11 @@ function Start-AsJob
 		if ($SQLBckPath -notlike '') {
 			if (Test-Path $SQLBckPath) {
 				$Script:Environment.SQLBackup = Get-ChildItem -Path $SQLBckPath | Select-Object -First 1 | Where-Object { $_.Extension -match '.bak' } | Sort-Object -Property CreationTime -Descending
-				Invoke-ServiceManager -Stop
+				Get-AOSManager -Stop
 				SQL-DBRestore $Script:Environment.SQLBackup.FullName
 				SQL-CleanUpTable
-				Invoke-BackupManager -Restore
-				Invoke-ServiceManager -Start
+				Get-BackupManager -Restore
+				Get-AOSManager -Start
 				$Script:Environment.RFROk = $true
 			}
 			else {
@@ -1839,15 +1794,15 @@ function Start-AsJob
 		}
 	}
 	elseif ($RefreshOnly) {
-		Invoke-ServiceManager -Stop
+		Get-AOSManager -Stop
 		Start-Sleep -Seconds 5
 		SQL-CleanUpTable
-		Invoke-BackupManager -Restore
-		Invoke-ServiceManager -Start
+		Get-BackupManager -Restore
+		Get-AOSManager -Start
 	}
 	elseif ($RefreshDays -ge 1) {
 		if (($StoreDate - $((Get-Date).AddDays($RefreshDays * -1))).Days -eq 0) {
-			Invoke-BackupManager -Backup
+			Get-BackupManager -Backup
 		}
 		else {
 			Write-Log "Environment Date: $StoreDate" 'Warn'
@@ -1882,7 +1837,7 @@ param(
 		$SqlConn.ConnectionString = "Server=$ServerName;Database=$DBName;Integrated Security=True"
 		$SqlConn.Open()
 		$SqlConn.Close()
-		Invoke-BackupManager -Check
+		Get-BackupManager -Check
 	}
 	catch {
 		$ErrMsg = $_.Exception
@@ -2005,7 +1960,7 @@ param(
 	$SqlConn.Close()
 }
 
-function Initialize-RFR
+function Start-Refresh
 {
 	[Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 	Test-SQLSettings $Script:Settings.DBServer $Script:Settings.DBName
@@ -2036,7 +1991,8 @@ if ($Paramlist) {
 	$Paramlist = $Paramlist.Substring(0,$Paramlist.Length - 3)
 }
 
-Initialize-RFR
+Start-Refresh
+
 if($Script:Settings.SendEmail) {
     if($Script:Environment.EmailProfile) { 
         Get-SendEmail

@@ -90,7 +90,7 @@ function Get-WrkProcess
 		}
 		default {
 			SQL-BulkInsert 'AXReport_ExecutionLog' ($Script:Settings | Select-Object Environment,@{ n = 'StartTime'; e = { Get-Date } },Guid)
-			Get-AxReport (Get-WrkServers)
+			Get-AxReport ($(Get-WrkServers | Sort ServerType))
 			break
 		}
 	}
@@ -169,9 +169,9 @@ function Get-WrkServers
 
 function Get-AxReport
 {
-	param(
-		[array]$WrkServers
-	)
+param(
+    [array]$WrkServers
+)
 	Write-Log "AX Report Started ($($Script:Settings.ReportDate))"
 	foreach ($WrkServer in $WrkServers) {
 		Write-Log "$($WrkServer.ServerName) ($($WrkServer.ServerType)) Processing."
@@ -210,7 +210,7 @@ function Get-AxReport
 	if (![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
 		Get-SendEmail
 	}
-	if ([int]$Script:Settings.KeepReports -gt 0) { Start-CleanUp } else { Write-Log 'ERROR: Settings.AxReport.ReportAge invalid.' }
+	#if ([int]$Script:Settings.KeepReports -gt 0) { Start-CleanUp } else { Write-Log 'ERROR: Settings.AxReport.ReportAge invalid.' }
 	Set-SQLUpdate "UPDATE AXReport_ExecutionLog SET EndTime = '$(Get-Date)', LOG = '$($Log)' WHERE GUID = '$($Script:Settings.Guid)'"
 	Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
@@ -603,21 +603,21 @@ function Get-PerfmonFile
 {
 	try {
 		$DataCollectorSet = New-Object -COM Pla.DataCollectorSet
-		$DataCollectorSet.Query($($Script:Settings.DataCollectorName),$WrkServer.ServerName)
+		$DataCollectorSet.Query($($Script:Settings.PerfmonName),$WrkServer.ServerName)
 	}
 	catch {
-		Write-Log "ERROR - $($Script:Settings.DataCollectorName) Failed. ($($_.Exception.Message))."
+		Write-Log "ERROR - $($Script:Settings.PerfmonName) Failed. ($($_.Exception.Message))."
 		$CIMComputer = New-CimSession -ComputerName $WrkServer.ServerName
 		Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
 		Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
-		Remove-CimSession -ComputerName $($Script:Settings.DataCollectorName)
+		Remove-CimSession -ComputerName $($Script:Settings.PerfmonName)
 		#
 		$Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
 		$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 		$Xml = $Cmd.ExecuteScalar()
 		$DataCollectorSet.SetXml($Xml)
-		$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.DataCollectorName)"
-		$DataCollectorSet.Commit($Script:Settings.DataCollectorName,$WrkServer.ServerName,0x0003) | Out-Null
+		$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.PerfmonName)"
+		$DataCollectorSet.Commit($Script:Settings.PerfmonName,$WrkServer.ServerName,0x0003) | Out-Null
 	}
 
 	if ($DataCollectorSet.Status -eq 1) {
@@ -628,7 +628,7 @@ function Get-PerfmonFile
 	else {
 		try {
 			$DataCollectorSet.Start($false)
-			Write-Log "ERROR - $($WrkServer.ServerName) - $($Script:Settings.DataCollectorName) stopped, attempt start it."
+			Write-Log "ERROR - $($WrkServer.ServerName) - $($Script:Settings.PerfmonName) stopped, attempt start it."
 		}
 		catch {
 			Write-Log "ERROR - $($WrkServer.ServerName) - $($_.Exception.Message)"
@@ -675,7 +675,7 @@ function Get-PerfmonFile
 function Get-PerfmonLogs
 {
 	$DataCollectorSet = New-Object -COM Pla.DataCollectorSet
-	$DataCollectorSet.Query($($Script:Settings.DataCollectorName),$WrkServer.ServerName)
+	$DataCollectorSet.Query($($Script:Settings.PerfmonName),$WrkServer.ServerName)
 	$DataCollectorPath = "\\$($WrkServer.ServerName)\" + $($DataCollectorSet.LatestOutputLocation).Replace(':','$')
 	if (Test-Path $DataCollectorPath) {
 		$BlgFile = Get-ChildItem -Path $DataCollectorPath |
@@ -885,21 +885,21 @@ function Get-SSRSLogs
 function Save-AXReport
 {
 	Write-Log "HTML Started ($($Script:Settings.ReportDate))."
-	$JobStart = Start-Job -Name "AXReport_CreateReport" -ScriptBlock { & $args[0] $args[1] $args[2] $args[3] $args[4] } -ArgumentList @("$ScriptDir\AX-CreateReport.ps1"),$Script:Settings.GUID,$Script:Settings.Environment,$($Script:Settings.ReportPath),$($Script:Settings.LogPath)
+	$JobStart = Start-Job -Name "AXReport_CreateReport" -ScriptBlock { & $args[0] $args[1] $args[2] $args[3] $args[4] } -ArgumentList @("$ScriptDir\AX-CreateReport.ps1"),$Script:Settings.GUID,$Script:Settings.Environment,$($Script:Settings.ReportFolder),$($Script:Settings.LogFolder)
 }
 
 function Get-SendEmail
 {
 	$Subject = "AX Daily Report <$((Get-Date).AddDays(-1) | Get-Date -Format "MMM dd, yyyy")>"
-	$Body = Get-Content "$($Script:Settings.ReportPath)\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy)-Summary.html"
-	$Attachment = "$($Script:Settings.ReportPath)\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy).mht"
+	$Body = Get-Content "$($Script:Settings.ReportFolder)\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy)-Summary.html"
+	$Attachment = "$($Script:Settings.ReportFolder)\AXReport-$(Get-Date ($Script:Settings.ReportDate) -f MMddyyyy).mht"
 	Send-Email -Subject $Subject -Body $Body -Attachment $Attachment -EmailProfile $Script:Settings.EmailProfile
 	Write-Log "AX Report has been Sent."
 }
 
 function Start-CleanUp
 {
-	$Files = Get-ChildItem -Path $($Script:Settings.ReportPath) | Where-Object { $_.LastWriteTime -lt $((Get-Date).AddDays((- [int]$Script:Settings.KeepReports))) }
+	$Files = Get-ChildItem -Path $($Script:Settings.ReportFolder) | Where-Object { $_.LastWriteTime -lt $((Get-Date).AddDays((- [int]$Script:Settings.KeepReports))) }
 	if ($Files) {
 		Remove-Item -Path $Files.FullName -Force
 	}

@@ -1186,7 +1186,7 @@ $WpfbtnTskSave.Add_Click({
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)5)
+                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
                     $Trigger.ExecutionTimeLimit = 'PT0S'
                 }
                 else {
@@ -1208,7 +1208,7 @@ $WpfbtnTskSave.Add_Click({
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)5)
+                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
                     $Trigger.ExecutionTimeLimit = 'PT0S'
                 }
                 else {

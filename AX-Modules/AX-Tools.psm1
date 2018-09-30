@@ -334,7 +334,6 @@ function Write-Log
 param (
     [string]$LogData
 )
-    $Script:Settings
     $TLogStamp = (Get-Date -DisplayHint Time)
     $ExecLog = New-Object -TypeName System.Object
     $ExecLog | Add-Member -Name CreatedDateTime -Value $TLogStamp -MemberType NoteProperty
@@ -1263,6 +1262,7 @@ param (
                 }
             }
             else {
+                $Stopped++
                 Write-Log "ERROR: AOS Check - Server unavailable $($Server.ServerName)."
             }
         }
@@ -1280,7 +1280,8 @@ param (
 	[String]$AxEnvironment,
 	[Switch]$Start
 )
-    $Configuration = Import-ConfigFile
+    #$Configuration = Import-ConfigFile
+    $SettingsXml = Load-ScriptSettings -ScriptName 'AxReport'
 
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
@@ -1300,7 +1301,7 @@ param (
         foreach($Server in $Servers.Tables[0]) {
             if(Test-Connection $Server.ServerName -Count 1 -Quiet) {
                 if(![String]::IsNullOrEmpty($LocalAdminAccount) -and $Server.ServerName -ne $env:COMPUTERNAME) {
-                    Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $($Configuration.Settings.AXReport.PerfmonCollectorName), $Server.ServerName, $Start -ScriptBlock {
+                    Invoke-Command -ComputerName $Server.ServerName -Credential $LocalAdminAccount -ArgumentList $($SettingsXml.PerfmonName), $Server.ServerName, $Start -ScriptBlock {
                         Param($DataCollectorName, $ServerName, $Start)
                         try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
@@ -1321,7 +1322,7 @@ param (
                     if($Msg) { Write-Log $Msg }
                 }
                 else {
-                    Invoke-Command -ComputerName $Server.ServerName -ArgumentList $($Configuration.Settings.AXReport.PerfmonCollectorName), $Server.ServerName, $Start -ScriptBlock {
+                    Invoke-Command -ComputerName $Server.ServerName -ArgumentList $($SettingsXml.PerfmonName), $Server.ServerName, $Start -ScriptBlock {
                         Param($DataCollectorName, $ServerName, $Start)
                         try {
                             $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
