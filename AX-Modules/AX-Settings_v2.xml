@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <DynamicsAxTools>
-  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\GitHub\DynamicsAxTools\Reports" />
-  <Setting Module="General" Key="LogFolder" Value="" />
+  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Reports" />
+  <Setting Module="General" Key="LogFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Logs" />
   <Setting Module="General" Key="DBServer" Value="DAX2012R3" />
   <Setting Module="General" Key="DBName" Value="DynamicsAxTools" />
   <Setting Module="General" Key="UserName" Value="" />
