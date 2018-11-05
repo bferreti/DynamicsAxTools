@@ -96,8 +96,7 @@ catch
     SQL-UpdateTable 'AXMonitor_GRDLog' 'LOG' $($Msg) "JOBNAME = '$GRDJobName'"
 }
 
-
-$JobSettings = Load-ScriptSettings -ScriptName 'AxMonitor'
+$JobSettings = Import-ConfigFile -ScriptName 'AxMonitor'
 if([boolean]::Parse($JobSettings.Debug)) {
     $Environment = $GRDJobName.Split('_')[1]
     if(![String]::IsNullOrEmpty($JobSettings.LogFolder)) {

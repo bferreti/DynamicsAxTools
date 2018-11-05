@@ -135,24 +135,29 @@ $inputXML = @"
                     <ListView x:Name="lstCurrJobs" Height="180" Margin="16.5,82.659,17.5,0" VerticalAlignment="Top" Width="732">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="Auto"/>
+                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="85"/>
+                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="85"/>
                                 <GridViewColumn Header="Repetition" DisplayMemberBinding ="{Binding Interval}" Width="75"/>
                                 <GridViewColumn Header="Daily" DisplayMemberBinding ="{Binding DaysInterval}" Width="75"/>
-                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="Auto"/>
+                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="75"/>
                                 <GridViewColumn Header="User" DisplayMemberBinding ="{Binding User}" Width="75"/>
-                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="Auto"/>
-                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="Auto"/>
-                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="Auto"/>
+                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="75"/>
+                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="75"/>
+                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="75"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
                 </Grid>
             </TabItem>
-            <TabItem Header="Tools" TabIndex="50" IsEnabled="False">
-                <Grid Background="#FFE5E5E5"/>
+            <TabItem Header="Services" TabIndex="50">
+                <Grid>
+                </Grid>
             </TabItem>
-            <TabItem Header="Settings" TabIndex="60">
+            <TabItem Header="Perfmon" TabIndex="60">
+                <Grid>
+                </Grid>
+            </TabItem>            
+            <TabItem Header="Settings" TabIndex="70">
                 <Grid>
                     <DataGrid x:Name="dgXMLSettings" HorizontalAlignment="Left" Height="210" Margin="13,50,0,0" VerticalAlignment="Top" Width="737" AutoGenerateColumns="False">
                         <DataGrid.Columns>
@@ -162,6 +167,27 @@ $inputXML = @"
                     </DataGrid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737"/>
                     <Button x:Name="btnSetSave" Content="Save" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Database" TabIndex="80">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <Button x:Name="btnDBCreate" Content="Create" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnDBDrop" Content="Drop" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnDBTestConn" Content="Test DB Conn" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <Label x:Name="lblDBServer" Content="DBServer" HorizontalAlignment="Left" Margin="16,104,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBServer" HorizontalAlignment="Left" Height="24" Margin="79,105,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
+                    <Label x:Name="lblDBName" Content="DBName" HorizontalAlignment="Left" Margin="16,133,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBName" HorizontalAlignment="Left" Height="24" Margin="79,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
+                    <Label x:Name="lblDBReportPath" Content="Reports Folder" HorizontalAlignment="Left" Margin="16,188.733,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBReportPath" HorizontalAlignment="Left" Height="24" Margin="110,189.735,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
+                    <Label x:Name="lblDBLogPath" Content="Logs Folder" HorizontalAlignment="Left" Margin="16,216.733,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBLogPath" HorizontalAlignment="Left" Height="24" Margin="110,218.735,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
+                    <Label x:Name="lblDBStatus" Content="Database Connection:" HorizontalAlignment="Left" Margin="16,54,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblDBCurrent" Content="Connection Failed" HorizontalAlignment="Left" Margin="140,54,0,0" VerticalAlignment="Top" Foreground="#FFFF0606" FontWeight="Bold"/>
+                    <Separator HorizontalAlignment="Left" Height="25.265" Margin="20,76,0,0" VerticalAlignment="Top" Width="722"/>
+                    <Separator HorizontalAlignment="Left" Height="25.265" Margin="20,160,0,0" VerticalAlignment="Top" Width="722"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -249,7 +275,6 @@ function Get-EnvironmentsDB
 	$Adapter.SelectCommand = $SqlCommand
 	$Script:EnvironmentDB = New-Object System.Data.DataSet
 	$Adapter.Fill($Script:EnvironmentDB) | Out-Null
-    #[void]$Environments.Tables[0].Rows.Add('',$null,$null,$null,$null,$null,$null,$null,$null,$null,$null,$null,$null)
     $WpfcbxEnvEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
     $WpfcbxTskEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
 }
@@ -257,7 +282,7 @@ function Get-EnvironmentsDB
 function Get-SettingsXML
 {
     $Script:SettingsXML = New-Object System.Data.Dataset
-    $Null = $Script:SettingsXML.ReadXml("$ModuleFolder\AX-Settings_v2.xml")
+    $Null = $Script:SettingsXML.ReadXml("$ModuleFolder\AX-Settings.xml")
     $WpfdgXMLSettings.ItemsSource = $Script:SettingsXML.Tables[0].DefaultView
 }
 
@@ -271,11 +296,13 @@ function Get-UsersDB
 	$Script:UsersDB = New-Object System.Data.DataSet
 	$Adapter.Fill($Script:UsersDB) | Out-Null
     #[void]$Users.Tables[0].Rows.Add('',$null)
-    $WpfcbxEnvLocalUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
-    $WpfcbxEnvDBUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
-    $WpfcbxUsrID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
-    $WpfcbxEmlUserID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
-    $WpfcbxTskUserID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+    if(![string]::IsNullOrEmpty($Script:UsersDB)) {
+        $WpfcbxEnvLocalUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+        $WpfcbxEnvDBUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+        $WpfcbxUsrID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+        $WpfcbxEmlUserID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+        $WpfcbxTskUserID.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
+    }
 }
 
 function Get-EmailsDB
@@ -450,11 +477,52 @@ function Get-TabItemClear
 
         }
         '5' {
+
+        }
+        '6' {
             Get-SettingsXML
         }
-
+        '7' {
+            $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
+            if($Srv.Databases | Where { $_.Name -eq $WpftxtDBName.Text }) {
+                $WpftabControl.Items[0].IsEnabled = $true
+                $WpftabControl.Items[1].IsEnabled = $true
+                $WpftabControl.Items[2].IsEnabled = $true
+                $WpftabControl.Items[3].IsEnabled = $true
+                $WpftabControl.Items[4].IsEnabled = $true
+                $WpftabControl.Items[5].IsEnabled = $true
+                $WpftabControl.Items[6].IsEnabled = $true
+                $WpflblDBCurrent.Content = 'Connection Successful'
+                $WpflblDBCurrent.Foreground = '#00802b'
+                $WpfbtnDBCreate.IsEnabled = $false
+                $WpfbtnDBDrop.IsEnabled = $true
+                $WpfbtnDBTestConn.IsEnabled = $true
+                $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
+                $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
+                Get-SettingsXML
+            }
+            else {
+                $WpftabControl.Items[0].IsEnabled = $false
+                $WpftabControl.Items[1].IsEnabled = $false
+                $WpftabControl.Items[2].IsEnabled = $false
+                $WpftabControl.Items[3].IsEnabled = $false
+                $WpftabControl.Items[4].IsEnabled = $false
+                $WpftabControl.Items[5].IsEnabled = $false
+                $WpftabControl.Items[6].IsEnabled = $false
+                $WpflblDBCurrent.Content = 'Connection Failed'
+                $WpflblDBCurrent.Foreground = '#FFFF0606'
+                $WpftxtDBServer.Clear()
+                $WpftxtDBName.Clear()
+                $WpftxtDBServer.IsEnabled = $true
+                $WpftxtDBName.IsEnabled = $true
+                $WpfbtnDBCreate.IsEnabled = $true
+                $WpfbtnDBDrop.IsEnabled = $false
+                $WpfbtnDBTestConn.IsEnabled = $false
+                $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
+                $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
+            }
+        }
     }
-
 }
 
 function Get-DisableAll
@@ -495,11 +563,11 @@ function Validate-User
     $Query = "SELECT UserName FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $UserExists = $Cmd.ExecuteScalar()
-    if($UserExists) {
-        return $true
+    if([string]::IsNullOrEmpty($UserExists)) {
+        return $false
     }
     else {
-        return $false
+        return $true
     }
 }
 
@@ -569,7 +637,7 @@ function Insert-User
                 VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
-    if($RunAs) {
+    if(![string]::IsNullOrEmpty($RunAs)) {
         [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
         $ConfigFile.Settings.Database.UserName = $UserName
         $ConfigFile.Settings.Database.Password = $SecureStringAsPlainText.ToString()
@@ -1230,8 +1298,8 @@ $WpfbtnTskSave.Add_Click({
 
 $WpfbtnSetSave.Add_Click({
     $dsCheck = New-Object System.Data.Dataset
-    $Null = $dsCheck.ReadXml("$ModuleFolder\AX-Settings_v2.xml")
-    [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings_v2.xml"
+    $Null = $dsCheck.ReadXml("$ModuleFolder\AX-Settings.xml")
+    [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
     $i=0
     foreach($Row in $Script:SettingsXML.Tables[0]) {
         if($Row.Value -notlike ($dsCheck.Tables.Rows[$i]).Value) {
@@ -1240,7 +1308,7 @@ $WpfbtnSetSave.Add_Click({
         }
         $i++
     }
-    $ConfigFile.Save("$ModuleFolder\AX-Settings_v2.xml")
+    $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
 })
 
 #===========================================================================
@@ -1451,6 +1519,84 @@ $WpftxtTskInterval.Add_LostFocus({
 })
 
 #===========================================================================
+# Form Database Func.
+#===========================================================================
+
+$WpfbtnDBTestConn.Add_Click({
+    $WpflblWarning.Text = "Connecting to $($WpftxtDBServer.Text) - $($WpftxtDBName.Text)..."
+    $SqlServer = Get-ConnectionString
+    if($SqlServer.State -eq 'Open') {
+        $SqlServer.Close()
+        $WpflblWarning.Text = "$($WpftxtDBServer.Text) - $($WpftxtDBName.Text) connection successful."
+    }
+    else {
+		$WpflblWarning.Text = "Failed to connect to server $($WpftxtDBServer.Text) - $($WpftxtDBName.Text)."
+        New-Popup -Message "Failed to connect to $($WpftxtDBServer.Text)" -Title "Error" -Buttons OK -Icon Stop
+    }
+})
+
+$WpfbtnDBDrop.Add_Click({
+    $Answer = New-Popup -Message "Do you want to drop $($WpftxtDBName.Text)?" -Title "Alert" -Buttons YesNo -Icon Question
+    if($Answer -eq 6) {
+        $Server = ((Import-ConfigFile).DbServer)
+        $Database = ((Import-ConfigFile).DbName)
+        $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $Server
+        $Srv.KillAllProcesses($Database)
+        $Srv.Databases[$Database].Drop()
+        Get-TabItemClear
+    }
+    else {
+        $WpflblWarning.Text = "Canceled."
+    }
+})
+
+$WpfbtnDBCreate.Add_Click({
+    if(!$WpftxtDBServer.Text){ 
+        New-Popup -Message "Database server cannot be empty!" -Title "Alert" -Buttons OK -Icon Stop
+        $WpftxtDBServer.Clear()
+        $WpftxtDBServer.Focus()
+        $WpflblWarning.Text = "Canceled."
+    }
+    elseif(!$WpftxtDBName.Text){
+        New-Popup -Message "Database name cannot be empty!" -Title "Alert" -Buttons OK -Icon Stop
+        $WpftxtDBName.Clear()
+        $WpftxtDBName.Focus()
+        $WpflblWarning.Text = "Canceled."
+    }
+    else {
+        try {
+            $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
+            #if($Srv.Databases | Where { $_.Name -eq $WpftxtDBName.Text }) {
+            if($Srv.Status -ne 'Online') {
+                New-Popup -Message "Failed to connect to server $($WpftxtDBServer.Text)." -Title "Alert" -Buttons OK -Icon Stop
+                $SqlServer.Close()
+                $WpflblWarning.Text = "Canceled."
+            }
+            elseif($Srv.Databases[$WpftxtDBName.Text]) {
+                New-Popup -Message "Database already exists!" -Title "Alert" -Buttons OK -Icon Stop
+                $WpflblWarning.Text = "Canceled."
+            }
+            else {
+                $Db = New-Object ('Microsoft.SqlServer.Management.SMO.Database') ($Srv, $WpftxtDBName.Text)
+                $Db.RecoveryModel = 'Simple'
+                $Db.Create()
+                Invoke-Sqlcmd -InputFile "$ModuleFolder\DynamicsAxNew.sql" -ServerInstance $WpftxtDBServer.Text -Database $WpftxtDBName.Text -ErrorAction 'Stop' -QueryTimeout 1800
+                #
+                [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+                $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbServer'}).Value = $WpftxtDBServer.Text
+                $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbName'}).Value = $WpftxtDBName.Text
+                $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
+                $WpflblWarning.Text = "Done."
+                Get-TabItemClear
+            }
+        }
+        catch {
+            $WpflblWarning.Text = 'Canceled.' #$error[0]
+        }
+    }
+})
+
+#===========================================================================
 # Form Esc. Key
 #===========================================================================
 
@@ -1536,19 +1682,47 @@ param
 #===========================================================================
 
 $Form.Add_Loaded({
-    Get-UsersDB
-    Get-EmailsDB
-    Get-TasksList
-    Get-SettingsXML 
-    Get-TabItemClear
-    $DBStats = [ordered]@{0="No";1="Log Statistics only";2="Log and Update Statistics"}
-    $WpfcbxEnvDBStats.ItemsSource = $DBStats
-    $SchedTasks = [ordered]@{0="AX Monitor";1="AX Report";2="Check AOS";3="Recycle Perfmon";4="Check Perfmon"}
-    $WpfcbxTskTaskName.ItemsSource = $SchedTasks
-    $WpfdgXMLSettings.CanUserAddRows = $false
-    $WpfdgXMLSettings.CanUserDeleteRows = $false
+    $WpftxtDBServer.Text = ((Import-ConfigFile).DbServer)
+    $WpftxtDBName.Text = ((Import-ConfigFile).DbName)
+    $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
+    if($Srv.Status -eq 'Online' -and $Srv.Databases[$WpftxtDBName.Text]) {
+        Get-UsersDB
+        Get-EmailsDB
+        Get-TasksList
+        Get-SettingsXML 
+        Get-TabItemClear
+        $DBStats = [ordered]@{0="No";1="Log Statistics only";2="Log and Update Statistics"}
+        $WpfcbxEnvDBStats.ItemsSource = $DBStats
+        $SchedTasks = [ordered]@{0="AX Monitor";1="AX Report";2="Check AOS";3="Recycle Perfmon";4="Check Perfmon"}
+        $WpfcbxTskTaskName.ItemsSource = $SchedTasks
+        $WpfdgXMLSettings.CanUserAddRows = $false
+        $WpfdgXMLSettings.CanUserDeleteRows = $false
+        $WpflblDBCurrent.Content = 'Connection Successful'
+        $WpflblDBCurrent.Foreground = '#00802b'
+        $WpfbtnDBCreate.IsEnabled = $false
+        $WpfbtnDBDrop.IsEnabled = $true
+        $WpfbtnDBTestConn.IsEnabled = $true
+        $WpftxtDBServer.IsEnabled = $false
+        $WpftxtDBName.IsEnabled = $false
+        $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
+        $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
+    }
+    else {
+        $WpftabControl.Items[0].IsEnabled = $false
+        $WpftabControl.Items[1].IsEnabled = $false
+        $WpftabControl.Items[2].IsEnabled = $false
+        $WpftabControl.Items[3].IsEnabled = $false
+        $WpftabControl.Items[4].IsEnabled = $false
+        $WpftabControl.Items[5].IsEnabled = $false
+        $WpftabControl.Items[6].IsEnabled = $false
+        $WpftabControl.SelectedIndex = 7
+        $WpfbtnDBCreate.IsEnabled = $true
+        $WpfbtnDBDrop.IsEnabled = $false
+        $WpfbtnDBTestConn.IsEnabled = $false
+        $WpftxtDBServer.Clear()
+        $WpftxtDBName.Clear()
+    }
 })
-
 
 #===========================================================================
 # Form Logo

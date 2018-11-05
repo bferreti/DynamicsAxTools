@@ -54,7 +54,7 @@ $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$Script:Settings = Load-ScriptSettings -ScriptName 'AxMonitor'
+$Script:Settings = Import-ConfigFile -ScriptName 'AxMonitor'
 $Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
 

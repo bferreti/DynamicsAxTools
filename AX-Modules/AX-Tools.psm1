@@ -45,6 +45,7 @@ $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
+<#
 function Import-ConfigFile
 {
     if(Test-Path "$ModuleFolder\AX-Settings.xml") {
@@ -57,16 +58,18 @@ function Import-ConfigFile
 
     return $ConfigFile
 }
+#>
 
-function Load-ScriptSettings
+#function Load-ScriptSettings
+function Import-ConfigFile
 {
 param(
     [string]$ScriptName
 )
     if($ScriptName) { $ScriptName = "$ScriptName|General" } else { $ScriptName = "General" } 
-    if(Test-Path "$ModuleFolder\AX-Settings_v2.xml") {
+    if(Test-Path "$ModuleFolder\AX-Settings.xml") {
         # Import settings from config file
-        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings_v2.xml"
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
         $PSObject = New-Object PSObject
         foreach ($Object in @($ConfigFile.DynamicsAxTools)) {
             foreach ($Property in @($Object.Setting | Where {$_.Module -Match "$ScriptName"})) {
@@ -77,7 +80,6 @@ param(
     else {
         Write-Warning "Configuration file does not exists."
     }
-
     return $PSObject
 }
 
@@ -97,11 +99,11 @@ param (
     [String]$ApplicationName
 )
     if($ApplicationName -eq '') { $ApplicationName = 'Ax Powershell Tools' }
-    $ConfigFile = Import-ConfigFile
-    $ParamDBServer = $ConfigFile.Settings.Database.DBServer
-    $ParamDBName = $ConfigFile.Settings.Database.DBName
-    $ParamUserName = $ConfigFile.Settings.Database.UserName
-    $ParamPassword = $ConfigFile.Settings.Database.Password
+    $ConfigFile =  Import-ConfigFile
+    $ParamDBServer = $ConfigFile.DBServer
+    $ParamDBName = $ConfigFile.DBName
+    $ParamUserName = $ConfigFile.UserName
+    $ParamPassword = $ConfigFile.Password
     if($ParamUserName) {
         $UserPassword = Read-EncryptedString -InputString $ParamPassword -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
         $secureUserPassword = $UserPassword | ConvertTo-SecureString -AsPlainText -Force 
@@ -1281,7 +1283,7 @@ param (
 	[Switch]$Start
 )
     #$Configuration = Import-ConfigFile
-    $SettingsXml = Load-ScriptSettings -ScriptName 'AxReport'
+    $SettingsXml = Import-ConfigFile -ScriptName 'AxReport'
 
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))

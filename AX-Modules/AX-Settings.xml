@@ -1,32 +1,32 @@
-<?xml version="1.0"?>
-<Settings>
-  <General>
-    <ReportFolder>C:\Users\Administrator\Desktop\AxTools\Reports</ReportFolder>
-    <LogFolder></LogFolder>
-  </General>
-  <Database>
-    <DBServer>DAX2012R3</DBServer> <!-- Change SQL Server Name. Server\Instance, (local) / Change DB Name (if you have changed during creation) -->
-    <DBName>DynamicsAXTools</DBName> <!-- Leave Username/Password blank if it is the same user running the task -->
-    <UserName></UserName>
-    <Password></Password>
-  </Database>
-  <AXReport>
-	<KeepReports>7</KeepReports> <!-- Days -->
-	<KeepPerfmon>5</KeepPerfmon> <!-- Days -->
-    <PerfmonName>AxPerfmon</PerfmonName>
-	<BlgArchiveFolder>D:\PerfmonArchive</BlgArchiveFolder>
-	<KeepBlgArchive>180</KeepBlgArchive> <!-- Days -->
-    <LongJobThreshold>15</LongJobThreshold> <!-- Minutes -->
-	<MRPThreshold>0</MRPThreshold> <!-- Minutes -->
-  </AXReport>
-  <AXMonitor>
-    <Debug>false</Debug>
-	<KeepReports>7</KeepReports> <!-- Days -->	
-    <StatisticsPercentChange>10</StatisticsPercentChange>
-	<SendLowRiskEmail>15</SendLowRiskEmail> <!-- Minutes -->
-    <StatisticsCheck>30</StatisticsCheck> <!-- Minutes -->
-    <StatisticsUpdate>60</StatisticsUpdate> <!-- Minutes -->
-    <StatisticsUpdateTop>15</StatisticsUpdateTop>
-    <StatisticsUpdateCpuMax>50</StatisticsUpdateCpuMax> <!-- Do not update statistics if CPU above % -->
-  </AXMonitor>
-</Settings>
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<DynamicsAxTools>
+  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Reports" />
+  <Setting Module="General" Key="LogFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Logs" />
+  <Setting Module="General" Key="DBServer" Value="AD-PS-HOME" />
+  <Setting Module="General" Key="DBName" Value="DynamicsAxTools_v2" />
+  <Setting Module="General" Key="UserName" Value="" />
+  <Setting Module="General" Key="Password" Value="" />
+  <Setting Module="AXReport" Key="KeepReports" Value="7" />
+  <Setting Module="AXReport" Key="KeepPerfmon" Value="5" />
+  <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" />
+  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="D:\PerfmonArchive" />
+  <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" />
+  <Setting Module="AXReport" Key="LongJobThreshold" Value="15" />
+  <Setting Module="AXReport" Key="MRPThreshold" Value="0" />
+  <Setting Module="AXMonitor" Key="Debug" Value="true" />
+  <Setting Module="AXMonitor" Key="KeepReports" Value="7" />
+  <Setting Module="AXMonitor" Key="StatisticsPercentChange" Value="10" />
+  <Setting Module="AXMonitor" Key="SendLowRiskEmail" Value="15" />
+  <Setting Module="AXMonitor" Key="StatisticsCheck" Value="30" />
+  <Setting Module="AXMonitor" Key="StatisticsUpdate" Value="60" />
+  <Setting Module="AXMonitor" Key="StatisticsUpdateTop" Value="15" />
+  <Setting Module="AXMonitor" Key="StatisticsUpdateCpuMax" Value="50" />
+  <Setting Module="AXRefresh" Key="SqlTruncate" Value="true" />
+  <Setting Module="AXRefresh" Key="SqlCompression" Value="true" />
+  <Setting Module="AXRefresh" Key="SqlStoreScript" Value="false" />
+  <Setting Module="AXRefresh" Key="DataScrub" Value="false" />
+  <Setting Module="AXRefresh" Key="SendEmail" Value="false" />
+  <Setting Module="AXRefresh" Key="SaveTables" Value="DMFDATASOURCE,DMFDATASOURCEPROPERTIES,AFMPLUPARAMETERS,AFMPLUERRHANDLINGSETUP,DMFDEFINITIONGROUPENTITY,SYSEMAILPARAMETERS,AFMRETAILPARAMETERSEXT,AIFCHANNEL,AIFPORT,AIFSERVICE,AIFWEBSITES,BATCHGROUP,BATCHSERVERCONFIG,BATCHSERVERGROUP,BIANALYSISSERVER,BIANALYSISSERVICESDATABASE,BICONFIGURATION,DMFPARAMETERS,DOCUPARAMETERS,DOCUTYPE,EPGLOBALPARAMETERS,EPWEBSITEPARAMETERS,HCMEMPLOYMENT,HCMPERSONIMAGE,HCMPOSITION,HCMPOSITIONUNIONAGREEMENT,HCMPOSITIONWORKERASSIGNMENT,HCMWORKER,HCMWORKERPRIMARYPOSITION,INVENTLOCATIONDEFAULTLOCATION,RETAILCDXDATAGROUP,RETAILCDXFILESTORAGEPROVIDER,RETAILCDXSCHEDULEDATAGROUP,RETAILCDXSCHEDULERINTERVAL,RETAILCHANNELPROFILE,RETAILCHANNELPROFILEPROPERTY,RETAILCHANNELTABLE,RETAILCONNAOSPROFILE,RETAILCONNCONNECTIONPROFILE,RETAILCONNDATABASEPROFILE,RETAILCONNPARAMETERS,RETAILCONNSCHEDULE,RETAILCONNSTORECONNECTPROFILE,RETAILDEVICE,RETAILDEVICETYPES,RETAILHARDWAREPROFILE,RETAILINTERNALORGANIZATION,RETAILPARAMETERS,RETAILPOSITIONPOSPERMISSION,RETAILPOSPERMISSIONGROUP,RETAILPOSTHEME,RETAILPUBCHANNELATTRIBUTE,RETAILSHAREDBINGPARAMETERS,RETAILSHAREDPARAMETERS,RETAILTERMINALTABLE,RETAILTHEMEPALLET,RETAILTILLLAYOUT,RETAILTILLLAYOUTSTAFF,RETAILTILLLAYOUTSTORE,RETAILTILLLAYOUTZONE,RETAILTILLLAYOUTZONEREFERENCE,RETAILTRANSACTIONSERVICEPROFILE,SECURITYUSERROLE,SRSSERVERS,SYSBCPROXYUSERACCOUNT,SYSCLUSTERCONFIG,SYSSERVERCONFIG,SYSUSERINFO,SYSVERSIONCONTROLPARAMETERS,USERGROUPLIST,USERINFO" />
+  <Setting Module="AXRefresh" Key="DeleteTables" Value="SYSSERVERSESSIONS,SYSCLIENTSESSIONS,SYSLASTVALUE,SYSEXCEPTIONTABLE,AIFMESSAGELOG" />
+  <Setting Module="AXRefresh" Key="ScrubTables" Value="Address|Email|NULL,VendTable|Email|vendor@contoso.com,PurchTable|Email|vendor@contoso.com,CustTable|Email|customer@contoso.com" />
+</DynamicsAxTools>

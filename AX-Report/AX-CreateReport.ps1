@@ -53,7 +53,7 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
-$Script:ConfigurationXml = Import-ConfigFile
+$Script:ConfigurationXml = Import-ConfigFile -ScriptName 'AxReport'
 $ReportDate = $(Get-Date (Get-Date).AddDays(-1) -format MMddyyyy) #Get-Date -f MMddyyHHmm
 $ReportName = "AX Daily Report"
 

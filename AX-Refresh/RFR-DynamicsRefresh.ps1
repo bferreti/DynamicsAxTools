@@ -45,7 +45,7 @@ $WorkFolder = $Dir + "\WorkFolder"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $Global:Guid = ([guid]::NewGuid()).GUID
-$Script:Settings = Load-ScriptSettings -ScriptName 'AxRefresh'
+$Script:Settings = Import-ConfigFile -ScriptName 'AxRefresh'
 $Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
 
 Clear-Host
