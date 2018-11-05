@@ -25,41 +25,45 @@ $inputXML = @"
         <TabControl x:Name="tabControl" Margin="10,76,10,10" Height="300">
             <TabItem Header="Environments" TabIndex="10">
                 <Grid>
-                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="196*"/>
+                        <ColumnDefinition Width="187*"/>
+                    </Grid.ColumnDefinitions>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <Button x:Name="btnEnvNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
                     <Button x:Name="btnEnvEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvSave" Content="Save" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvDelete" Content="Delete" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnEnvtestSQL" Content="Test DB Conn" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False"/>
-                    <Button x:Name="btnEnvReports" Content="Reports" HorizontalAlignment="Left" Margin="615,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False"/>
-                    <Button x:Name="btnEnvLogs" Content="Logs" HorizontalAlignment="Left" Margin="680,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="192" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <Button x:Name="btnEnvtestSQL" Content="Test DB Conn" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False" Grid.ColumnSpan="2"/>
+                    <Button x:Name="btnEnvReports" Content="Reports" HorizontalAlignment="Left" Margin="223,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" Grid.Column="1"/>
+                    <Button x:Name="btnEnvLogs" Content="Logs" HorizontalAlignment="Left" Margin="288,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" Grid.Column="1"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="192" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737" Grid.ColumnSpan="2"/>
                     <ComboBox x:Name="cbxEnvEnvironment" HorizontalAlignment="Left" Margin="95,59,0,0" VerticalAlignment="Top" Width="223" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
                     <TextBox x:Name="txtEnvEnvironment" HorizontalAlignment="Left" Height="24" Margin="91,85,0,0" VerticalAlignment="Top" Width="183" IsEnabled="False"/>
-                    <ComboBox x:Name="cbxEnvEmail" HorizontalAlignment="Left" Margin="320,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
-                    <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="450,84,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="519,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
-                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="656,90,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxEnvEmail" HorizontalAlignment="Left" Margin="320,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" Grid.ColumnSpan="2"/>
+                    <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="58,84,0,0" VerticalAlignment="Top" Grid.Column="1"/>
+                    <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="127,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" Grid.Column="1"/>
+                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="264,90,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                     <ComboBox x:Name="cbxEnvDBUser" HorizontalAlignment="Left" Margin="78,123,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
-                    <TextBox x:Name="txtEnvDBServer" HorizontalAlignment="Left" Height="24" Margin="286,122,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False"/>
-                    <TextBox x:Name="txtEnvDBName" HorizontalAlignment="Left" Height="24" Margin="535,123,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False"/>
+                    <TextBox x:Name="txtEnvDBServer" HorizontalAlignment="Left" Height="24" Margin="286,122,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" Grid.ColumnSpan="2"/>
+                    <TextBox x:Name="txtEnvDBName" HorizontalAlignment="Left" Height="24" Margin="143,123,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" Grid.Column="1"/>
                     <ComboBox x:Name="cbxEnvDBStats" HorizontalAlignment="Left" Margin="130,150,0,0" VerticalAlignment="Top" Width="200" DisplayMemberPath="Value" SelectedValuePath="Name" IsEnabled="False"/>
                     <CheckBox x:Name="chkEnvGRD" Content="Enable GRD" HorizontalAlignment="Left" Margin="22,190,0,0" VerticalAlignment="Top" IsEnabled="False"/>
                     <TextBox x:Name="txtEnvCPU" HorizontalAlignment="Left" Height="24" Margin="109,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
                     <TextBox x:Name="txtEnvBlocking" HorizontalAlignment="Left" Height="24" Margin="305,209,0,0" VerticalAlignment="Top" Width="75" />
-                    <TextBox x:Name="txtEnvWaiting" HorizontalAlignment="Left" Height="24" Margin="495,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
+                    <TextBox x:Name="txtEnvWaiting" HorizontalAlignment="Left" Height="24" Margin="103,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False" Grid.Column="1"/>
                     <Label x:Name="lblEnvDBServer" Content="SQL Server" HorizontalAlignment="Left" Margin="214,121,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="lblEnvDBName" Content="DB Name" HorizontalAlignment="Left" Margin="470,121,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblEnvDBName" Content="DB Name" HorizontalAlignment="Left" Margin="78,121,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                     <Label x:Name="lblEnvDBUser" Content="SQL User" HorizontalAlignment="Left" Margin="15,121,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvDBStats" Content="Check DB Statistics" HorizontalAlignment="Left" Margin="15,148,0,0" VerticalAlignment="Top"/>
-                    <Separator HorizontalAlignment="Left" Height="18" Margin="18,108,0,0" VerticalAlignment="Top" Width="725"/>
+                    <Separator HorizontalAlignment="Left" Height="18" Margin="18,108,0,0" VerticalAlignment="Top" Width="725" Grid.ColumnSpan="2"/>
                     <Label x:Name="lblEnvCPU" Content="CPU Threshold" HorizontalAlignment="Left" Margin="16,208,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvBlocking" Content="Blocking Threshold" HorizontalAlignment="Left" Margin="189,208,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="lblEnvWaiting" Content="Waiting Threshold" HorizontalAlignment="Left" Margin="385,208,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblEnvWaiting" Content="Waiting Threshold" HorizontalAlignment="Left" Margin="385,208,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <Label x:Name="lblEnvName" Content="Environment" HorizontalAlignment="Left" Margin="15,57,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvDescription" Content="Description" HorizontalAlignment="Left" Margin="15,84,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvEmail" Content="Email" HorizontalAlignment="Left" Margin="279,84,0,0" VerticalAlignment="Top"/>
-                    <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="725"/>
+                    <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="725" Grid.ColumnSpan="2"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Users" TabIndex="20">
@@ -151,21 +155,49 @@ $inputXML = @"
             </TabItem>
             <TabItem Header="Services" TabIndex="50">
                 <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="32" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
+                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="190,15.834,0,0" VerticalAlignment="Top" Width="65"/>
+                    <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <ListView x:Name="listView" HorizontalAlignment="Left" Height="195" Margin="20,57.54,0,0" VerticalAlignment="Top" Width="492">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <Button x:Name="button" Content="Start" HorizontalAlignment="Left" Margin="537,67.58,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="button_Copy" Content="Stop" HorizontalAlignment="Left" Margin="537,92.54,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="button_Copy1" Content="Start All" HorizontalAlignment="Left" Margin="537,117.5,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Button x:Name="button_Copy2" Content="Stop All" HorizontalAlignment="Left" Margin="537,142.46,0,0" VerticalAlignment="Top" Width="75"/>
+
                 </Grid>
             </TabItem>
             <TabItem Header="Perfmon" TabIndex="60">
                 <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <Button x:Name="btnPerfLoad" Content="Load" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnPerfCheck" Content="Check" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfCreate" Content="Create" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfDelete" Content="Delete" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
                 </Grid>
-            </TabItem>            
+            </TabItem>
             <TabItem Header="Settings" TabIndex="70">
                 <Grid>
-                    <DataGrid x:Name="dgXMLSettings" HorizontalAlignment="Left" Height="210" Margin="13,50,0,0" VerticalAlignment="Top" Width="737" AutoGenerateColumns="False">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="277*"/>
+                        <ColumnDefinition Width="489*"/>
+                    </Grid.ColumnDefinitions>
+                    <DataGrid x:Name="dgXMLSettings" HorizontalAlignment="Left" Height="210" Margin="13,50,0,0" VerticalAlignment="Top" Width="737" AutoGenerateColumns="False" Grid.ColumnSpan="2">
                         <DataGrid.Columns>
                             <DataGridTextColumn Binding="{Binding Key}" Header="Parameter" Width="200" CanUserResize="True"/>
                             <DataGridTextColumn Binding="{Binding Value}" Header="Value" Width="Auto" CanUserResize="True"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737"/>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
                     <Button x:Name="btnSetSave" Content="Save" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
                 </Grid>
             </TabItem>
