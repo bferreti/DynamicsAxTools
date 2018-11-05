@@ -439,8 +439,8 @@ function Get-EnviromentList
 		$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 		$SqlQuery = "SELECT A.ENVIRONMENT as Options 
                         FROM AXTools_Environments A
-                        JOIN AXRefresh_EnvironmentsExt B on A.ENVIRONMENT = B.ENVIRONMENT
-                        WHERE B.MACHINENAME <> ''"
+                        JOIN AXRefresh_EnvironmentsExt B on A.ENVIRONMENT = B.ENVIRONMENT"
+                        #WHERE B.MACHINENAME <> ''"
 		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
 		$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 		$Adapter.SelectCommand = $SqlCommand
@@ -1152,6 +1152,7 @@ param(
 			    }
 			    'N' {
 				    $Script:WarningMsg = "Canceled."
+                    Get-Menu
 			    }
 			    Default {
 				    $Script:WarningMsg = "Invalid Option. Retry."
