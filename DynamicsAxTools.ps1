@@ -174,7 +174,7 @@ $inputXML = @"
                     </RichTextBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Enviroment Check" TabIndex="60">
+            <TabItem Header="Enviroment Check" TabIndex="60" IsEnabled="False">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
                     <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
