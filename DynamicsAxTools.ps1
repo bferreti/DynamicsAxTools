@@ -2182,16 +2182,16 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #	Stop-Process $pid
 #})
 
-#$WindowCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-#$AsyncWindow = Add-Type -MemberDefinition $WindowCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-#$null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
+$WindowCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+$AsyncWindow = Add-Type -MemberDefinition $WindowCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+$null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
 
 #===========================================================================
 # Shows the form
 #===========================================================================
 $Form.ShowDialog() | out-null
 [System.GC]::Collect()
-#Stop-Process $Pid
+Stop-Process $Pid
 
 #$WpflstCurrJobs | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>
