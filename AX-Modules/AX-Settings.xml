@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <DynamicsAxTools>
-  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Reports" />
-  <Setting Module="General" Key="LogFolder" Value="C:\Users\bferreti\Documents\DynamicsAxTools\Logs" />
+  <Setting Module="General" Key="ReportFolder" Value="C:\Users\bferreti\Documents\GitHub\DynamicsAxTools\Logs" />
+  <Setting Module="General" Key="LogFolder" Value="C:\Users\bferreti\Documents\GitHub\DynamicsAxTools\Logs" />
   <Setting Module="General" Key="DBServer" Value="AD-PS-HOME" />
-  <Setting Module="General" Key="DBName" Value="DynamicsAxTools_v2" />
+  <Setting Module="General" Key="DBName" Value="DynamicsAxTools_v4" />
   <Setting Module="General" Key="UserName" Value="" />
   <Setting Module="General" Key="Password" Value="" />
   <Setting Module="AXReport" Key="KeepReports" Value="7" />
@@ -13,7 +13,7 @@
   <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" />
   <Setting Module="AXReport" Key="LongJobThreshold" Value="15" />
   <Setting Module="AXReport" Key="MRPThreshold" Value="0" />
-  <Setting Module="AXMonitor" Key="Debug" Value="true" />
+  <Setting Module="AXMonitor" Key="Debug" Value="false" />
   <Setting Module="AXMonitor" Key="KeepReports" Value="7" />
   <Setting Module="AXMonitor" Key="StatisticsPercentChange" Value="10" />
   <Setting Module="AXMonitor" Key="SendLowRiskEmail" Value="15" />

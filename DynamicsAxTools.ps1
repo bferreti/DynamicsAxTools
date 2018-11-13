@@ -1,14 +1,12 @@
 ﻿[void][System.Reflection.Assembly]::LoadWithPartialName('PresentationFramework')
 [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
 [void][System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO')
-#[void][System.Reflection.Assembly]::LoadFrom('C:\Users\bferreti\Documents\Elysium.dll')
-#[void][System.Reflection.Assembly]::LoadWithPartialName('System.Drawing')
-#[void][System.Reflection.Assembly]::LoadWithPartialName('WindowsFormsIntegration')
 
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
-$ModuleFolder = $Dir + "\AX-Modules"
+$ModuleFolder = $ScriptDir + "\AX-Modules"
+$DbFolder = $ScriptDir + "\Database"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
@@ -153,36 +151,69 @@ $inputXML = @"
                     </ListView>
                 </Grid>
             </TabItem>
-            <TabItem Header="Services" TabIndex="50">
+            <TabItem Header="Servers" TabIndex="50">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="32" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
-                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="190,15.834,0,0" VerticalAlignment="Top" Width="65"/>
                     <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
                     <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
-                    <ListView x:Name="listView" HorizontalAlignment="Left" Height="195" Margin="20,57.54,0,0" VerticalAlignment="Top" Width="492">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                    <Button x:Name="button" Content="Start" HorizontalAlignment="Left" Margin="537,67.58,0,0" VerticalAlignment="Top" Width="75"/>
-                    <Button x:Name="button_Copy" Content="Stop" HorizontalAlignment="Left" Margin="537,92.54,0,0" VerticalAlignment="Top" Width="75"/>
-                    <Button x:Name="button_Copy1" Content="Start All" HorizontalAlignment="Left" Margin="537,117.5,0,0" VerticalAlignment="Top" Width="75"/>
-                    <Button x:Name="button_Copy2" Content="Stop All" HorizontalAlignment="Left" Margin="537,142.46,0,0" VerticalAlignment="Top" Width="75"/>
+                    <DataGrid x:Name="dgServers" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="400" AutoGenerateColumns="False" MinColumnWidth="55" HorizontalContentAlignment="Center">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding SERVERNAME, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Server" Width="Auto" CanUserResize="True" />
+                            <DataGridComboBoxColumn SelectedValueBinding="{Binding SERVERTYPE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Type" Width="Auto" CanUserResize="True" />
+                            <DataGridCheckBoxColumn Binding="{Binding ACTIVE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Active" Width="Auto" CanUserResize="True" />
+                            <DataGridTextColumn Binding="{Binding IP}" Header="IP" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                            <DataGridTextColumn Binding="{Binding DOMAIN}" Header="Domain" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                            <DataGridTextColumn Binding="{Binding FQDN}" Header="FQDN" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Button x:Name="btnSave" Content="Save" HorizontalAlignment="Left" Margin="175,17,0,0" VerticalAlignment="Top" Width="75"/>
+                    <RichTextBox x:Name="xmlTxtBox" HorizontalAlignment="Left" Height="200" Margin="425,57,0,0" VerticalAlignment="Top" Width="317">
+                        <FlowDocument>
 
+                        </FlowDocument>
+                    </RichTextBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Perfmon" TabIndex="60">
+            <TabItem Header="Enviroment Check" TabIndex="60">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <Button x:Name="btnPerfLoad" Content="Load" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnPerfCheck" Content="Check" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfCreate" Content="Create" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfDelete" Content="Delete" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Button x:Name="btnPerfLoad" Content="Load" HorizontalAlignment="Left" Margin="180.056,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnPerfCheck" Content="Check" HorizontalAlignment="Left" Margin="250.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="320.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="390.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfCreate" Content="Create" HorizontalAlignment="Left" Margin="460.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfDelete" Content="Delete" HorizontalAlignment="Left" Margin="530.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="592,57.275,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="150"/>
+                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="671.212,62.379,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="601.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="671.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
+                    <DataGrid x:Name="dgSrvCheck" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="567" AutoGenerateColumns="False" >
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AOS}" Value="Ok">
+                                        <Setter Property="Background" Value="Green"></Setter>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding AOS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Value="Stopped">
+                                        <Setter Property="Background" Value="Red"></Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding SERVERNAME}" Header="Server" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                            <DataGridTextColumn Binding="{Binding AOS}" Header="AOS" Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding PERFMON}" Header="Perfmon" Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding CPU}" Header="CPU" Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding TOTMEM}" Header="Tot. Mem." Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding MEMORY}" Header="Aval. Mem." Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding USERS}" Header="AX Users" Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            <DataGridTextColumn Binding="{Binding BLOCKING}" Header="Blocking" Width="Auto" CanUserResize="True" IsReadOnly="True" />
+                            
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </Grid>
             </TabItem>
             <TabItem Header="Settings" TabIndex="70">
@@ -274,13 +305,15 @@ function Get-DataSources
     Get-UsersDB
     Get-EmailsDB
     Get-TasksList
-    Get-SettingsXML    
+    Get-SettingsXML
 }
 
 function Set-DataSources
 {
     $WpfcbxEnvEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
     $WpfcbxTskEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
+    $WpfcbxServEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
+    $WpfcbxSrvChkEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
     $WpfcbxEnvEmail.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
     $WpfcbxEmlID.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
     $WpfcbxEnvLocalUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
@@ -309,6 +342,8 @@ function Get-EnvironmentsDB
 	$Adapter.Fill($Script:EnvironmentDB) | Out-Null
     $WpfcbxEnvEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
     $WpfcbxTskEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
+    $WpfcbxServEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
+    $WpfcbxSrvChkEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
 }
 
 function Get-SettingsXML
@@ -349,6 +384,17 @@ function Get-EmailsDB
     #[void]$Emails.Tables[0].Rows.Add('',$null,$null,$null,$null,$null,$null,$null,$null)
     $WpfcbxEnvEmail.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
     $WpfcbxEmlID.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
+}
+
+function Get-Servers
+{
+    $SqlConn = Get-ConnectionString
+	$SqlQuery = "SELECT [Environment], [ServerName], [ServerType], CASE WHEN Active = 1 THEN 'Yes' ELSE 'No' END AS Active, '1' as X FROM [AXTools_Servers]"
+	$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+	$Adapter.SelectCommand = $SqlCommand
+	$Script:Servers = New-Object System.Data.DataSet
+	$Adapter.Fill($Script:Servers) | Out-Null
 }
 
 function Get-TasksList
@@ -1228,7 +1274,7 @@ $WpfbtnTskSave.Add_Click({
                 $TaskRunAsUser = $Credential.UserName
                 $TaskRunAsPassword = $Credential.GetNetworkCredential().Password             
                 $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$Dir\AX-Monitor\AX-SQLMonitor.ps1"
+                $ScriptFilePath = "$ScriptDir\AX-Monitor\AX-SQLMonitor.ps1"
                 $ScriptParameters = $WpfcbxTskEnvironment.Text
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
@@ -1250,7 +1296,7 @@ $WpfbtnTskSave.Add_Click({
                 $TaskRunAsUser = $Credential.UserName
                 $TaskRunAsPassword = $Credential.GetNetworkCredential().Password              
                 $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$Dir\AX-Report\AX-ReportManager.ps1"
+                $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text)"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
@@ -1266,7 +1312,7 @@ $WpfbtnTskSave.Add_Click({
                 $TaskRunAsUser = $Credential.UserName
                 $TaskRunAsPassword = $Credential.GetNetworkCredential().Password       
                 $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$Dir\AX-Report\AX-ReportManager.ps1"
+                $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -RecycleBlg"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
@@ -1282,7 +1328,7 @@ $WpfbtnTskSave.Add_Click({
                 $TaskRunAsUser = $Credential.UserName
                 $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
                 $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$Dir\AX-Tools\AX-AOSCheck.ps1"
+                $ScriptFilePath = "$ScriptDir\AX-Tools\AX-AOSCheck.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
@@ -1304,7 +1350,7 @@ $WpfbtnTskSave.Add_Click({
                 $TaskRunAsUser = $Credential.UserName
                 $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
                 $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$Dir\AX-Tools\AX-PerfmonCheck.ps1"
+                $ScriptFilePath = "$ScriptDir\AX-Tools\AX-PerfmonCheck.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
                 $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
@@ -1411,8 +1457,8 @@ $WpfbtnEnvReports.Add_Click({
     if(Test-Path "$(($Script:SettingsXML.Tables[0] | Where { $_.Key -eq 'ReportFolder' }).Value)\$($WpfcbxEnvEnvironment.SelectedItem.ENVIRONMENT)") {
         Invoke-Item "$(($Script:SettingsXML.Tables[0] | Where { $_.Key -eq 'ReportFolder' }).Value)\$($WpfcbxEnvEnvironment.SelectedItem.ENVIRONMENT)"
     }
-    elseif(Test-Path "$Dir\Reports\$Environment") {
-        Invoke-Item "$Dir\Reports\$Environment"
+    elseif(Test-Path "$ScriptDir\Reports\$Environment") {
+        Invoke-Item "$ScriptDir\Reports\$Environment"
     }
     else {
         $WpflblWarning.Text = 'Folder not found.'
@@ -1423,8 +1469,8 @@ $WpfbtnEnvLogs.Add_Click({
     if(Test-Path "$(($Script:SettingsXML.Tables[0] | Where { $_.Key -eq 'LogFolder' }).Value)\$($WpfcbxEnvEnvironment.SelectedItem.ENVIRONMENT)") {
         Invoke-Item "$(($Script:SettingsXML.Tables[0] | Where { $_.Key -eq 'LogFolder' }).Value)\$($WpfcbxEnvEnvironment.SelectedItem.ENVIRONMENT)"
     }
-    elseif(Test-Path "$Dir\Logs\$Environment") {
-        Invoke-Item "$Dir\Logs\$Environment"
+    elseif(Test-Path "$ScriptDir\Logs\$Environment") {
+        Invoke-Item "$ScriptDir\Logs\$Environment"
     }
     else {
         $WpflblWarning.Text = 'Folder not found.'
@@ -1598,7 +1644,6 @@ $WpfbtnDBCreate.Add_Click({
     else {
         try {
             $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
-            #if($Srv.Databases | Where { $_.Name -eq $WpftxtDBName.Text }) {
             if($Srv.Status -ne 'Online') {
                 New-Popup -Message "Failed to connect to server $($WpftxtDBServer.Text)." -Title "Alert" -Buttons OK -Icon Stop
                 $SqlServer.Close()
@@ -1612,11 +1657,13 @@ $WpfbtnDBCreate.Add_Click({
                 $Db = New-Object ('Microsoft.SqlServer.Management.SMO.Database') ($Srv, $WpftxtDBName.Text)
                 $Db.RecoveryModel = 'Simple'
                 $Db.Create()
-                Invoke-Sqlcmd -InputFile "$ModuleFolder\DynamicsAxNew.sql" -ServerInstance $WpftxtDBServer.Text -Database $WpftxtDBName.Text -ErrorAction 'Stop' -QueryTimeout 1800
+                Invoke-Sqlcmd -InputFile "$DbFolder\DynamicsAxTools.sql" -ServerInstance $WpftxtDBServer.Text -Database $WpftxtDBName.Text -ErrorAction 'Stop' -QueryTimeout 1800
                 #
                 [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
                 $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbServer'}).Value = $WpftxtDBServer.Text
                 $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbName'}).Value = $WpftxtDBName.Text
+                if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value = "$ScriptDir\Logs" }
+                if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'LogFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'LogFolder'}).Value = "$ScriptDir\Logs" }
                 $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
                 $WpflblWarning.Text = "Done."
                 Get-TabItemClear
@@ -1627,6 +1674,167 @@ $WpfbtnDBCreate.Add_Click({
         }
     }
 })
+
+#===========================================================================
+# Form Servers
+#===========================================================================
+
+$WpfcbxServEnvironment.Add_SelectionChanged({
+    if($WpfcbxServEnvironment.SelectedIndex -ne -1) {
+        $SqlConn = Get-ConnectionString
+	    $SqlQuery = "SELECT * FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxServEnvironment.SelectedItem.Environment)'"
+	    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+	    $Script:Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+	    $Script:Adapter.SelectCommand = $SqlCommand
+	    $Script:Servers = New-Object System.Data.DataSet
+	    $Script:Adapter.Fill($Script:Servers) | Out-Null
+        $SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
+        $WpfdgServers.ItemsSource = $Script:Servers.Tables[0].DefaultView
+        $WpfdgServers.Columns[1].ItemsSource = @("AOS";"SQL";"IIS";"RDP";"SRS")
+    }
+})
+
+$WpfcbxSrvChkEnvironment.Add_SelectionChanged({
+    if($WpfcbxSrvChkEnvironment.SelectedIndex -ne -1) {
+        $SqlConn = Get-ConnectionString
+	    $SqlQuery = "SELECT ENVIRONMENT, SERVERNAME, SERVERTYPE, ACTIVE, IP, '' as AOS, '' as PERFMON FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)'"
+	    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+	    $Script:Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+	    $Script:Adapter.SelectCommand = $SqlCommand
+	    $Script:Servers = New-Object System.Data.DataSet
+	    $Script:Adapter.Fill($Script:Servers) | Out-Null
+        $SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
+        $WpfdgSrvCheck.ItemsSource = $Script:Servers.Tables[0].DefaultView
+    }
+})
+
+$WpfdgServers.add_LoadingRow({
+    if($WpfdgServers.Items.IsAddingNew) {
+        $WpfdgServers.Items.CurrentItem.ACTIVE = $false
+    }
+})
+
+$WpfbtnSave.Add_Click({
+    if($Script:Servers.Tables.GetChanges()) {
+        $SrvFailed = @()
+        foreach($Change in $Script:Servers.Tables.GetChanges()) {
+            if($Change.SERVERNAME -and $Change.SERVERTYPE -and $Change.ACTIVE) {
+                $WpfdgServers.SelectedItem = $WpfdgServers.ItemsSource | Where { $_.SERVERNAME -eq $Change.SERVERNAME }
+                $WpfdgServers.SelectedItem.ENVIRONMENT = $WpfcbxServEnvironment.SelectedItem.Environment
+                $WpfdgServers.SelectedItem.CREATEDDATETIME = [DateTime]::Parse($(Get-Date))
+                $SrvPing = Test-Connection $WpfdgServers.SelectedItem.SERVERNAME -Count 1 -ErrorAction SilentlyContinue
+                if($SrvPing) {
+                    $WpfdgServers.SelectedItem.IP = ($SrvPing.IPV4Address).IPAddressToString
+                    $WpfdgServers.SelectedItem.DOMAIN = (Get-WmiObject -Class Win32_ComputerSystem -EnableAllPrivileges -ComputerName $WpfdgServers.SelectedItem.SERVERNAME -ErrorAction SilentlyContinue).Domain
+                    $WpfdgServers.SelectedItem.FQDN = "$($WpfdgServers.SelectedItem.SERVERNAME).$($WpfdgServers.SelectedItem.DOMAIN)"
+                }
+                else {
+                    $SrvFailed += $WpfdgServers.SelectedItem.SERVERNAME
+                    $WpfdgServers.SelectedItem.ACTIVE = 0
+                }
+            }
+            $Script:Adapter.Update($Script:Servers)
+            if($SrvFailed.Count -gt 0){
+                New-Popup -Message "Failed to connect to $($SrvFailed -join ', ')" -Title "Warning" -Buttons OK -Icon Exclamation
+            }
+            $WpflblWarning.Text = 'Saved.'
+        }
+    }
+    else {
+        $WpflblWarning.Text = 'Nothing to save.'
+    }
+})
+
+$WpfbtnServCheck.Add_Click({
+    if($WpfdgSrvCheck.ItemsSource.Count -ge 1) {
+        foreach($Srv in $WpfdgSrvCheck.ItemsSource) {
+            if($Srv.ACTIVE -eq 1 -and $Srv.SERVERTYPE -like 'AOS') {
+                $WpfdgSrvCheck.SelectedItem = $WpfdgSrvCheck.ItemsSource | Where { $_.SERVERNAME -eq $Srv.SERVERNAME }
+                $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.SERVERNAME -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } # -and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
+                #if(![string]::IsNullOrEmpty($Service)) {
+                if($Service.State -like 'Running') {
+                    $WpfdgSrvCheck.SelectedItem.AOS = "Ok"
+                }
+                else {
+                    $WpfdgSrvCheck.SelectedItem.AOS = "Stopped"
+                }
+                #}
+            }
+            else {
+                Write-Host "Not an AOS or Not Active"
+            }
+        }
+    }
+})
+
+$WpfbtnServStart.Add_Click({
+    if($WpfdgServers.SelectedItems -notlike '{NewItemPlaceholder}' -and $WpfdgServers.SelectedItems.Count -ge 1) {
+        foreach($AOS in $WpfdgServers.SelectedItems) {
+            if($AOS.SERVERTYPE -like 'AOS') {
+                Get-AOSManager $AOS.SERVERNAME -Start
+            }
+        }
+
+    }
+})
+
+function Get-AOSManager
+{
+param (
+    [string]$AOSName,
+	[switch]$Stop,
+	[switch]$Start,
+	[switch]$Enable,
+	[switch]$Disable,
+	[switch]$Restart
+)
+	if ($Stop) {
+		try {
+			if ($Disable) { Get-Service -Name "AOS60*" -ComputerName $AOSName | Set-Service -StartupType Disabled }
+			(Get-Service -Name "AOS60*" -ComputerName $($AOSName)).Stop()
+		}
+		catch [Exception]{
+			$WpflblWarning.Text = "Nothing to Stop."
+		}
+		catch {
+			$WpflblWarning.Text = $_.Exception.Message
+		}
+	}
+	if ($Start) {
+		try {
+			if ($Enable) { Get-Service -Name "AOS60*" -ComputerName $AOSName | Set-Service -StartupType Automatic }
+			(Get-Service -Name "AOS60*" -ComputerName $AOSName).Start()
+			Start-Sleep -s 3
+		}
+		catch [Exception]{
+			$WpflblWarning.Text = "Nothing to Start."
+		}
+		catch {
+			$WpflblWarning.Text = $_.Exception.Message
+		}
+	}
+	if ($Restart) {
+		try {
+			if ($Disable) { Get-Service -Name "AOS60*" -ComputerName $AOSName | Set-Service -StartupType Disabled }
+			(Get-Service -Name "AOS60*" -ComputerName $AOSName).Stop()
+			Start-Sleep -s 5
+			if ($Enable) { Get-Service -Name "AOS60*" -ComputerName $AOSName | Set-Service -StartupType Automatic }
+			(Get-Service -Name "AOS60*" -ComputerName $AOSName).Start()
+		}
+		catch [Exception]{
+			$AOSServ = Get-Service -Name "AOS60*" -ComputerName $AOSName | Select-Object Status -ExpandProperty Status
+			if ($AOSServ -match 'Running') {
+				(Get-Service -Name "AOS60*" -ComputerName $AOSName).Stop()
+			}
+			else {
+				(Get-Service -Name "AOS60*" -ComputerName $AOSName).Start()
+			}
+		}
+		catch {
+			$Script:WarningMsg = $_.Exception.Message
+		}
+	}
+}
 
 #===========================================================================
 # Form Esc. Key
@@ -1721,7 +1929,7 @@ $Form.Add_Loaded({
         Get-UsersDB
         Get-EmailsDB
         Get-TasksList
-        Get-SettingsXML 
+        Get-SettingsXML
         Get-TabItemClear
         $DBStats = [ordered]@{0="No";1="Log Statistics only";2="Log and Update Statistics"}
         $WpfcbxEnvDBStats.ItemsSource = $DBStats
@@ -1740,19 +1948,20 @@ $Form.Add_Loaded({
         $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
     }
     else {
+        Get-SettingsXML
         $WpftabControl.Items[0].IsEnabled = $false
         $WpftabControl.Items[1].IsEnabled = $false
         $WpftabControl.Items[2].IsEnabled = $false
         $WpftabControl.Items[3].IsEnabled = $false
         $WpftabControl.Items[4].IsEnabled = $false
         $WpftabControl.Items[5].IsEnabled = $false
-        $WpftabControl.Items[6].IsEnabled = $false
         $WpftabControl.SelectedIndex = 7
         $WpfbtnDBCreate.IsEnabled = $true
         $WpfbtnDBDrop.IsEnabled = $false
         $WpfbtnDBTestConn.IsEnabled = $false
         $WpftxtDBServer.Clear()
         $WpftxtDBName.Clear()
+        $WpftxtDBName.Text = 'DynamicsAxTools'
     }
 })
 
@@ -1960,32 +2169,29 @@ $Bitmap.BeginInit()
 $Bitmap.StreamSource = [System.IO.MemoryStream][System.Convert]::FromBase64String($base64)
 $Bitmap.EndInit()
 $Bitmap.Freeze()
-# This is the pic in the middle
 $WpfImage.Source = $Bitmap
 $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 
 #===========================================================================
 # Make PowerShell Disappear and handle GUI close
 #===========================================================================
-<#
 # When Exit is clicked, close everything and kill the PowerShell process
-$menuitem.add_Click({
-	$notifyicon.Visible = $false
-	$window.Close()
-	Stop-Process $pid
- })
+#$menuitem.add_Click({
+#	$notifyicon.Visible = $false
+#	$window.Close()
+#	Stop-Process $pid
+#})
 
-$windowcode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-$asyncwindow = Add-Type -MemberDefinition $windowcode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-$null = $asyncwindow::ShowWindowAsync((Get-Process -PID $pid).MainWindowHandle, 0)
-#>
+#$WindowCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+#$AsyncWindow = Add-Type -MemberDefinition $WindowCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+#$null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
 
 #===========================================================================
 # Shows the form
 #===========================================================================
 $Form.ShowDialog() | out-null
 [System.GC]::Collect()
-
+#Stop-Process $Pid
 
 #$WpflstCurrJobs | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>

@@ -73,11 +73,14 @@ param(
         $PSObject = New-Object PSObject
         foreach ($Object in @($ConfigFile.DynamicsAxTools)) {
             foreach ($Property in @($Object.Setting | Where {$_.Module -Match "$ScriptName"})) {
-                if($Property.Value -match 'true|false') {
-                    $PSObjectTst | Add-Member NoteProperty $Property.Key $([boolean]($Property.Value))
+                if($Property.Value -match 'true') {
+                    $PSObject | Add-Member NoteProperty $Property.Key $([boolean]$true)
+                }
+                elseif($Property.Value -match 'false') {
+                    $PSObject | Add-Member NoteProperty $Property.Key $([boolean]$false)
                 }
                 else {
-                    $PSObjectTst | Add-Member NoteProperty $Property.Key $Property.Value
+                    $PSObject | Add-Member NoteProperty $Property.Key $Property.Value
                 }
             }
         }
