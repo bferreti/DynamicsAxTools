@@ -1,4 +1,5 @@
-﻿[void][System.Reflection.Assembly]::LoadWithPartialName('PresentationFramework')
+﻿##Requires -RunAsAdministrator
+[void][System.Reflection.Assembly]::LoadWithPartialName('PresentationFramework')
 [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
 [void][System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO')
 
@@ -18,7 +19,7 @@ $inputXML = @"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DynamicsAxTools"
         mc:Ignorable="d"
-        Title="DynamicsAXTools" Height="500" Width="800">
+        Title="DynamicsAXTools" Height="500" Width="800" ResizeMode="NoResize">
     <Grid>
         <TabControl x:Name="tabControl" Margin="10,76,10,10" Height="300">
             <TabItem Header="Environments" TabIndex="10">
@@ -189,14 +190,14 @@ $inputXML = @"
                     <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="671.212,62.379,0,0" VerticalAlignment="Top" Width="65"/>
                     <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="601.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
                     <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="671.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
-                    <DataGrid x:Name="dgSrvCheck" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="567" AutoGenerateColumns="False" >
+                    <DataGrid x:Name="dgSrvCheck" HorizontalAlignment="Left" Height="50.58" Margin="20,57,0,0" VerticalAlignment="Top" Width="567" AutoGenerateColumns="False" >
                         <DataGrid.CellStyle>
                             <Style TargetType="DataGridCell">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AOS}" Value="Ok">
+                                    <DataTrigger Binding="{Binding AOS, UpdateSourceTrigger=PropertyChanged}" Value="Ok">
                                         <Setter Property="Background" Value="Green"></Setter>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding AOS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Value="Stopped">
+                                    <DataTrigger Binding="{Binding AOS, UpdateSourceTrigger=PropertyChanged}" Value="Stopped">
                                         <Setter Property="Background" Value="Red"></Setter>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -214,6 +215,27 @@ $inputXML = @"
                             
                         </DataGrid.Columns>
                     </DataGrid>
+                    <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="100" Margin="20,112.58,0,0" VerticalAlignment="Top" Width="567">
+                        <ListView.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Text="{Binding SERVERTYPE}" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListView.GroupStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Server" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                                <GridViewColumn Header="Cpu%" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                                <GridViewColumn Header="Memory%" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                                <GridViewColumn Header="Users" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                                <GridViewColumn Header="AOS Serv." DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                                <GridViewColumn Header="Blocking" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </Grid>
             </TabItem>
             <TabItem Header="Settings" TabIndex="70">
@@ -292,7 +314,10 @@ try{$Form=[Windows.Markup.XamlReader]::Load($Reader)} catch{Write-Warning "Unabl
 $XAML.SelectNodes("//*[@Name]") | %{<#"trying item $($_.Name)";#> try {Set-Variable -Name "Wpf$($_.Name)" -Value $Form.FindName($_.Name) -Scope Global -ErrorAction Stop} catch{Throw}}
  
 function Get-FormVariables{
-    if ($global:ReadmeDisplay -ne $true){Write-host "If you need to reference this display again, run Get-FormVariables" -ForegroundColor Yellow;$global:ReadmeDisplay=$true}
+    if ($global:ReadmeDisplay -ne $true){
+        #Write-host "If you need to reference this display again, run Get-FormVariables" -ForegroundColor Yellow
+        $global:ReadmeDisplay = $true
+    }
     #write-host "Found the following interactable elements from our form" -ForegroundColor Cyan
     #Get-Variable WPF*
 }
@@ -1276,7 +1301,7 @@ $WpfbtnTskSave.Add_Click({
                 $PowershellFilePath = 'Powershell.exe'
                 $ScriptFilePath = "$ScriptDir\AX-Monitor\AX-SQLMonitor.ps1"
                 $ScriptParameters = $WpfcbxTskEnvironment.Text
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
+                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
                     $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
                     $Trigger.ExecutionTimeLimit = 'PT0S'
@@ -1298,7 +1323,7 @@ $WpfbtnTskSave.Add_Click({
                 $PowershellFilePath = 'Powershell.exe'
                 $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text)"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
+                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
                 $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
                 $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
                 $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
@@ -1314,7 +1339,7 @@ $WpfbtnTskSave.Add_Click({
                 $PowershellFilePath = 'Powershell.exe'
                 $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -RecycleBlg"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
+                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
                 $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
                 $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
                 $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
@@ -1330,7 +1355,7 @@ $WpfbtnTskSave.Add_Click({
                 $PowershellFilePath = 'Powershell.exe'
                 $ScriptFilePath = "$ScriptDir\AX-Tools\AX-AOSCheck.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
+                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
                     $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
                     $Trigger.ExecutionTimeLimit = 'PT0S'
@@ -1352,7 +1377,7 @@ $WpfbtnTskSave.Add_Click({
                 $PowershellFilePath = 'Powershell.exe'
                 $ScriptFilePath = "$ScriptDir\AX-Tools\AX-PerfmonCheck.ps1"
                 $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-NonInteractive -NoLogo -NoProfile -File $ScriptFilePath $ScriptParameters"
+                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
                 if([System.Environment]::OSVersion.Version.Major -ge 10) {
                     $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
                     $Trigger.ExecutionTimeLimit = 'PT0S'
@@ -1516,6 +1541,18 @@ $WpfbtnEnvTestSQL.Add_Click({
     }
 })
 
+$WpftxtEnvCPU.Add_GotFocus({
+    $WpflblWarning.Text = "Default Value: 65"
+})
+
+$WpftxtEnvBlocking.Add_GotFocus({
+    $WpflblWarning.Text = "Default Value: 15"
+})
+
+$WpftxtEnvWaiting.Add_GotFocus({
+    $WpflblWarning.Text = "Default Value: 1800000"
+})
+
 #===========================================================================
 # Form User Func.
 #===========================================================================
@@ -1662,8 +1699,9 @@ $WpfbtnDBCreate.Add_Click({
                 [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
                 $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbServer'}).Value = $WpftxtDBServer.Text
                 $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbName'}).Value = $WpftxtDBName.Text
-                if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value = "$ScriptDir\Logs" }
+                if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'ReportFolder'}).Value = "$ScriptDir\Reports" }
                 if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'LogFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'LogFolder'}).Value = "$ScriptDir\Logs" }
+                if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'BlgArchiveFolder'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'BlgArchiveFolder'}).Value = "$ScriptDir\PerfmonFiles" }
                 $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
                 $WpflblWarning.Text = "Done."
                 Get-TabItemClear
@@ -1697,14 +1735,14 @@ $WpfcbxServEnvironment.Add_SelectionChanged({
 $WpfcbxSrvChkEnvironment.Add_SelectionChanged({
     if($WpfcbxSrvChkEnvironment.SelectedIndex -ne -1) {
         $SqlConn = Get-ConnectionString
-	    $SqlQuery = "SELECT ENVIRONMENT, SERVERNAME, SERVERTYPE, ACTIVE, IP, '' as AOS, '' as PERFMON FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)'"
+	    $SqlQuery = "SELECT ENVIRONMENT, SERVERNAME, SERVERTYPE, ACTIVE, IP, '' as AOS, '' as PERFMON FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)' AND ACTIVE = 1"
 	    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
 	    $Script:Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	    $Script:Adapter.SelectCommand = $SqlCommand
 	    $Script:Servers = New-Object System.Data.DataSet
 	    $Script:Adapter.Fill($Script:Servers) | Out-Null
         $SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
-        $WpfdgSrvCheck.ItemsSource = $Script:Servers.Tables[0].DefaultView
+        $WpflstChkSrv.ItemsSource = $Script:Servers.Tables[0].DefaultView
     }
 })
 
@@ -1751,17 +1789,12 @@ $WpfbtnServCheck.Add_Click({
             if($Srv.ACTIVE -eq 1 -and $Srv.SERVERTYPE -like 'AOS') {
                 $WpfdgSrvCheck.SelectedItem = $WpfdgSrvCheck.ItemsSource | Where { $_.SERVERNAME -eq $Srv.SERVERNAME }
                 $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.SERVERNAME -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } # -and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
-                #if(![string]::IsNullOrEmpty($Service)) {
-                if($Service.State -like 'Running') {
-                    $WpfdgSrvCheck.SelectedItem.AOS = "Ok"
+                if([string]::IsNullOrEmpty($Service)) {
+                    $WpfdgSrvCheck.SelectedItem.AOS = "Error"
                 }
                 else {
-                    $WpfdgSrvCheck.SelectedItem.AOS = "Stopped"
+                    $WpfdgSrvCheck.SelectedItem.AOS = $Service.State
                 }
-                #}
-            }
-            else {
-                Write-Host "Not an AOS or Not Active"
             }
         }
     }
@@ -1925,7 +1958,7 @@ $Form.Add_Loaded({
     $WpftxtDBServer.Text = ((Import-ConfigFile).DbServer)
     $WpftxtDBName.Text = ((Import-ConfigFile).DbName)
     $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
-    if($Srv.Status -eq 'Online' -and $Srv.Databases[$WpftxtDBName.Text]) {
+    if($Srv.Status -eq 'Online' -and $Srv.Databases[$WpftxtDBName.Text] -and ![string]::IsNullOrEmpty($WpftxtDBServer.Text) -and ![string]::IsNullOrEmpty($WpftxtDBName.Text)) {
         Get-UsersDB
         Get-EmailsDB
         Get-TasksList
@@ -2173,25 +2206,36 @@ $WpfImage.Source = $Bitmap
 $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 
 #===========================================================================
-# Make PowerShell Disappear and handle GUI close
-#===========================================================================
-# When Exit is clicked, close everything and kill the PowerShell process
-#$menuitem.add_Click({
-#	$notifyicon.Visible = $false
-#	$window.Close()
-#	Stop-Process $pid
-#})
-
-$WindowCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
-$AsyncWindow = Add-Type -MemberDefinition $WindowCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
-$null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
-
-#===========================================================================
 # Shows the form
 #===========================================================================
-$Form.ShowDialog() | out-null
-[System.GC]::Collect()
-Stop-Process $Pid
+#$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+#if($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+#    $Form.ShowDialog() | Out-Null
+#}
+#else {
+#    New-Popup -Message 'Re-Run as Administrator.' -Title 'Admin Rights' -Buttons OK -Icon Stop
+#    [System.GC]::Collect()
+#    exit
+#}
 
-#$WpflstCurrJobs | Get-member Add* -MemberType Method -force
+<#
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+{   
+    $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
+    Start-Process Powershell -Verb RunAs -ArgumentList $Arguments
+    break
+}
+else {
+    $WindowCode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+    $AsyncWindow = Add-Type -MemberDefinition $WindowCode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+    $null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
+    $Form.ShowDialog() | Out-Null
+}
+#>
+
+$Form.ShowDialog() | Out-Null
+[System.GC]::Collect()
+#Stop-Process $Pid
+
+#$WpftxtEnvCPU | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>

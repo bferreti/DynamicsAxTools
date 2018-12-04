@@ -3,13 +3,13 @@
   <Setting Module="General" Key="ReportFolder" Value="" />
   <Setting Module="General" Key="LogFolder" Value="" />
   <Setting Module="General" Key="DBServer" Value="" />
-  <Setting Module="General" Key="DBName" Value="DynamicsAxTools" />
+  <Setting Module="General" Key="DBName" Value="" />
   <Setting Module="General" Key="UserName" Value="" />
   <Setting Module="General" Key="Password" Value="" />
   <Setting Module="AXReport" Key="KeepReports" Value="7" />
   <Setting Module="AXReport" Key="KeepPerfmon" Value="5" />
   <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" />
-  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="D:\PerfmonArchive" />
+  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="" />
   <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" />
   <Setting Module="AXReport" Key="LongJobThreshold" Value="15" />
   <Setting Module="AXReport" Key="MRPThreshold" Value="0" />
