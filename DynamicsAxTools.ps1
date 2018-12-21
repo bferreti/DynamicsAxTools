@@ -1,5 +1,4 @@
-﻿##Requires -RunAsAdministrator
-[void][System.Reflection.Assembly]::LoadWithPartialName('PresentationFramework')
+﻿[void][System.Reflection.Assembly]::LoadWithPartialName('PresentationFramework')
 [void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
 [void][System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO')
 
@@ -65,6 +64,130 @@ $inputXML = @"
                     <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="725" Grid.ColumnSpan="2"/>
                 </Grid>
             </TabItem>
+            <TabItem Header="Servers" TabIndex="50">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="32" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
+                    <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <DataGrid x:Name="dgServers" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="435" AutoGenerateColumns="False" MinColumnWidth="55" HorizontalContentAlignment="Center">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding SERVERNAME, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Server" Width="Auto" CanUserResize="True" />
+                            <DataGridComboBoxColumn SelectedValueBinding="{Binding SERVERTYPE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Type" Width="Auto" CanUserResize="True" />
+                            <DataGridCheckBoxColumn Binding="{Binding ACTIVE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Active" Width="Auto" CanUserResize="True" />
+                            <DataGridTextColumn Binding="{Binding IP}" Header="IP" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                            <DataGridTextColumn Binding="{Binding DOMAIN}" Header="Domain" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                            <DataGridTextColumn Binding="{Binding FQDN}" Header="FQDN" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Button x:Name="btnSave" Content="Save" HorizontalAlignment="Left" Margin="175,17,0,0" VerticalAlignment="Top" Width="75"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="460,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="282"/>
+                    <GroupBox x:Name="boxSamples" Header="Perfmon Deployment" HorizontalAlignment="Left" Height="193" Margin="465,57,0,0" VerticalAlignment="Top" Width="272" />
+                    <Label x:Name="lblXmlPath" Content="Template Path:" HorizontalAlignment="Left" Margin="472,77,0,0" VerticalAlignment="Top" FontSize="10"/>
+                    <TextBox x:Name="txtFilePath" HorizontalAlignment="Left" Height="23" Margin="474,97,0,0" VerticalAlignment="Top" Width="257" IsReadOnly="True" FontSize="9"/>
+                    <Label x:Name="lblXmltype" Content="Template Type:" HorizontalAlignment="Left" Margin="472,119,0,0" VerticalAlignment="Top" FontSize="10"/>
+                    <ComboBox x:Name="cbxSrvType" HorizontalAlignment="Left" Margin="474,139,0,0" VerticalAlignment="Top" Width="71"/>
+                    <Button x:Name="btnLoadXml" Content="Load XML" HorizontalAlignment="Left" Margin="575,139,0,0" VerticalAlignment="Top" Width="70"/>
+                    <Button x:Name="btnSaveXml" Content="Save to DB" HorizontalAlignment="Left" Margin="650,139,0,0" VerticalAlignment="Top" Width="70" IsEnabled="False"/>
+                    <Button x:Name="btnPerfDeploy" Content="Deploy Perfmon" HorizontalAlignment="Left" Margin="501,187,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnPerfDelete" Content="Delete Perfmon" HorizontalAlignment="Left" Margin="501,212,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnDeleteFolder" Content="Delete Folder" HorizontalAlignment="Left" Margin="606,212,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnCopyFiles" Content="Copy Blg Files" HorizontalAlignment="Left" Margin="606,187,0,0" VerticalAlignment="Top" Width="100"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Task Scheduler" TabIndex="40">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <Button x:Name="btnTskNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnTskEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskDelete" Content="Delete" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskSave" Content="Save" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskDisable" Content="Disable" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskEnable" Content="Enable" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737" RenderTransformOrigin="0.5,0.5">
+                        <Rectangle.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform/>
+                                <SkewTransform AngleX="0.591"/>
+                                <RotateTransform/>
+                                <TranslateTransform X="0.99"/>
+                            </TransformGroup>
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
+                    <Label x:Name="lblTskName" Content="Environment" HorizontalAlignment="Left" Margin="15.023,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskEnvironment" HorizontalAlignment="Left" Margin="93,55.47,0,0" VerticalAlignment="Top" Width="100" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Label x:Name="lblTskTaskName" Content="Task" HorizontalAlignment="Left" Margin="196.293,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskTaskName" HorizontalAlignment="Left" Margin="228.676,55.47,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="Value" SelectedValuePath="Name"/>
+                    <TextBox x:Name="txtTskInterval" HorizontalAlignment="Left" Height="22" Margin="409.186,55.45,0,0" VerticalAlignment="Top" Width="40" IsEnabled="False"/>
+                    <Label x:Name="lblTskInterval" Content="Interval:" HorizontalAlignment="Left" Margin="357.342,53.47,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblTskTimeSpan" Content="At:" HorizontalAlignment="Left" Margin="451.291,53.47,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtTskTime" HorizontalAlignment="Left" Height="22" Margin="474.62,55.45,0,0" VerticalAlignment="Top" Width="55" IsEnabled="False"/>
+                    <Label x:Name="lblTskUserId" Content="Run as" HorizontalAlignment="Left" Margin="532.283,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskUserID" HorizontalAlignment="Left" Margin="580.621,55.47,0,0" VerticalAlignment="Top" Width="160" IsEnabled="False" DisplayMemberPath="ID"/>
+                    <ListView x:Name="lstCurrJobs" Height="180" Margin="16.5,82.659,17.5,0" VerticalAlignment="Top" Width="732">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="85"/>
+                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="85"/>
+                                <GridViewColumn Header="Repeat Every" DisplayMemberBinding ="{Binding Interval}" Width="75"/>
+                                <GridViewColumn Header="Daily" DisplayMemberBinding ="{Binding DaysInterval}" Width="75"/>
+                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="75"/>
+                                <GridViewColumn Header="User" DisplayMemberBinding ="{Binding User}" Width="75"/>
+                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="75"/>
+                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="75"/>
+                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="75"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Enviroment Check" TabIndex="60">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="460,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="282"/>
+                    <GroupBox x:Name="groupBox" Header="Environment Checks" HorizontalAlignment="Left" Height="120" Margin="465,57,0,0" VerticalAlignment="Top" Width="272"/>
+                    <CheckBox x:Name="checkAOS" Content="AOS Service Status" HorizontalAlignment="Left" Margin="474,80,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkPerfmon" Content="Perfmon Collector Set Status" HorizontalAlignment="Left" Margin="474,99,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkServer" Content="AX Users / Avail. Memory / Paging % / CPU" HorizontalAlignment="Left" Margin="474,119,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkSQL" Content="SQL Blocking and Perf Couters" HorizontalAlignment="Left" Margin="474,139,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="665,148,0,0" VerticalAlignment="Top" Width="65"/>
+                    <GroupBox x:Name="grpAOSTasks" Header="AOS Service" HorizontalAlignment="Left" Height="40" Margin="465,173,0,0" VerticalAlignment="Top" Width="272"/>
+                    <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="595,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="665,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False" RenderTransformOrigin="-0.538,0.15"/>
+                    <GroupBox x:Name="grpPerfmonTasks" Header="Perfmon Collector" HorizontalAlignment="Left" Height="40" Margin="465,212,0,0" VerticalAlignment="Top" Width="272"/>
+                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="595,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="665,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+
+                    <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="435">
+                        <ListView.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontSize="15" FontWeight="Bold" Text="{Binding SERVERTYPE}" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListView.GroupStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Type" DisplayMemberBinding ="{Binding ServerType}" Width="Auto"/>
+                                <GridViewColumn Header="Server" DisplayMemberBinding ="{Binding ServerName}" Width="Auto"/>
+                                <GridViewColumn Header="AOS Serv." DisplayMemberBinding ="{Binding AOS}" Width="Auto"/>
+                                <GridViewColumn Header="Perfmon" DisplayMemberBinding ="{Binding Perfmon}" Width="Auto"/>
+                                <GridViewColumn Header="Cpu%" DisplayMemberBinding ="{Binding CPU}" Width="Auto"/>
+                                <GridViewColumn Header="Memory%" DisplayMemberBinding ="{Binding Memory}" Width="Auto"/>
+                                <GridViewColumn Header="Paging" DisplayMemberBinding ="{Binding Paging}" Width="Auto"/>
+                                <GridViewColumn Header="Users" DisplayMemberBinding ="{Binding Users}" Width="Auto"/>
+                                <GridViewColumn Header="Blocking" DisplayMemberBinding ="{Binding Blocking}" Width="Auto"/>
+                                <GridViewColumn Header="CacheHitRatio" DisplayMemberBinding ="{Binding CacheHRat}" Width="Auto"/>
+                                <GridViewColumn Header="PageLifeExpect" DisplayMemberBinding ="{Binding PageLifeExp}" Width="Auto"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                </Grid>
+            </TabItem>
             <TabItem Header="Users" TabIndex="20">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
@@ -104,138 +227,6 @@ $inputXML = @"
                     <TextBox x:Name="txtEmlCC" HorizontalAlignment="Left" Height="24" Margin="49,189,0,0" VerticalAlignment="Top" Width="496" IsEnabled="False"/>
                     <Label x:Name="lblEmlBCC" Content="BCC" HorizontalAlignment="Left" Margin="19,215,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtEmlBCC" HorizontalAlignment="Left" Height="24" Margin="56,216,0,0" VerticalAlignment="Top" Width="489" IsEnabled="False"/>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Task Scheduler" TabIndex="40">
-                <Grid>
-                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <Button x:Name="btnTskNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnTskEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskDelete" Content="Delete" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskSave" Content="Save" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskDisable" Content="Disable" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskEnable" Content="Enable" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737" RenderTransformOrigin="0.5,0.5">
-                        <Rectangle.RenderTransform>
-                            <TransformGroup>
-                                <ScaleTransform/>
-                                <SkewTransform AngleX="0.591"/>
-                                <RotateTransform/>
-                                <TranslateTransform X="0.99"/>
-                            </TransformGroup>
-                        </Rectangle.RenderTransform>
-                    </Rectangle>
-                    <Label x:Name="lblTskName" Content="Environment" HorizontalAlignment="Left" Margin="15.023,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskEnvironment" HorizontalAlignment="Left" Margin="93,55.47,0,0" VerticalAlignment="Top" Width="100" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
-                    <Label x:Name="lblTskTaskName" Content="Task" HorizontalAlignment="Left" Margin="196.293,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskTaskName" HorizontalAlignment="Left" Margin="228.676,55.47,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="Value" SelectedValuePath="Name"/>
-                    <TextBox x:Name="txtTskInterval" HorizontalAlignment="Left" Height="22" Margin="409.186,55.45,0,0" VerticalAlignment="Top" Width="40" IsEnabled="False"/>
-                    <Label x:Name="lblTskInterval" Content="Interval:" HorizontalAlignment="Left" Margin="357.342,53.47,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="lblTskTimeSpan" Content="At:" HorizontalAlignment="Left" Margin="451.291,53.47,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtTskTime" HorizontalAlignment="Left" Height="22" Margin="474.62,55.45,0,0" VerticalAlignment="Top" Width="55" IsEnabled="False"/>
-                    <Label x:Name="lblTskUserId" Content="Run as" HorizontalAlignment="Left" Margin="532.283,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskUserID" HorizontalAlignment="Left" Margin="580.621,55.47,0,0" VerticalAlignment="Top" Width="160" IsEnabled="False" DisplayMemberPath="ID"/>
-                    <ListView x:Name="lstCurrJobs" Height="180" Margin="16.5,82.659,17.5,0" VerticalAlignment="Top" Width="732">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="85"/>
-                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="85"/>
-                                <GridViewColumn Header="Repetition" DisplayMemberBinding ="{Binding Interval}" Width="75"/>
-                                <GridViewColumn Header="Daily" DisplayMemberBinding ="{Binding DaysInterval}" Width="75"/>
-                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="75"/>
-                                <GridViewColumn Header="User" DisplayMemberBinding ="{Binding User}" Width="75"/>
-                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="75"/>
-                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="75"/>
-                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="75"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Servers" TabIndex="50">
-                <Grid>
-                    <Rectangle Fill="#FFEFEFF1" Height="32" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
-                    <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
-                    <DataGrid x:Name="dgServers" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="400" AutoGenerateColumns="False" MinColumnWidth="55" HorizontalContentAlignment="Center">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding SERVERNAME, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Server" Width="Auto" CanUserResize="True" />
-                            <DataGridComboBoxColumn SelectedValueBinding="{Binding SERVERTYPE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Type" Width="Auto" CanUserResize="True" />
-                            <DataGridCheckBoxColumn Binding="{Binding ACTIVE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Active" Width="Auto" CanUserResize="True" />
-                            <DataGridTextColumn Binding="{Binding IP}" Header="IP" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
-                            <DataGridTextColumn Binding="{Binding DOMAIN}" Header="Domain" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
-                            <DataGridTextColumn Binding="{Binding FQDN}" Header="FQDN" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <Button x:Name="btnSave" Content="Save" HorizontalAlignment="Left" Margin="175,17,0,0" VerticalAlignment="Top" Width="75"/>
-                    <RichTextBox x:Name="xmlTxtBox" HorizontalAlignment="Left" Height="200" Margin="425,57,0,0" VerticalAlignment="Top" Width="317">
-                        <FlowDocument>
-
-                        </FlowDocument>
-                    </RichTextBox>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Enviroment Check" TabIndex="60" IsEnabled="False">
-                <Grid>
-                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
-                    <Button x:Name="btnPerfLoad" Content="Load" HorizontalAlignment="Left" Margin="180.056,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnPerfCheck" Content="Check" HorizontalAlignment="Left" Margin="250.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="320.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="390.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfCreate" Content="Create" HorizontalAlignment="Left" Margin="460.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfDelete" Content="Delete" HorizontalAlignment="Left" Margin="530.056,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="592,57.275,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="150"/>
-                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="671.212,62.379,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="601.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="671.212,87.62,0,0" VerticalAlignment="Top" Width="65"/>
-                    <DataGrid x:Name="dgSrvCheck" HorizontalAlignment="Left" Height="50.58" Margin="20,57,0,0" VerticalAlignment="Top" Width="567" AutoGenerateColumns="False" >
-                        <DataGrid.CellStyle>
-                            <Style TargetType="DataGridCell">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AOS, UpdateSourceTrigger=PropertyChanged}" Value="Ok">
-                                        <Setter Property="Background" Value="Green"></Setter>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding AOS, UpdateSourceTrigger=PropertyChanged}" Value="Stopped">
-                                        <Setter Property="Background" Value="Red"></Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.CellStyle>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding SERVERNAME}" Header="Server" Width="Auto" CanUserResize="True" IsReadOnly="True"/>
-                            <DataGridTextColumn Binding="{Binding AOS}" Header="AOS" Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding PERFMON}" Header="Perfmon" Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding CPU}" Header="CPU" Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding TOTMEM}" Header="Tot. Mem." Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding MEMORY}" Header="Aval. Mem." Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding USERS}" Header="AX Users" Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            <DataGridTextColumn Binding="{Binding BLOCKING}" Header="Blocking" Width="Auto" CanUserResize="True" IsReadOnly="True" />
-                            
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="100" Margin="20,112.58,0,0" VerticalAlignment="Top" Width="567">
-                        <ListView.GroupStyle>
-                            <GroupStyle>
-                                <GroupStyle.HeaderTemplate>
-                                    <DataTemplate>
-                                        <TextBlock FontSize="15" FontWeight="Bold" Text="{Binding SERVERTYPE}" />
-                                    </DataTemplate>
-                                </GroupStyle.HeaderTemplate>
-                            </GroupStyle>
-                        </ListView.GroupStyle>
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Server" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="Cpu%" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="Memory%" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="Users" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="AOS Serv." DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                                <GridViewColumn Header="Blocking" DisplayMemberBinding ="{Binding Environment}" Width="Auto"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
                 </Grid>
             </TabItem>
             <TabItem Header="Settings" TabIndex="70">
@@ -501,12 +492,13 @@ function Get-TasksClear
 
 function Get-TabItemClear
 {
-    switch($WpftabControl.SelectedIndex) {
-        '0' {
+    switch($WpftabControl.SelectedItem.Header) {
+        'Environments' {
             Get-EnvironmentsDB
             $WpfcbxEnvEnvironment.IsEditable = $false
             $WpfbtnEnvEdit.IsEnabled = $false
             $WpfbtnEnvDelete.IsEnabled = $false
+            $WpfbtnEnvNew.IsEnabled = $true
             $WpfbtnEnvSave.IsEnabled = $false
             $WpfbtnEnvtestSQL.IsEnabled = $false
             $WpfbtnEnvReports.IsEnabled = $false
@@ -532,18 +524,20 @@ function Get-TabItemClear
             $WpftxtEnvCPU.Clear()
             $WpftxtEnvBlocking.Clear()
             $WpftxtEnvWaiting.Clear()
-        }        
-        '1' {
+        }
+        'Users' {
             Get-UsersDB
             $WpftxtUsrUsername.Clear()
             $WpfbtnUsrDelete.IsEnabled = $false
             $WpfbtnUsrTest.IsEnabled = $false
+            $WpfbtnUsrNew.IsEnabled = $true
         }
-        '2' {
+        'Emails' {
             Get-EmailsDB
             $WpfcbxEmlID.IsEditable = $false
             $WpfbtnEmlEdit.IsEnabled = $false
             $WpfbtnEmlSave.IsEnabled = $false
+            $WpfbtnEmlNew.IsEnabled = $true
             $WpfbtnEmlDelete.IsEnabled = $false
             $WpfbtnEmlTest.IsEnabled = $false
             $WpfchkEmlSSL.IsChecked = $false
@@ -563,10 +557,11 @@ function Get-TabItemClear
             $WpftxtEmlCC.Clear()
             $WpftxtEmlBCC.Clear()
         }
-        '3' {
+        'Task Scheduler' {
             Get-TasksList
             $WpfbtnTskEdit.IsEnabled = $false
             $WpfbtnTskDelete.IsEnabled = $false
+            $WpfbtnTskNew.IsEnabled = $true
             $WpfbtnTskSave.IsEnabled = $false
             $WpfbtnTskDisable.IsEnabled = $false
             $WpfbtnTskEnable.IsEnabled = $false
@@ -576,16 +571,10 @@ function Get-TabItemClear
             $WpftxtTskTime.Clear()
             $WpfcbxTskUserID.SelectedItem = $null
         }
-        '4' {
-
-        }
-        '5' {
-
-        }
-        '6' {
+        'Settings' {
             Get-SettingsXML
         }
-        '7' {
+        'Database' {
             $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
             if($Srv.Databases | Where { $_.Name -eq $WpftxtDBName.Text }) {
                 $WpftabControl.Items[0].IsEnabled = $true
@@ -663,10 +652,23 @@ function Get-DisableAll
 
 function Validate-User
 {
-    $Query = "SELECT UserName FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
+    $Query = "SELECT ID FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $UserExists = $Cmd.ExecuteScalar()
     if([string]::IsNullOrEmpty($UserExists)) {
+        return $false
+    }
+    else {
+        return $UserExists
+    }
+}
+
+function Validate-UserId
+{
+    $Query = "SELECT Id FROM [dbo].[AXTools_UserAccount] WHERE [Id] = '$Id'"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $IdExists = $Cmd.ExecuteScalar()
+    if([string]::IsNullOrEmpty($IdExists)) {
         return $false
     }
     else {
@@ -676,8 +678,21 @@ function Validate-User
 
 function Delete-User
 {
+param (
+    [string]$UserName
+)
     $Conn = Get-ConnectionString
     $Query = "DELETE FROM [dbo].[AXTools_UserAccount] WHERE [USERNAME] = '$UserName'"
+    $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
+    $Cmd.ExecuteNonQuery() | Out-Null
+    $Conn.Close()
+}
+
+function Update-User
+{
+    $SecureStringAsPlainText = Write-EncryptedString -InputString $Credential.GetNetworkCredential().Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
+    $Conn = Get-ConnectionString
+    $Query = "UPDATE [dbo].[AXTools_UserAccount] SET [PASSWORD] = '$SecureStringAsPlainText' WHERE [USERNAME] = '$UserName'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
     $Conn.Close()
@@ -736,14 +751,13 @@ param (
 function Insert-User
 {
     $SecureStringAsPlainText = Write-EncryptedString -InputString $Credential.GetNetworkCredential().Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
-    $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD])
-                VALUES ('$ID','$UserName','$SecureStringAsPlainText')"
+    $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD]) VALUES ('$Id','$UserName','$SecureStringAsPlainText')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
     if(![string]::IsNullOrEmpty($RunAs)) {
         [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
-        $ConfigFile.Settings.Database.UserName = $UserName
-        $ConfigFile.Settings.Database.Password = $SecureStringAsPlainText.ToString()
+        if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value = "$UserName" }
+        if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value = "$($SecureStringAsPlainText.ToString())" }
         $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
     }
 }
@@ -753,7 +767,7 @@ function Get-TasksInterval
 param(
     $Interval
 )
-    if( $Interval -match 'PT(\d+)(.*)$' )
+    if($Interval -match 'PT(\d+)(.*)$')
     {
         $modifier = $Matches[1]
         $unit = $Matches[2]
@@ -841,9 +855,11 @@ param(
     $Domain = New-Object System.DirectoryServices.DirectoryEntry($Root,$Credential.UserName,$UserPassword)
     if ($Domain.Name -eq $null) {
         $WpflblWarning.Text = "$($Credential.UserName) - Authentication failed."
+        return $false
     }
     else {
         $WpflblWarning.Text = "$($Credential.UserName) - Successfully authenticated."
+        return $true
     }
 }
 
@@ -960,6 +976,7 @@ $WpfcbxTskTaskName.Add_SelectionChanged({
 
 $WpfbtnEnvNew.Add_Click({
     $WpfcbxEnvEnvironment.IsEditable = $true
+    $WpfbtnEnvNew.IsEnabled = $false
     $WpfbtnEnvSave.IsEnabled = $true
     $WpfbtnEnvtestSQL.IsEnabled = $false
     $WpfchkEnvRefresh.IsChecked = $false
@@ -992,6 +1009,7 @@ $WpfbtnEnvNew.Add_Click({
 })
 
 $WpfbtnUsrNew.Add_Click({
+    $WpfbtnUsrNew.IsEnabled = $false
     $WpfcbxUsrID.SelectedIndex = -1
     $WpftxtUsrUsername.Clear()
     [System.Management.Automation.Credential()]$Credential = [System.Management.Automation.PSCredential]::Empty
@@ -999,18 +1017,22 @@ $WpfbtnUsrNew.Add_Click({
     if($Credential.UserName -ne $null) {
         $Conn = Get-ConnectionString
         $BSTRBC = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password)
-        $Root = "LDAP://" + ([ADSI]"").distinguishedName
+        $Root = "LDAP://" + ([ADSI]"").DistinguishedName
         $Domain = New-Object System.DirectoryServices.DirectoryEntry($Root,$Credential.UserName,[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTRBC))
         if ($Domain.Name -eq $null) {
             $WpflblWarning.Text = "This is not a domain account."
-            $ID = "$($Credential.UserName.Split('@')[0].toUpper())"
+            $Id = "$($Credential.UserName.Split('@')[0].toUpper())"
             $UserName = "$($Credential.UserName)"
             if(Validate-User) {
-                Delete-User
-                Insert-User
+                #Delete-User
+                #Insert-User
+                Update-User
                 $WpflblWarning.Text = "Username already exists. Updating current credentials."
             }
             else {
+                if(Validate-UserId) {
+                    $Id = "$Id`_$(Get-Random -Minimum 1000 -Maximum 9999 -SetSeed ((Get-Date).Millisecond % $(Get-Random)))"
+                }
                 Insert-User
                 $WpflblWarning.Text = "Completed."
             }
@@ -1020,13 +1042,17 @@ $WpfbtnUsrNew.Add_Click({
             $ID = "$($Credential.UserName.Split('\')[1].ToUpper())"
             $UserName = $Credential.UserName.ToUpper()
             if(Validate-User) {
-                Delete-User
-                Insert-User
+                #Delete-User
+                #Insert-User
+                Update-User
                 $WpflblWarning.Text = "Username already exists. Updating current credentials."
             }
             else {
+                if(Validate-UserId) {
+                    $Id = "$Id`_$(Get-Random -Minimum 1000 -Maximum 9999 -SetSeed ((Get-Date).Millisecond % $(Get-Random)))"
+                }
                 Insert-User
-                
+                $WpflblWarning.Text = "Completed."
             }
         }
         Get-UsersDB
@@ -1036,10 +1062,12 @@ $WpfbtnUsrNew.Add_Click({
         Get-TabItemClear
         $WpflblWarning.Text = "Canceled." 
     }
+    $WpfbtnUsrNew.IsEnabled = $true
 })
 
 $WpfbtnEmlNew.Add_Click({
-    $WpfbtnEmlSave.IsEnabled = $True
+    $WpfbtnEmlNew.IsEnabled = $false
+    $WpfbtnEmlSave.IsEnabled = $true
     $WpfcbxEmlID.SelectedIndex = -1
     $WpfcbxEmlID.IsEditable = $True
     $WpftxtEmlCC.Clear()
@@ -1064,6 +1092,7 @@ $WpfbtnEmlNew.Add_Click({
 })
 
 $WpfbtnTskNew.Add_Click({
+    $WpfbtnTskNew.IsEnabled = $false
     $WpfcbxTskEnvironment.SelectedIndex = -1
     $WpfcbxTskTaskName.SelectedIndex = -1
     $WpflstCurrJobs.SelectedIndex = -1
@@ -1079,6 +1108,7 @@ $WpfbtnTskNew.Add_Click({
 
 $WpfbtnEnvEdit.Add_Click({
     if($WpfcbxEnvEnvironment.SelectedIndex -ne -1) {
+        $WpfbtnEnvNew.IsEnabled = $false
         $WpfbtnEnvSave.IsEnabled = $true
         $WpfchkEnvRefresh.IsEnabled = $false
         $WpfchkEnvGRD.IsEnabled = $true
@@ -1100,6 +1130,7 @@ $WpfbtnEnvEdit.Add_Click({
 
 $WpfbtnEmlEdit.Add_Click({
     if($WpfcbxEmlID.SelectedIndex -ne -1) {
+        $WpfbtnEmlNew.IsEnabled = $false
         $WpfbtnEmlSave.IsEnabled = $True
         $WpftxtEmlBCC.IsEnabled = $True
         $WpftxtEmlCC.IsEnabled = $True
@@ -1118,6 +1149,7 @@ $WpfbtnEmlEdit.Add_Click({
 })
 
 $WpfbtnTskEdit.Add_Click({
+    $WpfbtnTskNew.IsEnabled = $false
     $WpfbtnTskSave.IsEnabled = $true
     $WpfcbxTskEnvironment.SelectedItem = $WpfcbxTskEnvironment.Items | Where { $_.Environment -eq $WpflstCurrJobs.SelectedItem.Environment }
     $WpfcbxTskTaskName.SelectedItem = $WpfcbxTskTaskName.Items | Where { $_.Value -eq $WpflstCurrJobs.SelectedItem.Name }
@@ -1132,7 +1164,7 @@ $WpfbtnTskEdit.Add_Click({
 #===========================================================================
 
 $WpfbtnEnvSave.Add_Click({
-    if($WpfcbxEnvEnvironment.SelectedIndex -eq -1) {
+    if($WpfcbxEnvEnvironment.SelectedIndex -eq -1 -and $WpfcbxEnvEnvironment.Text -notlike '') {
         $Conn = Get-ConnectionString
         $Query = "INSERT INTO [dbo].[AXTools_Environments] ([ENVIRONMENT],[DESCRIPTION],[DBSERVER],[DBNAME],[DBUSER],[CPUTHOLD],[BLOCKTHOLD],[WAITINGTHOLD],[RUNGRD],[RUNSTATS],[EMAILPROFILE],[LOCALADMINUSER])
                   VALUES ('$($WpfcbxEnvEnvironment.Text)','$($WpftxtEnvEnvironment.Text)','$($WpftxtEnvDBServer.Text)','$($WpftxtEnvDBName.Text)','$($WpfcbxEnvDBUser.Text)','$($WpftxtEnvCPU.Text)','$($WpftxtEnvBlocking.Text)','$($WpftxtEnvWaiting.Text)','$(if($WpfchkEnvGRD.IsChecked){'1'} else{'0'})','$($WpfcbxEnvDBStats.SelectedItem.Name)','$($WpfcbxEnvEmail.Text)','$($WpfcbxEnvLocalUser.Text)')"
@@ -1151,7 +1183,7 @@ $WpfbtnEnvSave.Add_Click({
         Get-TabItemClear
         $WpfcbxEnvEnvironment.SelectedIndex = ($WpfcbxEnvEnvironment.Items.Count - 1)
     }
-    else {
+    elseif($WpfcbxEnvEnvironment.Text -notlike '') {
         $Original = New-Object PSObject
         $Original | Add-Member NoteProperty 'ENVIRONMENT' $WpfcbxEnvEnvironment.SelectedItem.ENVIRONMENT
         $Original | Add-Member NoteProperty 'DESCRIPTION' $WpfcbxEnvEnvironment.SelectedItem.DESCRIPTION
@@ -1206,6 +1238,11 @@ $WpfbtnEnvSave.Add_Click({
         }
         $Conn.Close()
         $WpfbtnEnvSave.IsEnabled = $false
+        $WpfbtnEnvNew.IsEnabled = $true
+    }
+    else {
+        $WpflblWarning.Text = "Environment name cannot be blank."
+        Get-TabItemClear
     }
 })
 
@@ -1270,6 +1307,7 @@ $WpfbtnEmlSave.Add_Click({
         }
         $Conn.Close()
         $WpfbtnEmlSave.IsEnabled = $false
+        $WpfbtnEmlNew.IsEnabled = $true
     }
 })
 
@@ -1292,111 +1330,116 @@ $WpfbtnTskSave.Add_Click({
         else {
             $Credential = Get-UserCredentials -Account $WpfcbxTskUserID.SelectedItem.Id
         }
-        Check-UserPassword $Credential
-        Switch($WpfcbxTskTaskName.Text) {
-            'AX Monitor' {
-                $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
-                $TaskRunAsUser = $Credential.UserName
-                $TaskRunAsPassword = $Credential.GetNetworkCredential().Password             
-                $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$ScriptDir\AX-Monitor\AX-SQLMonitor.ps1"
-                $ScriptParameters = $WpfcbxTskEnvironment.Text
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
-                if([System.Environment]::OSVersion.Version.Major -ge 10) {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
-                    $Trigger.ExecutionTimeLimit = 'PT0S'
+        if(Check-UserPassword $Credential) {
+            Switch($WpfcbxTskTaskName.Text) {
+                'AX Monitor' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password             
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Monitor\AX-SQLMonitor.ps1"""
+                    $ScriptParameters = """$($WpfcbxTskEnvironment.Text)"""
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    if([System.Environment]::OSVersion.Version.Major -ge 10) {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
+                        $Trigger.ExecutionTimeLimit = 'PT0S'
+                    }
+                    else {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                    }
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
                 }
-                else {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                'AX Report' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password              
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Report\AX-ReportManager.ps1"""
+                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text)"""
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
                 }
-                $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
-                $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
-                $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
-                Get-TasksFolder
-                Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
-                Get-TabItemClear
-            }
-            'AX Report' {
-                $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
-                $TaskRunAsUser = $Credential.UserName
-                $TaskRunAsPassword = $Credential.GetNetworkCredential().Password              
-                $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
-                $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text)"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
-                $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
-                $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
-                $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
-                $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
-                Get-TasksFolder
-                Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
-                Get-TabItemClear
-            }
-            'Recycle Perfmon' {
-                $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
-                $TaskRunAsUser = $Credential.UserName
-                $TaskRunAsPassword = $Credential.GetNetworkCredential().Password       
-                $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$ScriptDir\AX-Report\AX-ReportManager.ps1"
-                $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -RecycleBlg"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
-                $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
-                $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
-                $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
-                $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
-                Get-TasksFolder
-                Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
-                Get-TabItemClear
-            }
-            'Check AOS' {
-                $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
-                $TaskRunAsUser = $Credential.UserName
-                $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
-                $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$ScriptDir\AX-Tools\AX-AOSCheck.ps1"
-                $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
-                if([System.Environment]::OSVersion.Version.Major -ge 10) {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
-                    $Trigger.ExecutionTimeLimit = 'PT0S'
+                'Recycle Perfmon' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password       
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Report\AX-ReportManager.ps1"""
+                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -RecycleBlg"""
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
                 }
-                else {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                'Check AOS' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Tools\AX-AOSCheck.ps1"""
+                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -Start"""
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    if([System.Environment]::OSVersion.Version.Major -ge 10) {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
+                        $Trigger.ExecutionTimeLimit = 'PT0S'
+                    }
+                    else {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                    }
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
                 }
-                $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
-                $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
-                $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
-                Get-TasksFolder
-                Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
-                Get-TabItemClear
-            }
-            'Check Perfmon' {
-                $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
-                $TaskRunAsUser = $Credential.UserName
-                $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
-                $PowershellFilePath = 'Powershell.exe'
-                $ScriptFilePath = "$ScriptDir\AX-Tools\AX-PerfmonCheck.ps1"
-                $ScriptParameters = "-Environment $($WpfcbxTskEnvironment.Text) -Start"
-                $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument " $ScriptFilePath $ScriptParameters"
-                if([System.Environment]::OSVersion.Version.Major -ge 10) {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
-                    $Trigger.ExecutionTimeLimit = 'PT0S'
+                'Check Perfmon' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Tools\AX-PerfmonCheck.ps1"""
+                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -Start"""
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    if([System.Environment]::OSVersion.Version.Major -ge 10) {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
+                        $Trigger.ExecutionTimeLimit = 'PT0S'
+                    }
+                    else {
+                        $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                    }
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
                 }
-                else {
-                    $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -RepetitionDuration $([System.TimeSpan]::MaxValue)
+                Default {
+                    $WpflblWarning.Text = "Incorrect Task Name $($WpfcbxTskTaskName.Text)"
                 }
-                $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Minute $($WpftxtTskInterval.Text)) -MultipleInstances Parallel
-                $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
-                $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
-                Get-TasksFolder
-                Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
-                Get-TabItemClear
-            }
-            Default {
-                $WpflblWarning.Text = "Incorrect Task Name $($WpfcbxTskTaskName.Text)"
             }
         }
+        else {
+            Get-TabItemClear
+        }
     }
+    $WpfbtnTskNew.IsEnabled = $true
 })
 
 $WpfbtnSetSave.Add_Click({
@@ -1732,20 +1775,6 @@ $WpfcbxServEnvironment.Add_SelectionChanged({
     }
 })
 
-$WpfcbxSrvChkEnvironment.Add_SelectionChanged({
-    if($WpfcbxSrvChkEnvironment.SelectedIndex -ne -1) {
-        $SqlConn = Get-ConnectionString
-	    $SqlQuery = "SELECT ENVIRONMENT, SERVERNAME, SERVERTYPE, ACTIVE, IP, '' as AOS, '' as PERFMON FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)' AND ACTIVE = 1"
-	    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
-	    $Script:Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
-	    $Script:Adapter.SelectCommand = $SqlCommand
-	    $Script:Servers = New-Object System.Data.DataSet
-	    $Script:Adapter.Fill($Script:Servers) | Out-Null
-        $SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
-        $WpflstChkSrv.ItemsSource = $Script:Servers.Tables[0].DefaultView
-    }
-})
-
 $WpfdgServers.add_LoadingRow({
     if($WpfdgServers.Items.IsAddingNew) {
         $WpfdgServers.Items.CurrentItem.ACTIVE = $false
@@ -1783,33 +1812,469 @@ $WpfbtnSave.Add_Click({
     }
 })
 
-$WpfbtnServCheck.Add_Click({
-    if($WpfdgSrvCheck.ItemsSource.Count -ge 1) {
-        foreach($Srv in $WpfdgSrvCheck.ItemsSource) {
-            if($Srv.ACTIVE -eq 1 -and $Srv.SERVERTYPE -like 'AOS') {
-                $WpfdgSrvCheck.SelectedItem = $WpfdgSrvCheck.ItemsSource | Where { $_.SERVERNAME -eq $Srv.SERVERNAME }
-                $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.SERVERNAME -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } # -and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
-                if([string]::IsNullOrEmpty($Service)) {
-                    $WpfdgSrvCheck.SelectedItem.AOS = "Error"
-                }
-                else {
-                    $WpfdgSrvCheck.SelectedItem.AOS = $Service.State
-                }
-            }
-        }
+$WpfcbxSrvChkEnvironment.Add_SelectionChanged({
+    $WpfbtnServStart.IsEnabled = $false
+    $WpfbtnServStop.IsEnabled = $false
+    $WpfbtnPerfStart.IsEnabled = $false
+    $WpfbtnPerfStop.IsEnabled = $false
+    if($WpfcbxSrvChkEnvironment.SelectedIndex -ne -1) {
+        $SqlConn = Get-ConnectionString
+	    $SqlQuery = "SELECT Environment, ServerName, ServerType, Active, Ip, '' as AOS, '' as Perfmon, '' as CPU, '' as Memory, '' as Paging, '' as Users, '' as Blocking, '' as CacheHRat, '' as PageLifeExp FROM [AXTools_Servers] WHERE [Environment] = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)' AND ACTIVE = 1"
+	    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+	    $Script:Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+	    $Script:Adapter.SelectCommand = $SqlCommand
+	    $Script:Servers = New-Object System.Data.DataSet
+	    $Script:Adapter.Fill($Script:Servers) | Out-Null
+        #$SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
+        $WpflstChkSrv.ItemsSource = $Script:Servers.Tables[0].DefaultView
     }
 })
+
+$WpfbtnServCheck.Add_Click({Get-EnvCheck})
+
+function Get-EnvCheck
+{
+    if($WpflstChkSrv.ItemsSource.Count -ge 1) {
+        $DataCollectorName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+        foreach($Srv in $WpflstChkSrv.ItemsSource | Where {$_.Active -eq 1}) {
+            $WpflstChkSrv.SelectedItem = $WpflstChkSrv.ItemsSource | Where { $_.ServerName -eq $Srv.ServerName }
+            switch($Srv.ServerType) {
+                'AOS' {
+                    if($WpfcheckAOS.IsChecked) {
+                        $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } #-and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
+                        if([string]::IsNullOrEmpty($Service)) {
+                            $WpflstChkSrv.SelectedItem.AOS = "Error"
+                        }
+                        else {
+                            $WpflstChkSrv.SelectedItem.AOS = $Service.State
+                        }
+                        $WpflstChkSrv.SelectedItem.Blocking = '-'
+                        $WpflstChkSrv.SelectedItem.CacheHRat = '-'
+                        $WpflstChkSrv.SelectedItem.PageLifeExp = '-'
+                    }
+                }
+                'SQL' {
+                    if($WpfcheckSQL.IsChecked) {
+                        $Conn = Get-ConnectionString
+                        $Query = "SELECT * FROM AXTools_Environments                
+                                    WHERE ENVIRONMENT = 'UAT'"
+                        $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Conn)
+                        $Table = New-Object System.Data.DataSet
+                        $Adapter.Fill($Table) | Out-Null
+
+                        if(![String]::IsNullOrEmpty($Table.Tables.DBUser)) {
+                            $SqlCredential = Get-UserCredentials $($Table.Tables.DBUser)
+                            $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+                            $SqlConn.ServerInstance = $Table.Tables.DBServer
+                            $SqlConn.DatabaseName = $Table.Tables.DBName
+                            $SqlConn.ApplicationName = 'Ax Powershell Tools (SQL)'
+                            $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+                            $SqlServer.ConnectionContext.ConnectAsUser = $true
+                            $SqlServer.ConnectionContext.ConnectAsUserPassword = $SqlCredential.GetNetworkCredential().Password
+                            $SqlServer.ConnectionContext.ConnectAsUserName = $SqlCredential.GetNetworkCredential().UserName
+                            $SqlServer.ConnectionContext.Connect()
+                        }
+                        else {
+                            $SqlConn = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+                            $SqlConn.ServerInstance = $Table.Tables.DBServer
+                            $SqlConn.DatabaseName = $Table.Tables.DBName
+                            $SqlConn.ApplicationName = 'Ax Powershell Tools (SQL)'
+                            $SqlServer = New-Object Microsoft.SqlServer.Management.SMO.Server($SqlConn)
+                            $SqlServer.ConnectionContext.Connect()
+                        }
+                        $SQLBlocking = $SqlServer.EnumProcesses() | Where { $_.Spid -ge 50 -and $_.BlockingSpid -ne 0 }
+                        $WpflstChkSrv.SelectedItem.Blocking = $SQLBlocking.Count
+                    
+                        $MachineNetBios = ($SqlServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value
+                        if($SqlServer.IsClustered) {
+                            $InstanceName = $Table.Tables.DBServer.Split('\')[1]
+                        }
+                        else {
+                            $InstanceName = $Table.Tables.DBServer.Split('\')[0]
+                        }
+                        $Counters = "\MSSQL`$$InstanceName`:Buffer Manager\Buffer cache hit ratio", "\MSSQL`$$InstanceName`:Buffer Manager\Page life expectancy", "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Waits/sec", "\MSSQL`$$InstanceName`:Locks(_Total)\Lock Wait Time (ms)", "\MSSQL`$$InstanceName`:Locks(_Total)\Number of Deadlocks/sec",
+                                                            '\SQLServer:Buffer Manager\Buffer cache hit ratio', '\SQLServer:Buffer Manager\Page life expectancy', '\SQLServer:Buffer Manager\Lock Waits/sec', '\SQLServer:Buffer Manager\Lock Wait Time (ms)', '\SQLServer:Buffer Manager\Number of Deadlocks/sec'
+                        $Perfmon = @()
+                        foreach($Counter in $Counters)
+                        {
+                            $Perfmon += (Get-Counter -Counter $Counter -ComputerName $MachineNetBios -SampleInterval 1 -ErrorAction SilentlyContinue).CounterSamples | Select Path, @{n='Value';e={[Math]::Round(($_.CookedValue),2)}}, Timestamp 
+                        }
+                        $WpflstChkSrv.SelectedItem.CacheHRat = ($Perfmon | Where { $_.Path -like '*Buffer Manager\Buffer cache hit ratio' }).Value
+                        $WpflstChkSrv.SelectedItem.PageLifeExp = ($Perfmon | Where { $_.Path -like '*Buffer Manager\Page life expectancy' }).Value
+                        $WpflstChkSrv.SelectedItem.AOS = '-'
+                    }
+                }
+                Default {
+                    $WpflstChkSrv.SelectedItem.AOS = '-'
+                    $WpflstChkSrv.SelectedItem.Blocking = '-'
+                    $WpflstChkSrv.SelectedItem.CacheHRat = '-'
+                    $WpflstChkSrv.SelectedItem.PageLifeExp = '-'
+                }
+            }
+            if($WpfcheckServer.IsChecked) {
+                $Counters = '\Memory\Available MBytes', '\Processor(_total)\% Processor Time', '\Paging File(_Total)\% Usage', 'Microsoft Dynamics AX Object Server(*)\ACTIVE SESSIONS' #, '\LogicalDisk(*)\Free Megabytes'
+                $Perfmon = @()
+                foreach($Counter in $Counters)
+                {
+                    $Perfmon += (Get-Counter -Counter $Counter -ComputerName $Srv.ServerName -SampleInterval 1 -ErrorAction SilentlyContinue).CounterSamples | Select Path, @{n='Value';e={[Math]::Round(($_.CookedValue),2)}}, Timestamp 
+                }
+                $TotalMemory = Get-WmiObject -ClassName "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $Srv.ServerName | Measure-Object -Property TotalPhysicalMemory -Sum | Select Property, Count, Sum 
+                $WpflstChkSrv.SelectedItem.CPU = [String]($Perfmon | Where {$_.Path -like '*processor(_total)\% processor time'}).Value
+                $WpflstChkSrv.SelectedItem.Paging = [String]($Perfmon | Where {$_.Path -like '*paging file(_total)\% usage'}).Value
+                $AxUsers = if([String]($Perfmon | Where {$_.Path -like '*microsoft dynamics ax object server(*)\active sessions'}).Value -gt 0) { [String]($Perfmon | Where {$_.Path -like '*microsoft dynamics ax object server(*)\active sessions'}).Value } else { '0' }
+                $WpflstChkSrv.SelectedItem.Users = $AxUsers
+                $WpflstChkSrv.SelectedItem.Memory = [Math]::Round((($Perfmon | Where {$_.Path -like '*Memory\available mbytes'}).Value) / ([Math]::Round($TotalMemory.Sum/1Mb)) * 100,2)
+            }
+            if($WpfcheckPerfmon.IsChecked) {
+                Invoke-Command -ComputerName $Srv.ServerName -ArgumentList $DataCollectorName, $Srv.ServerName -ScriptBlock {
+                    Param($DataCollectorName, $ServerName)
+                    try {
+                        $DataCollectorSet = New-Object -COM Pla.DataCollectorSet
+                        $DataCollectorSet.Query("$DataCollectorName", $ServerName)
+                        if($DataCollectorSet.Status -eq 0) {
+                            $PerfStatus = "Stopped"
+                        }
+                        else {
+                            $PerfStatus = "Running"
+                        }
+                    }
+                    catch {
+                        $PerfStatus = "NA"
+                    }
+                    return $PerfStatus
+                } -OutVariable PerfStatus
+                $WpflstChkSrv.SelectedItem.Perfmon = [String]$PerfStatus
+            }
+        }
+        $WpfbtnServStart.IsEnabled = $true
+        $WpfbtnServStop.IsEnabled = $true
+        $WpfbtnPerfStart.IsEnabled = $true
+        $WpfbtnPerfStop.IsEnabled = $true
+        $WpflblWarning.Text = "Last Check: $(Get-Date -Format g)"
+    }
+}
 
 $WpfbtnServStart.Add_Click({
-    if($WpfdgServers.SelectedItems -notlike '{NewItemPlaceholder}' -and $WpfdgServers.SelectedItems.Count -ge 1) {
-        foreach($AOS in $WpfdgServers.SelectedItems) {
-            if($AOS.SERVERTYPE -like 'AOS') {
-                Get-AOSManager $AOS.SERVERNAME -Start
+    if($WpflstChkSrv.SelectedItems.Count -ge 1) { #$WpflstChkSrv.SelectedItems -notlike '{NewItemPlaceholder}'
+        foreach($AOS in $WpflstChkSrv.SelectedItems) {
+            if($AOS.ServerType -like 'AOS' -and $AOS.AOS -like 'Stopped') {
+                Get-AOSManager $AOS.ServerName -Start
+                $ReCheck = $true
+            }
+            else {
+                $WpflblWarning.Text = "$($AOS.ServerName) not in Stopped state."
+                $ReCheck = $false
             }
         }
 
     }
+    if($ReCheck) { Get-EnvCheck }
 })
+
+$WpfbtnServStop.Add_Click({
+    if($WpflstChkSrv.SelectedItems.Count -ge 1) { #$WpflstChkSrv.SelectedItems -notlike '{NewItemPlaceholder}'
+        foreach($AOS in $WpflstChkSrv.SelectedItems) {
+            if($AOS.ServerType -like 'AOS' -and $AOS.AOS -like 'Running') {
+                Get-AOSManager $AOS.ServerName -Stop
+                $ReCheck = $true
+            }
+            else {
+                $WpflblWarning.Text = "$($AOS.ServerName) not in Running state."
+                $ReCheck = $false
+            }
+        }
+
+    }
+    if($ReCheck) { Get-EnvCheck }
+})
+
+$WpfbtnPerfStart.Add_Click({
+    if($WpflstChkSrv.SelectedItems.Count -ge 1) {
+        foreach($PerfSrv in $WpflstChkSrv.SelectedItems) {
+        Get-PerfManager $PerfSrv.ServerName -Start
+        $ReCheck = $true
+        }
+    }
+    else {
+        $ReCheck = $false
+    }
+    if($ReCheck) { Get-EnvCheck }
+})
+
+$WpfbtnPerfStop.Add_Click({
+    if($WpflstChkSrv.SelectedItems.Count -ge 1) {
+        foreach($PerfSrv in $WpflstChkSrv.SelectedItems) {
+        Get-PerfManager $PerfSrv.ServerName -Stop
+        $ReCheck = $true
+        }
+    }
+    else {
+        $ReCheck = $false
+    }
+    if($ReCheck) { Get-EnvCheck }
+})
+
+$WpfbtnLoadXml.Add_Click({
+    $WpflblWarning.Text = ''
+    $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+    $OpenFileDialog.initialDirectory = $Dir
+    $OpenFileDialog.filter = "XML Files (*.xml) | *.xml"
+    $OpenFileDialog.ShowDialog() | Out-Null
+    $OpenFileDialog.ShowHelp = $true
+    try {
+        [xml]$XmlParse = Get-Content $OpenFileDialog.Filename
+        $WpftxtFilePath.Text = $OpenFileDialog.Filename
+        $WpfbtnSaveXml.IsEnabled = $true
+    }
+    catch {
+        $WpflblWarning.Text = 'Failed to parse XML file.'
+    }
+})
+
+$WpfbtnSaveXml.Add_Click({
+    if($WpfcbxSrvType.SelectedIndex -ne -1) {
+        $SqlQuery = "SELECT COUNT(1) as CNT FROM [AXTools_PerfmonTemplates] WHERE [ACTIVE] = 1 AND [SERVERTYPE] = '$($WpfcbxSrvType.Text)'"
+        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$(Get-ConnectionString))
+        $ActiveTemplate = $SqlCommand.ExecuteScalar()
+        if($ActiveTemplate -ge 1) {
+            $SqlQuery = "UPDATE [AXTools_PerfmonTemplates] SET [ACTIVE] = 0 WHERE [ACTIVE] = 1 AND [SERVERTYPE] = '$($WpfcbxSrvType.Text)'"
+            $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$(Get-ConnectionString))
+            try {
+                $SqlCommand.ExecuteNonQuery() | Out-Null
+            }
+            catch {
+                $WpflblWarning.Text = "Error updating active template before importing new one. Check the database. $($_.Exception.Message)"
+                break
+            }
+        }
+
+$query = @"
+DECLARE @PerfmonXML xml
+SELECT @PerfmonXML = BulkColumn
+FROM  OPENROWSET(BULK '$($WpftxtFilePath.Text)', SINGLE_BLOB) AS TEMPLATEXML;
+INSERT INTO AXTools_PerfmonTemplates ([SERVERTYPE],[ACTIVE],[TEMPLATEXML]) VALUES ('$($WpfcbxSrvType.Text)','1',@PerfmonXML)
+"@
+        try {
+            Invoke-Sqlcmd -ServerInstance ((Import-ConfigFile).DBServer) -Database ((Import-ConfigFile).DBName) -Query $query
+        }
+        catch {
+            $WpflblWarning.Text = "Error saving template to the database. $($_.Exception.Message)"
+        }
+        $WpfbtnSaveXml.IsEnabled = $false
+        $WpfcbxSrvType.SelectedIndex = -1
+        $WpftxtFilePath.Clear()
+    }
+    else {
+        New-Popup -Title 'Warning' -Message "Choose a server type before saving the template." -Buttons OK -Icon Exclamation
+    }
+})
+
+$WpfbtnPerfDeploy.Add_Click({
+    $PerfmonName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+    $SqlQuery = "SELECT [SERVERTYPE], [ACTIVE],[TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [ACTIVE] = 1"
+    $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$(Get-ConnectionString))
+    $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+    $Adapter.SelectCommand = $SqlCommand
+    $PerfmonXml = New-Object System.Data.DataSet
+    $Adapter.Fill($PerfmonXml) | Out-Null
+    if(($WpfdgServers.SelectedItems | Where { $_.Active -eq 1 -and $_ -NotLike '{NewItemPlaceholder}' } | Measure-Object).Count -ge 1 -and $PerfmonXml.Tables[0].Rows.Count -ge 1) {
+        foreach($Server in ($WpfdgServers.SelectedItems | Where { $_.Active -eq 1 -and $_ -NotLike '{NewItemPlaceholder}' })) {
+            # DataCollectorSet Check and Creation
+            $CollectorObj = New-Object -COM Pla.DataCollectorSet
+            $UpdateNode = $false
+            try {
+                $CollectorObj.Query($PerfmonName,$Server.ServerName)
+                $UpdateNode = $true
+            }
+            catch [System.Management.Automation.MethodInvocationException],[System.Runtime.InteropServices.COMException] {
+                $UpdateNode = $false
+            }
+            catch [System.UnauthorizedAccessException] {
+		        $WpflblWarning.Text = "Access Denied. Trying to enable Windows Firewall rules. $($_.Exception.Message)"
+		        $CIMComputer = New-CimSession -ComputerName $Server.ServerName
+		        Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
+		        Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
+		        Remove-CimSession -ComputerName $Server.ServerName
+                try {
+                    $CollectorObj.Query($PerfmonName,$Server.ServerName)
+                    $UpdateNode = $true
+                }
+                catch [System.Management.Automation.MethodInvocationException],[System.Runtime.InteropServices.COMException] {
+                    $UpdateNode = $false
+                }
+                catch {
+                    $WpflblWarning.Text = "Something went wrong. Coundn't get access to target server. $($_.Exception.Message)"
+                    continue
+                }
+            }
+
+            if($UpdateNode) {
+                if($CollectorObj.Status -ne 0) {
+                    $CollectorObj.Stop($true)
+                }
+                $CollectorObj.DataCollectors.Clear()
+                $CollectorObj.Commit($PerfmonName, $Server.ServerName, 0x0003) | Out-Null
+            }
+            Switch($Server.ServerType) {
+                'SQL' {
+                    $Instances = @()
+                    [array]$Captions = GWmi Win32_Service -ComputerName $Server.ServerName | ?{ $_.Caption -match "SQL Server*" -and $_.PathName -match "sqlservr.exe"} | %{ $_.Caption }
+                    foreach ($Caption in $Captions) {
+                        $Instances += $Caption | %{ $_.split(" ")[-1] } | %{ $_.trimStart("(") } | %{ $_.trimEnd(")") }
+                    }
+                    if($Instances.Count -ge 1) {
+                        $RemoveNode = $true
+                        if($Instances.Contains('MSSQLSERVER')) {
+                            $RemoveNode = $false
+                        }
+                        [xml]$Xml = ($PerfmonXml.Tables[0] | Where { $_.ServerType -like $Server.ServerType }).TemplateXml
+                        if(![string]::IsNullOrEmpty($Xml)) {
+                            $Nodes = $Xml.SelectNodes("./DataCollectorSet/PerformanceCounterDataCollector/Counter")
+                            foreach($Instance in $Instances | Where {$_ -NotLike 'MSSQLSERVER'}) {
+                                foreach($Node in $Nodes | Where { $_.InnerText -like '*\SQLServer:*' }) {
+                                    $NewRow = $Node.Clone()
+                                    $NewRow.InnerText = $NewRow.InnerText.Replace('SQLServer',"MSSQL`$$Instance")
+                                    $Xml.DataCollectorSet.PerformanceCounterDataCollector.AppendChild($NewRow)
+                                    if($RemoveNode) {
+                                        $Xml.DataCollectorSet.PerformanceCounterDataCollector.RemoveChild($Node)
+                                    }
+                                }
+                            }
+                            $CollectorObj.SetXml($Xml.InnerXml)
+                            $CollectorObj.RootPath = "%systemdrive%\PerfLogs\Admin\$PerfmonName"
+                            $CollectorObj.SerialNumber = 1
+                            $CollectorObj.Commit($PerfmonName, $Server.ServerName, 0x0003) | Out-Null
+                            try {
+                                $CollectorObj.Query($PerfmonName,$Server.ServerName)
+                                $CollectorObj.Start($true)
+                            }
+                            catch {
+                                $WpflblWarning.Text = "$($_.Exception.Message)"
+                            }
+                        }
+                        else {
+                            $WpflblWarning.Text = "Couldn't find a Perfmon template for $($Server.ServerType) servers."
+                            break
+                        }
+                    }
+                    else {
+                        $WpflblWarning.Text = "Couldn't find any SQL service on $($Server.ServerName)."
+                        break
+                    }
+                }
+                Default {
+                    $Xml = ($PerfmonXml.Tables[0] | Where { $_.ServerType -like $Server.ServerType }).TemplateXml
+                    if(![string]::IsNullOrEmpty($Xml)) {
+                        $CollectorObj.SetXml($Xml)
+                        $CollectorObj.RootPath = "%systemdrive%\PerfLogs\Admin\$PerfmonName"
+                        $CollectorObj.SerialNumber = 1
+                        $CollectorObj.Commit($PerfmonName, $Server.ServerName, 0x0003) | Out-Null
+                        try {
+                            $CollectorObj.Query($PerfmonName,$Server.ServerName)
+                            $CollectorObj.Start($true)
+                        }
+                        catch {
+                            $WpflblWarning.Text = "$($_.Exception.Message)"
+                        }
+                    }
+                    else {
+                        $WpflblWarning.Text = "Couldn't find a Perfmon template for $($Server.ServerType)."
+                        break
+                    }
+                }
+            }
+        }
+    }
+    else {
+        $WpflblWarning.Text = 'Something went wrong. Select a server to deploy and check active perfmon templates.'
+    }
+})
+
+$WpfbtnPerfDelete.Add_Click({
+    $PerfmonName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+    if(($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' } | Measure-Object).Count -ge 1) {
+        foreach($Server in ($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' })) {
+            try {
+            $CollectorObj = New-Object -COM Pla.DataCollectorSet
+            $CollectorObj.Query($PerfmonName, $Server.ServerName)
+            $CollectorObj.Delete()
+            }
+            catch {
+                $WpflblWarning.Text = "$($_.Exception.Message)"
+            }
+        }
+    }
+    else {
+        $WpflblWarning.Text = 'Something went wrong. Select a server to delete perfmon counters.'
+    }
+})
+
+$WpfbtnCopyFiles.Add_Click({
+    $PerfmonName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+    if(($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' } | Measure-Object).Count -ge 1) {
+        foreach($Server in ($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' })) {
+            try {
+                $SourceServer = "\\$($Server.ServerName)\C$\PerfLogs\Admin\$PerfmonName"
+                $Files = Get-ChildItem -Path $SourceServer #| Sort-Object -Property LastWriteTime -Descending | select -First 1
+                $DestinationPath = "$(($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'BlgArchiveFolder' }).Value)\$($Server.ServerName)"
+                Check-Folder $DestinationPath
+                foreach($File in $Files) {
+                    Start-BitsTransfer -Source $File.FullName -Destination $DestinationPath
+                }
+            }
+            catch {
+                $WpflblWarning.Text = "$($_.Exception.Message)"
+            }
+        }
+    }
+})
+
+$WpfbtnDeleteFolder.Add_Click({
+    $PerfmonName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+    if(($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' } | Measure-Object).Count -ge 1) {
+        foreach($Server in ($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' })) {
+            $CollectorObj = New-Object -COM Pla.DataCollectorSet
+            $CollectorObj.Query($PerfmonName, $Server.ServerName)
+            if($CollectorObj.Status -ne 0) { $CollectorObj.Stop($true) }
+            $SourceServer = "\\$($Server.ServerName)\C$\PerfLogs\Admin\$PerfmonName"
+            try {
+                Remove-Item -Path $SourceServer -Force -Recurse
+            }
+            catch {
+                $WpflblWarning.Text = "$($_.Exception.Message)"
+            }
+        }
+    }
+})
+
+function Get-PerfManager
+{
+param (
+    [string]$ServerName,
+	[switch]$Stop,
+	[switch]$Start
+)
+    $DataCollectorName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+	try {
+		$DataCollectorSet = New-Object -COM Pla.DataCollectorSet
+		$DataCollectorSet.Query($DataCollectorName,$ServerName)
+	}
+	catch {
+        $WpflblWarning.Text = "ERROR: $($_.Exception.Message)"
+        continue
+	}
+    #
+    if($Start) {
+        if($DataCollectorSet.Status -ne 1) {
+            $DataCollectorSet.Start($false)
+        }
+    }
+    if($Stop) {
+        if($DataCollectorSet.Status -ne 0) { 
+            $DataCollectorSet.Stop($false)
+        }
+    }
+}
 
 function Get-AOSManager
 {
@@ -1885,6 +2350,7 @@ param
             $WpflblWarning.Text = "Canceled."
             $WpfcbxEnvEnvironment.IsEditable = $false
             $WpfbtnEnvSave.IsEnabled = $false
+            $WpfbtnEnvNew.IsEnabled = $true
             Get-TabItemClear
             if($WpfcbxEnvEnvironment.SelectedIndex -eq -1) {
                 $WpfbtnEnvtestSQL.IsEnabled = $false
@@ -1912,6 +2378,7 @@ param
             $WpflblWarning.Text = "Canceled."
             $WpfcbxEmlID.IsEditable = $false
             $WpfbtnEmlSave.IsEnabled = $false
+            $WpfbtnEmlNew.IsEnabled = $true
             Get-TabItemClear
             if($WpfcbxEmlID.SelectedIndex -eq -1) {
                 $WpfcbxEmlID.SelectedIndex = -1
@@ -1937,6 +2404,7 @@ param
             $WpfcbxTskTaskName.SelectedIndex = -1
         }
         if($WpfbtnTskSave.IsEnabled -eq $true) {
+            $WpfbtnTskNew.IsEnabled = $true
             $WpfcbxTskEnvironment.SelectedIndex = -1
             $WpfcbxTskTaskName.SelectedIndex = -1
             $WpfbtnTskSave.IsEnabled = $false
@@ -1979,6 +2447,7 @@ $Form.Add_Loaded({
         $WpftxtDBName.IsEnabled = $false
         $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
         $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
+        $WpfcbxSrvType.ItemsSource = @("AOS";"SQL";"IIS";"RDP";"SRS")
     }
     else {
         Get-SettingsXML
@@ -2217,7 +2686,7 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #    [System.GC]::Collect()
 #    exit
 #}
-
+<#
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {   
     $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
@@ -2230,10 +2699,10 @@ else {
     $null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
     $Form.ShowDialog() | Out-Null
 }
-
-#$Form.ShowDialog() | Out-Null
+#>
+$Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
-Stop-Process $Pid
+#Stop-Process $Pid
 
 #$WpftxtEnvCPU | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>

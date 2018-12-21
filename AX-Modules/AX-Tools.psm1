@@ -159,7 +159,7 @@ param (
 )
     [System.Management.Automation.Credential()]$UserCreds = [System.Management.Automation.PSCredential]::Empty
     if($Account) {
-        $Query = "SELECT UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Account)'"
+        $Query = "SELECT TOP 1 UserName, Password FROM [dbo].[AXTools_UserAccount] WHERE [ID] = '$($Account)'"
         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query,$(Get-ConnectionString))
         $UserAcct = New-Object System.Data.DataSet
         $Adapter.Fill($UserAcct) | Out-Null
