@@ -46,7 +46,6 @@ Param (
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.ConnectionInfo") | Out-Null
 
-## Get PS script directory and assign to DIR variable.
 $Scriptpath = $MyInvocation.MyCommand.Path
 $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
@@ -57,24 +56,6 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 $Script:Settings = Import-ConfigFile -ScriptName 'AxMonitor'
 $Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
-
-<#
-$ConfigurationXml = Import-ConfigFile
-$Script:Settings = New-Object -TypeName System.Object
-$Script:Settings | Add-Member -Name Guid -Value (([Guid]::NewGuid()).Guid) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name ReportPath -Value $(if(!$ConfigurationXml.Settings.General.ReportPath) { $Dir + "\Reports\$Environment\AX-Monitor" } else { "$($ConfigurationXml.Settings.General.ReportPath)\$Environment" }) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name LogPath -Value $(if(!$ConfigurationXml.Settings.General.LogPath) { $Dir + "\Logs\$Environment\AX-Monitor" } else { "$($ConfigurationXml.Settings.General.LogPath)\$Environment" }) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name FileDateTime -Value $(Get-Date -f yyyyMMdd-HHmm) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AXMonitor.KeepReports -MemberType NoteProperty
-$Script:Settings | Add-Member -Name Debug -Value $([boolean]::Parse($ConfigurationXml.Settings.AXMonitor.Debug)) -MemberType NoteProperty
-$Script:Settings | Add-Member -Name SendLowRiskEmail -Value $ConfigurationXml.Settings.AXMonitor.SendLowRiskEmail -MemberType NoteProperty
-$Script:Settings | Add-Member -Name StatisticsPercentChange -Value $ConfigurationXml.Settings.AXMonitor.StatisticsPercentChange -MemberType NoteProperty
-$Script:Settings | Add-Member -Name StatisticsCheck -Value $ConfigurationXml.Settings.AXMonitor.StatisticsCheck -MemberType NoteProperty
-$Script:Settings | Add-Member -Name StatisticsUpdate -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdate -MemberType NoteProperty
-$Script:Settings | Add-Member -Name StatisticsUpdateTop -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateTop -MemberType NoteProperty
-$Script:Settings | Add-Member -Name StatisticsUpdateCpuMax -Value $ConfigurationXml.Settings.AXMonitor.StatisticsUpdateCpuMax -MemberType NoteProperty
-#>
-
 
 function Get-SQLMonitoring
 {
@@ -246,11 +227,9 @@ function Get-SQLStatus
     
     $HBlockers = @()
     foreach($Block in $Script:Settings.Blocking) {
-        ## Moving spids to find the headblocker
         $NextSpid = ($Script:Settings.Processes | Where {$_.Spid -eq $($Block.BlockingSpid)}).Spid
         $NextBlocker = ($Script:Settings.Processes | Where {$_.Spid -eq $($Block.BlockingSpid)}).BlockingSpid
         if(($NextBlocker -eq 0) -and ($NextSpid -ge 50)) {
-            #Write-Host "HeadBlocker $NextSpid"
             $HBlockers += $NextSpid
         }
     }
@@ -386,7 +365,7 @@ function Get-GRDStatus
     SQL-BulkInsert AXMonitor_ExecutionLog @($Script:Settings | 
                                             Select @{n='Environment';e={$Environment}}, 
                                             @{n='CPU';e={$_.CPUTotal}}, 
-                                            @{n='Blocking';e={($_.Blocking | Measure-Object).Count}}, #$foo | Measure-Object).Count
+                                            @{n='Blocking';e={($_.Blocking | Measure-Object).Count}},
                                             @{n='Waiting';e={if(!($_.WaitTotal)){0} else{$_.WaitTotal}}}, 
                                             @{n='GRD';e={'0'}},
                                             @{n='GRDTotal';e={'0'}},
@@ -394,7 +373,7 @@ function Get-GRDStatus
                                             @{n='StatsTotal';e={'0'}},
                                             @{n='Email';e={'0'}},
                                             @{n='Report';e={''}},
-                                            @{n='Log';e={"$($Script:Settings.CPUThold) | $($Script:Settings.BlockThold) | $($Script:Settings.WaitingThold) | $($Script:Settings.EnableGRD) | $($Script:Settings.EnableStats)"}},
+                                            @{n='Log';e={"$($Script:Settings.CPUThold) | $($Script:Settings.BlockThold) | $($Script:Settings.WaitingThold)"}}, #| $($Script:Settings.EnableGRD) | $($Script:Settings.EnableStats)"}},
                                             @{n='GUID';e={($_.Guid)}})
     return $GRDRun
 }
@@ -561,11 +540,10 @@ function Get-GRDTables
 
     [Array]$Tables = $SQLText.Sql_Text.Split(' ') | % { (($_.Replace('[','')).Replace(']','')).Trim() } | 
                     Where-Object { 
-                        ($_ -like "INVENT*") -or ($_ -like "SCANWORKX_BLOCKEDQTY") -or
-                        ($_ -like "LOGISTICS*") -or ($_ -like "DIR*") -or ($_ -like "MFIDS*") -or
+                        ($_ -like "INVENT*") -or ($_ -like "SCANWORKX_BLOCKEDQTY") -or ($_ -like "SALES*") -or
+                        ($_ -like "LOGISTICS*") -or ($_ -like "DIR*") -or ($_ -like "ECORESPRODUCT*") -or
                         ($_ -like "CUSTT*") -or ($_ -like "CUSTS*") -or ($_ -like "VEND*") -or 
-                        ($_ -like "RETAIL*") -or ($_ -like "DIMENSIONFOCUS*") -or ($_ -like "ECORESPRODUCT*") -or
-                        ($_ -like "GENERALJOURNAL*") -or ($_ -like "SALES*") -or 
+                        ($_ -like "RETAIL*") -or ($_ -like "DIMENSIONFOCUS*") -or ($_ -like "GENERALJOURNAL*") -or
                         ($_ -match "GETPRODUCTS") -or ($_ -match "CUSTOMERSEARCH") -or ($_ -match "GETPARTYBYADDRESS") -or 
                         ($_ -match "GETPARTYBYCONTACT") -or ($_ -match "GETPARTYBYCUSTOMER") -or ($_ -match "GETPARTYBYLOYALTYCARD")
                     } | Select-Object -Unique
