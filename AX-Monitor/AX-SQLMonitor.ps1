@@ -86,12 +86,12 @@ function Get-SQLMonitoring
     }
     else {
         if(($Script:Settings.EnableStats -gt 0) -and (Get-SQLStatisticsInterval)) {
-            Write-ExecLog "Statistics True"
+            #Write-ExecLog "Statistics True"
             Get-SQLStatistics
         }
-        else {
-            Write-ExecLog "Statistics False"
-        }
+        #else {
+        #    Write-ExecLog "Statistics False"
+        #}
     }
     if($Script:Settings.GRDJobs) { 
         Write-ExecLog "Check GRD Jobs $($Script:Settings.GRDJobs.Count)"
