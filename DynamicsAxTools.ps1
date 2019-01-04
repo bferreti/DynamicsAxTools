@@ -1360,7 +1360,7 @@ $WpfbtnTskSave.Add_Click({
                     $TaskRunAsPassword = $Credential.GetNetworkCredential().Password              
                     $PowershellFilePath = 'Powershell.exe '
                     $ScriptFilePath = """$ScriptDir\AX-Report\AX-ReportManager.ps1"""
-                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text)"""
+                    $ScriptParameters = "-Environment ""$($WpfcbxTskEnvironment.Text)"""
                     $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
                     $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
                     $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
@@ -1376,7 +1376,7 @@ $WpfbtnTskSave.Add_Click({
                     $TaskRunAsPassword = $Credential.GetNetworkCredential().Password       
                     $PowershellFilePath = 'Powershell.exe '
                     $ScriptFilePath = """$ScriptDir\AX-Report\AX-ReportManager.ps1"""
-                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -RecycleBlg"""
+                    $ScriptParameters = "-Environment ""$($WpfcbxTskEnvironment.Text)"" -RecycleBlg"
                     $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
                     $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
                     $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 2) -MultipleInstances Queue
@@ -1392,7 +1392,7 @@ $WpfbtnTskSave.Add_Click({
                     $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
                     $PowershellFilePath = 'Powershell.exe '
                     $ScriptFilePath = """$ScriptDir\AX-Tools\AX-AOSCheck.ps1"""
-                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -Start"""
+                    $ScriptParameters = "-Environment ""$($WpfcbxTskEnvironment.Text)"" -Start"
                     $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
                     if([System.Environment]::OSVersion.Version.Major -ge 10) {
                         $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
@@ -1414,7 +1414,7 @@ $WpfbtnTskSave.Add_Click({
                     $TaskRunAsPassword = $Credential.GetNetworkCredential().Password   
                     $PowershellFilePath = 'Powershell.exe '
                     $ScriptFilePath = """$ScriptDir\AX-Tools\AX-PerfmonCheck.ps1"""
-                    $ScriptParameters = """-Environment $($WpfcbxTskEnvironment.Text) -Start"""
+                    $ScriptParameters = "-Environment ""$($WpfcbxTskEnvironment.Text)"" -Start"
                     $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
                     if([System.Environment]::OSVersion.Version.Major -ge 10) {
                         $Trigger = New-ScheduledTaskTrigger -At $(Get-Date) -Once -RepetitionInterval (New-TimeSpan -Minute $($WpftxtTskInterval.Text))
@@ -2165,7 +2165,7 @@ $WpfbtnPerfDeploy.Add_Click({
                 Default {
                     $Xml = ($PerfmonXml.Tables[0] | Where { $_.ServerType -like $Server.ServerType }).TemplateXml
                     if(![string]::IsNullOrEmpty($Xml)) {
-                        $CollectorObj.SetXml($Xml)
+                        $CollectorObj.SetXml($Xml.InnerXml)
                         $CollectorObj.RootPath = "%systemdrive%\PerfLogs\Admin\$PerfmonName"
                         $CollectorObj.SerialNumber = 1
                         $CollectorObj.Commit($PerfmonName, $Server.ServerName, 0x0003) | Out-Null
@@ -2195,9 +2195,10 @@ $WpfbtnPerfDelete.Add_Click({
     if(($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' } | Measure-Object).Count -ge 1) {
         foreach($Server in ($WpfdgServers.SelectedItems | Where { $_ -NotLike '{NewItemPlaceholder}' })) {
             try {
-            $CollectorObj = New-Object -COM Pla.DataCollectorSet
-            $CollectorObj.Query($PerfmonName, $Server.ServerName)
-            $CollectorObj.Delete()
+                $CollectorObj = New-Object -COM Pla.DataCollectorSet
+                $CollectorObj.Query($PerfmonName, $Server.ServerName)
+                if($CollectorObj.Status -ne 0) { $CollectorObj.Stop($true) }
+                $CollectorObj.Delete()
             }
             catch {
                 $WpflblWarning.Text = "$($_.Exception.Message)"
@@ -2686,7 +2687,7 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #    [System.GC]::Collect()
 #    exit
 #}
-<#
+#
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {   
     $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
@@ -2699,10 +2700,10 @@ else {
     $null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
     $Form.ShowDialog() | Out-Null
 }
-#>
+
 $Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
-#Stop-Process $Pid
+Stop-Process $Pid
 
 #$WpftxtEnvCPU | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>

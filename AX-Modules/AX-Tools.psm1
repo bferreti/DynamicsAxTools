@@ -1290,7 +1290,6 @@ param (
 	[String]$AxEnvironment,
 	[Switch]$Start
 )
-    #$Configuration = Import-ConfigFile
     $SettingsXml = Import-ConfigFile -ScriptName 'AxReport'
 
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"

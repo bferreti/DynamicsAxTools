@@ -55,7 +55,7 @@ $ModuleFolder = $Dir + "\AX-Modules"
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 $Global:Guid = ([guid]::NewGuid()).Guid
-$Script:Settings = Load-ScriptSettings -ScriptName 'AxReport'
+$Script:Settings = Import-ConfigFile -ScriptName 'AxReport'
 $Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -Format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
@@ -610,7 +610,7 @@ function Get-PerfmonFile
 		$CIMComputer = New-CimSession -ComputerName $WrkServer.ServerName
 		Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
 		Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
-		Remove-CimSession -ComputerName $($Script:Settings.PerfmonName)
+		Remove-CimSession -ComputerName $WrkServer.ServerName
 		#
 		$Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
 		$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)

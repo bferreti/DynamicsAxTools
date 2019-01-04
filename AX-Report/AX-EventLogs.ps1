@@ -59,23 +59,47 @@ Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
 
 function Get-EventLogs
 {
-    try
-    {
-        Write-Log "Running EvenLogs job for $ServerName. RunAs - $($Credentials.UserName)"
-        if($Credentials) {
+    Write-Log "Running EvenLogs job for $ServerName. RunAs - $($Credentials.UserName)"
+    if($Credentials) {
+        try {
             $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials | 
                     Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
-        else {
-            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName | 
+        catch [System.Diagnostics.Eventing.Reader.EventLogException]{
+	        $CIMComputer = New-CimSession -ComputerName $ServerName
+	        Enable-NetFirewallRule -DisplayGroup "Remote Event Log Management" -CimSession $CIMComputer
+	        Remove-CimSession -ComputerName $ServerName
+            #
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials | 
                     Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
-        SQL-BulkInsert 'AXReport_EventLogs' $EventLogs
+        catch {
+            $Exception = $_.Exception.Message
+        }
     }
-    catch
-    {
-        Write-Log "$ServerName - ERROR - EventLogs: $($_.Exception.Message)"
+    else {
+        try {
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName | 
+                Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+        }
+        catch [System.Diagnostics.Eventing.Reader.EventLogException]{
+	        $CIMComputer = New-CimSession -ComputerName $ServerName
+	        Enable-NetFirewallRule -DisplayGroup "Remote Event Log Management" -CimSession $CIMComputer
+	        Remove-CimSession -ComputerName $ServerName
+            #
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName | 
+                Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+        }
+        catch {
+            $Exception = $_.Exception.Message
+        }
     }
+    SQL-BulkInsert 'AXReport_EventLogs' $EventLogs
+    #
+    if($Exception) { Write-Log "$ServerName - ERROR - EventLogs: $Exception" }
 }
 
 Get-EventLogs
+
+
+
