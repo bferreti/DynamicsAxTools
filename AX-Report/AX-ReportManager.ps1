@@ -62,22 +62,6 @@ $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType 
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name SqlConnObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 
-
-#$ConfigurationXml = Import-ConfigFile
-#$Script:Settings = New-Object -TypeName System.Object
-#$Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -Format d) -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name DataCollectorName -Value $ConfigurationXml.Settings.AxReport.PerfmonName -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name SqlConnObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name ReportPath -Value $(if (!$ConfigurationXml.Settings.General.ReportFolder) { $Dir + "\Reports\AX-Report" } else { $ConfigurationXml.Settings.General.ReportFolder }) -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name LogPath -Value $(if (!$ConfigurationXml.Settings.General.LogFolder) { $Dir + "\Logs\AX-Report" } else { $ConfigurationXml.Settings.General.LogFolder }) -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name KeepReports -Value $ConfigurationXml.Settings.AxReport.KeepReports -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name KeepBlgFiles -Value $ConfigurationXml.Settings.AxReport.KeepPerfmon -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name BlgArchiveFolder -Value $ConfigurationXml.Settings.AxReport.BlgArchiveFolder -MemberType NoteProperty
-#$Script:Settings | Add-Member -Name KeepBlgArchive -Value $ConfigurationXml.Settings.AxReport.KeepBlgArchive -MemberType NoteProperty
-
 function Get-WrkProcess
 {
 	switch ($psCmdlet.ParameterSetName)
@@ -210,7 +194,7 @@ param(
 	if (![string]::IsNullOrEmpty($Script:Settings.EmailProfile)) {
 		Get-SendEmail
 	}
-	#if ([int]$Script:Settings.KeepReports -gt 0) { Start-CleanUp } else { Write-Log 'ERROR: Settings.AxReport.ReportAge invalid.' }
+	if ([int]$Script:Settings.KeepReports -gt 0) { Do-CleanUp } else { Write-Log 'ERROR: Report Cleanup Setting Invalid.' }
 	Set-SQLUpdate "UPDATE AXReport_ExecutionLog SET EndTime = '$(Get-Date)', LOG = '$($Log)' WHERE GUID = '$($Script:Settings.Guid)'"
 	Write-Log "AX Report Finished ($($Script:Settings.ReportDate))."
 }
@@ -634,10 +618,10 @@ function Get-PerfmonFile
 			Write-Log "ERROR - $($WrkServer.ServerName) - $($_.Exception.Message)"
 		}
 	}
-	if ([int]$Script:Settings.KeepBlgFiles -gt 0) {
+	if ([int]$Script:Settings.KeepPerfmon -gt 0) {
 		$Path = "\\$($WrkServer.ServerName)\" + $($DataCollectorSet.LatestOutputLocation).Replace(':','$')
-		$BlgFiles = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(- [int]$Script:Settings.KeepBlgFiles)) }
-		if ($BlgFiles.Count -ge $([int]$Script:Settings.KeepBlgFiles - 1)) {
+		$BlgFiles = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(- [int]$Script:Settings.KeepPerfmon)) }
+		if ($BlgFiles.Count -ge $([int]$Script:Settings.KeepPerfmon - 1)) {
 			if ([int]$Script:Settings.KeepBlgArchive -gt 0) {
 				Check-Folder "$Path\Temp\"
 				[Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
@@ -648,22 +632,26 @@ function Get-PerfmonFile
 				$FileLTLog = (($BlgFiles.Name | Select-Object -Last 1).Split(" ")).Split(".")[2]
 				[System.IO.Compression.ZipFile]::CreateFromDirectory("$Path\Temp\","$Path\$FileServer`_$FileSTLog-$FileLTLog.zip",$CompressionLevel,$false)
 				Remove-Item -Path "$Path\Temp\" -Recurse -Force
-				$ZipFiles = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.zip' }
-				if ($ZipFiles) {
+				$Zip = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.zip' }
+				if ($Zip) {
 					if (!$Script:Settings.BlgArchiveFolder) {
 						$Script:Settings.BlgArchiveFolder = $Dir + "\Logs\PerfmonArchive"
 					}
 					Check-Folder $Script:Settings.BlgArchiveFolder
-					$DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $Script:Settings.BlgArchiveFolder).Replace(':','$') + '\' + $WrkServer.ServerName.ToUpper
+					$DestPath = (Join-Path "\\$($env:COMPUTERNAME)" $Script:Settings.BlgArchiveFolder).Replace(':','$') + '\' + $WrkServer.ServerName.ToUpper()
 					Check-Folder $DestPath
 					try {
-						Move-Item $ZipFiles.FullName -Destination $DestPath -Force
-						Remove-Item $ZipFiles.FullName -Force
+						Move-Item $Zip.FullName -Destination $DestPath -Force
+						Remove-Item $Zip.FullName -Force
 					}
 					catch {
 						Write-Log "ERROR: - PerfmonArchive $($WrkServer.ServerName) - $($_.Exception.Message)"
 					}
 				}
+                $ZipCleanup = Get-ChildItem -Path "$($Script:Settings.BlgArchiveFolder)\$($WrkServer.ServerName.ToUpper())"| Where-Object { $_.Extension -match '.zip' -and $_.LastWriteTime -lt $((Get-Date).AddDays(- [int]$Script:Settings.KeepBlgArchive)) }
+                if($ZipCleanup.Count -ge 1) {
+                    Remove-Item $ZipCleanup.FullName -Force
+                }
 			}
 			else {
 				Remove-Item $BlgFiles.FullName -Force
@@ -897,9 +885,9 @@ function Get-SendEmail
 	Write-Log "AX Report has been Sent."
 }
 
-function Start-CleanUp
+function Do-CleanUp
 {
-	$Files = Get-ChildItem -Path $($Script:Settings.ReportFolder) | Where-Object { $_.LastWriteTime -lt $((Get-Date).AddDays((- [int]$Script:Settings.KeepReports))) }
+	$Files = Get-ChildItem -Path $Script:Settings.ReportFolder | Where-Object { $_.LastWriteTime -lt $((Get-Date).AddDays((- [int]$Script:Settings.KeepReports))) }
 	if ($Files) {
 		Remove-Item -Path $Files.FullName -Force
 	}
