@@ -68,7 +68,7 @@ function Get-WrkProcess
 	{
 		'RecycleBlg' {
 			foreach ($WrkServer in Get-WrkServers) {
-				Get-PerfmonFile
+				Restart-PerfCollector
 			}
 			break
 		}
@@ -583,7 +583,7 @@ function Get-AXLogs
 	}
 }
 
-function Get-PerfmonFile
+function Restart-PerfCollector
 {
 	try {
 		$DataCollectorSet = New-Object -COM Pla.DataCollectorSet
@@ -591,6 +591,7 @@ function Get-PerfmonFile
 	}
 	catch {
 		Write-Log "ERROR - $($Script:Settings.PerfmonName) Failed. ($($_.Exception.Message))."
+        <#
 		$CIMComputer = New-CimSession -ComputerName $WrkServer.ServerName
 		Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
 		Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
@@ -602,6 +603,7 @@ function Get-PerfmonFile
 		$DataCollectorSet.SetXml($Xml)
 		$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.PerfmonName)"
 		$DataCollectorSet.Commit($Script:Settings.PerfmonName,$WrkServer.ServerName,0x0003) | Out-Null
+        #>
 	}
 
 	if ($DataCollectorSet.Status -eq 1) {
@@ -628,8 +630,8 @@ function Get-PerfmonFile
 				$CompressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
 				Move-Item $BlgFiles.FullName -Destination "$Path\Temp\"
 				$FileServer = ($BlgFiles.Name | Select-Object -First 1).Split("_")[0]
-				$FileSTLog = (($BlgFiles.Name | Select-Object -First 1).Split(" ")).Split(".")[2]
-				$FileLTLog = (($BlgFiles.Name | Select-Object -Last 1).Split(" ")).Split(".")[2]
+				$FileSTLog = (($BlgFiles | Sort-Object CreationTime | Select-Object -First 1).Name.Split(" ")).Split(".")[2]
+				$FileLTLog = (($BlgFiles | Sort-Object CreationTime | Select-Object -Last 1).Name.Split(" ")).Split(".")[2]
 				[System.IO.Compression.ZipFile]::CreateFromDirectory("$Path\Temp\","$Path\$FileServer`_$FileSTLog-$FileLTLog.zip",$CompressionLevel,$false)
 				Remove-Item -Path "$Path\Temp\" -Recurse -Force
 				$Zip = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.zip' }
