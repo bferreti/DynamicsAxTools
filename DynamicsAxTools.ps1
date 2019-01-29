@@ -158,7 +158,6 @@ $inputXML = @"
                     <GroupBox x:Name="grpPerfmonTasks" Header="Perfmon Collector" HorizontalAlignment="Left" Height="40" Margin="465,212,0,0" VerticalAlignment="Top" Width="272"/>
                     <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="595,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="665,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-
                     <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="435">
                         <ListView.GroupStyle>
                             <GroupStyle>
@@ -378,7 +377,6 @@ function Get-UsersDB
 	$Adapter.SelectCommand = $SqlCommand
 	$Script:UsersDB = New-Object System.Data.DataSet
 	$Adapter.Fill($Script:UsersDB) | Out-Null
-    #[void]$Users.Tables[0].Rows.Add('',$null)
     if(![string]::IsNullOrEmpty($Script:UsersDB)) {
         $WpfcbxEnvLocalUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
         $WpfcbxEnvDBUser.ItemsSource = $Script:UsersDB.Tables[0].DefaultView
@@ -397,7 +395,6 @@ function Get-EmailsDB
 	$Adapter.SelectCommand = $SqlCommand
 	$Script:EmailsDB = New-Object System.Data.DataSet
 	$Adapter.Fill($Script:EmailsDB) | Out-Null
-    #[void]$Emails.Tables[0].Rows.Add('',$null,$null,$null,$null,$null,$null,$null,$null)
     $WpfcbxEnvEmail.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
     $WpfcbxEmlID.ItemsSource = $Script:EmailsDB.Tables[0].DefaultView
 }
@@ -641,12 +638,6 @@ function Get-DisableAll
     $WpftxtEnvEnvironment.IsEnabled = $false
     $WpftxtEnvWaiting.IsEnabled = $false
     $WpfchkEnvGRD.IsEnabled = $false
-    #$WpfcbxTskEnvironment.IsEnabled = $false
-    #$WpfcbxTskInterval.IsEnabled = $false
-    #$WpfcbxTskTaskName.IsEnabled = $false
-    #$WpfckcTskRunAs.IsEnabled = $false
-    #$WpflstCurrJobs.IsEnabled = $false
-    #$WpftxtTskTimeSpan.IsEnabled = $false
     $WpftxtUsrUsername.IsEnabled = $false
 }
 
@@ -1825,7 +1816,6 @@ $WpfcbxSrvChkEnvironment.Add_SelectionChanged({
 	    $Script:Adapter.SelectCommand = $SqlCommand
 	    $Script:Servers = New-Object System.Data.DataSet
 	    $Script:Adapter.Fill($Script:Servers) | Out-Null
-        #$SqlCommandBuilder = New-Object System.Data.SqlClient.SqlCommandBuilder($Script:Adapter)
         $WpflstChkSrv.ItemsSource = $Script:Servers.Tables[0].DefaultView
     }
 })
@@ -1835,29 +1825,30 @@ $WpfbtnServCheck.Add_Click({Get-EnvCheck})
 function Get-EnvCheck
 {
     if($WpflstChkSrv.ItemsSource.Count -ge 1) {
-        $DataCollectorName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
-        foreach($Srv in $WpflstChkSrv.ItemsSource | Where {$_.Active -eq 1}) {
-            $WpflstChkSrv.SelectedItem = $WpflstChkSrv.ItemsSource | Where { $_.ServerName -eq $Srv.ServerName }
+        $ScriptBlock = {
+            Param ($Srv, $DataCollectorName, $CheckAOS, $CheckSQL, $CheckServer, $CheckPerfmon)
+            $OutputResults = New-Object -TypeName System.Object
+            $OutputResults | Add-Member -Name ServerName -Value $Srv.ServerName -MemberType NoteProperty
             switch($Srv.ServerType) {
                 'AOS' {
-                    if($WpfcheckAOS.IsChecked) {
-                        $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } #-and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
+                    if($CheckAOS) {
+                        $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
                         if([string]::IsNullOrEmpty($Service)) {
-                            $WpflstChkSrv.SelectedItem.AOS = "Error"
+                            $OutputResults | Add-Member -Name AOS -Value "Error" -MemberType NoteProperty
                         }
                         else {
-                            $WpflstChkSrv.SelectedItem.AOS = $Service.State
+                            $OutputResults | Add-Member -Name AOS -Value $Service.State -MemberType NoteProperty
                         }
-                        $WpflstChkSrv.SelectedItem.Blocking = '-'
-                        $WpflstChkSrv.SelectedItem.CacheHRat = '-'
-                        $WpflstChkSrv.SelectedItem.PageLifeExp = '-'
+                        $OutputResults | Add-Member -Name Blocking -Value '-' -MemberType NoteProperty
+                        $OutputResults | Add-Member -Name CacheHRat -Value '-' -MemberType NoteProperty
+                        $OutputResults | Add-Member -Name PageLifeExp -Value '-' -MemberType NoteProperty
                     }
                 }
                 'SQL' {
-                    if($WpfcheckSQL.IsChecked) {
+                    if($CheckSQL) {
                         $Conn = Get-ConnectionString
                         $Query = "SELECT * FROM AXTools_Environments                
-                                    WHERE ENVIRONMENT = 'UAT'"
+                                    WHERE ENVIRONMENT = '$($WpfcbxSrvChkEnvironment.SelectedItem.Environment)'"
                         $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter($Query, $Conn)
                         $Table = New-Object System.Data.DataSet
                         $Adapter.Fill($Table) | Out-Null
@@ -1883,8 +1874,7 @@ function Get-EnvCheck
                             $SqlServer.ConnectionContext.Connect()
                         }
                         $SQLBlocking = $SqlServer.EnumProcesses() | Where { $_.Spid -ge 50 -and $_.BlockingSpid -ne 0 }
-                        $WpflstChkSrv.SelectedItem.Blocking = $SQLBlocking.Count
-                    
+                        $OutputResults | Add-Member -Name Blocking -Value $SQLBlocking.Count -MemberType NoteProperty
                         $MachineNetBios = ($SqlServer.Information.Properties | Where-Object { $_.Name -eq 'ComputerNamePhysicalNetBIOS' }).Value
                         if($SqlServer.IsClustered) {
                             $InstanceName = $Table.Tables.DBServer.Split('\')[1]
@@ -1899,19 +1889,19 @@ function Get-EnvCheck
                         {
                             $Perfmon += (Get-Counter -Counter $Counter -ComputerName $MachineNetBios -SampleInterval 1 -ErrorAction SilentlyContinue).CounterSamples | Select Path, @{n='Value';e={[Math]::Round(($_.CookedValue),2)}}, Timestamp 
                         }
-                        $WpflstChkSrv.SelectedItem.CacheHRat = ($Perfmon | Where { $_.Path -like '*Buffer Manager\Buffer cache hit ratio' }).Value
-                        $WpflstChkSrv.SelectedItem.PageLifeExp = ($Perfmon | Where { $_.Path -like '*Buffer Manager\Page life expectancy' }).Value
-                        $WpflstChkSrv.SelectedItem.AOS = '-'
+                        $OutputResults | Add-Member -Name CacheHRat -Value ($Perfmon | Where { $_.Path -like '*Buffer Manager\Buffer cache hit ratio' }).Value -MemberType NoteProperty
+                        $OutputResults | Add-Member -Name PageLifeExp -Value ($Perfmon | Where { $_.Path -like '*Buffer Manager\Page life expectancy' }).Value -MemberType NoteProperty
+                        $OutputResults | Add-Member -Name AOS -Value '-' -MemberType NoteProperty
                     }
                 }
                 Default {
-                    $WpflstChkSrv.SelectedItem.AOS = '-'
-                    $WpflstChkSrv.SelectedItem.Blocking = '-'
-                    $WpflstChkSrv.SelectedItem.CacheHRat = '-'
-                    $WpflstChkSrv.SelectedItem.PageLifeExp = '-'
+                    $OutputResults | Add-Member -Name AOS -Value '-' -MemberType NoteProperty
+                    $OutputResults | Add-Member -Name Blocking -Value '-' -MemberType NoteProperty
+                    $OutputResults | Add-Member -Name CacheHRat -Value '-' -MemberType NoteProperty
+                    $OutputResults | Add-Member -Name PageLifeExp -Value '-' -MemberType NoteProperty
                 }
             }
-            if($WpfcheckServer.IsChecked) {
+            if($CheckServer) {
                 $Counters = '\Memory\Available MBytes', '\Processor(_total)\% Processor Time', '\Paging File(_Total)\% Usage', 'Microsoft Dynamics AX Object Server(*)\ACTIVE SESSIONS' #, '\LogicalDisk(*)\Free Megabytes'
                 $Perfmon = @()
                 foreach($Counter in $Counters)
@@ -1919,13 +1909,13 @@ function Get-EnvCheck
                     $Perfmon += (Get-Counter -Counter $Counter -ComputerName $Srv.ServerName -SampleInterval 1 -ErrorAction SilentlyContinue).CounterSamples | Select Path, @{n='Value';e={[Math]::Round(($_.CookedValue),2)}}, Timestamp 
                 }
                 $TotalMemory = Get-WmiObject -ClassName "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $Srv.ServerName | Measure-Object -Property TotalPhysicalMemory -Sum | Select Property, Count, Sum 
-                $WpflstChkSrv.SelectedItem.CPU = [String]($Perfmon | Where {$_.Path -like '*processor(_total)\% processor time'}).Value
-                $WpflstChkSrv.SelectedItem.Paging = [String]($Perfmon | Where {$_.Path -like '*paging file(_total)\% usage'}).Value
+                $OutputResults | Add-Member -Name CPU -Value $([string]($Perfmon | Where {$_.Path -like '*processor(_total)\% processor time'}).Value) -MemberType NoteProperty
+                $OutputResults | Add-Member -Name Paging -Value $([string]($Perfmon | Where {$_.Path -like '*paging file(_total)\% usage'}).Value) -MemberType NoteProperty
                 $AxUsers = if([String]($Perfmon | Where {$_.Path -like '*microsoft dynamics ax object server(*)\active sessions'}).Value -gt 0) { [String]($Perfmon | Where {$_.Path -like '*microsoft dynamics ax object server(*)\active sessions'}).Value } else { '0' }
-                $WpflstChkSrv.SelectedItem.Users = $AxUsers
-                $WpflstChkSrv.SelectedItem.Memory = [Math]::Round((($Perfmon | Where {$_.Path -like '*Memory\available mbytes'}).Value) / ([Math]::Round($TotalMemory.Sum/1Mb)) * 100,2)
+                $OutputResults | Add-Member -Name Users -Value $AxUsers -MemberType NoteProperty
+                $OutputResults | Add-Member -Name Memory -Value $([Math]::Round((($Perfmon | Where {$_.Path -like '*Memory\available mbytes'}).Value) / ([Math]::Round($TotalMemory.Sum/1Mb)) * 100,2)) -MemberType NoteProperty
             }
-            if($WpfcheckPerfmon.IsChecked) {
+            if($CheckPerfmon) {
                 Invoke-Command -ComputerName $Srv.ServerName -ArgumentList $DataCollectorName, $Srv.ServerName -ScriptBlock {
                     Param($DataCollectorName, $ServerName)
                     try {
@@ -1943,9 +1933,54 @@ function Get-EnvCheck
                     }
                     return $PerfStatus
                 } -OutVariable PerfStatus
-                $WpflstChkSrv.SelectedItem.Perfmon = [String]$PerfStatus
+                $OutputResults | Add-Member -Name Perfmon -Value $([String]$PerfStatus) -MemberType NoteProperty
+            }
+            return $OutputResults
+        }
+
+        $RunSpacePool = [RunspaceFactory]::CreateRunspacePool(1,10)
+        $RunSpacePool.Open()
+        $Jobs = @()
+
+        #queue up jobs
+        $DataCollectorName = ($WpfdgXMLSettings.ItemsSource | Where { $_.Key -eq  'PerfmonName' }).Value
+        foreach($Srv in $WpflstChkSrv.ItemsSource | Where {$_.Active -eq 1}) {
+            $Job = [Powershell]::Create().AddScript($ScriptBlock)
+            $Job.AddParameter("Srv", $Srv)
+            $Job.AddParameter("DataCollectorName", $DataCollectorName)
+            $Job.AddParameter("CheckAOS", $WpfcheckAOS.IsChecked)
+            $Job.AddParameter("CheckSQL", $WpfcheckSQL.IsChecked)
+            $Job.AddParameter("CheckServer", $WpfcheckServer.IsChecked)
+            $Job.AddParameter("CheckPerfmon", $WpfcheckPerfmon.IsChecked)
+            $Job.RunspacePool = $RunSpacePool
+            $Jobs += New-Object PSObject -Property @{
+                Computer = $Srv.ServerName
+                Pipe = $Job
+                Result = $Job.BeginInvoke()
             }
         }
+
+        #wait for jobs to finish
+        While ((Get-Job -State Running).Count -gt 0) {
+            Get-Job | Wait-Job -Any | Out-Null
+        }
+
+        #get output of jobs
+        $Jobs | % {
+            $JobResults = $_.Pipe.EndInvoke($_.Result)
+            $WpflstChkSrv.SelectedItem = $WpflstChkSrv.ItemsSource | Where { $_.ServerName -eq $JobResults.ServerName }
+            $WpflstChkSrv.SelectedItem.AOS = $JobResults.AOS
+            $WpflstChkSrv.SelectedItem.Users = $JobResults.Users
+            $WpflstChkSrv.SelectedItem.CPU = $JobResults.CPU
+            $WpflstChkSrv.SelectedItem.Memory = $JobResults.Memory
+            $WpflstChkSrv.SelectedItem.Paging = $JobResults.Paging
+            $WpflstChkSrv.SelectedItem.Blocking = $JobResults.Blocking
+            $WpflstChkSrv.SelectedItem.CacheHRat = $JobResults.CacheHRat
+            $WpflstChkSrv.SelectedItem.PageLifeExp = $JobResults.PageLifeExp
+            $WpflstChkSrv.SelectedItem.Perfmon = $JobResults.Perfmon
+        }
+
+        #enable buttons
         $WpfbtnServStart.IsEnabled = $true
         $WpfbtnServStop.IsEnabled = $true
         $WpfbtnPerfStart.IsEnabled = $true
@@ -2687,7 +2722,7 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #    [System.GC]::Collect()
 #    exit
 #}
-#
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {   
     $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
@@ -2700,7 +2735,7 @@ else {
     $null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
     $Form.ShowDialog() | Out-Null
 }
-
+#>
 $Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
 Stop-Process $Pid
