@@ -21,7 +21,53 @@ $inputXML = @"
         Title="DynamicsAXTools" Height="500" Width="800" ResizeMode="NoResize">
     <Grid>
         <TabControl x:Name="tabControl" Margin="10,76,10,10" Height="300">
-            <TabItem Header="Environments" TabIndex="10">
+            <TabItem Header="Notes">
+                <Grid>
+
+                </Grid>
+            </TabItem>
+            <TabItem Header="User/Email Accounts">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <Button x:Name="btnUsrNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnUsrDelete" Content="Delete" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnUsrTest" Content="Test" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" Height="65" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxUsrID" HorizontalAlignment="Left" Margin="77,58,0,0" VerticalAlignment="Top" Width="180" DisplayMemberPath="ID"/>
+                    <Label x:Name="lblUsrID" Content="User ID" HorizontalAlignment="Left" Margin="23,56,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblUsrUsername" Content="Username" HorizontalAlignment="Left" Margin="23,83,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtUsrUsername" HorizontalAlignment="Left" Height="22" Margin="91,85,0,0" VerticalAlignment="Top" Width="320" IsEnabled="False"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Email Settings">
+                <Grid>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="30" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
+                    <Button x:Name="btnEmlNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnEmlEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnEmlSave" Content="Save" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnEmlDelete" Content="Delete" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnEmlTest" Content="Test Email" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" Height="208" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737"/>
+                    <Label x:Name="lblEmlID" Content="ID" HorizontalAlignment="Left" Margin="19,54,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxEmlID" HorizontalAlignment="Left" Margin="46,56,0,0" VerticalAlignment="Top" Width="180" DisplayMemberPath="ID"/>
+                    <Label x:Name="lblEmlSMTP" Content="Email Server" HorizontalAlignment="Left" Margin="19,80,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlSMTP" HorizontalAlignment="Left" Height="24" Margin="97,82,0,0" VerticalAlignment="Top" Width="224" IsEnabled="False"/>
+                    <Label x:Name="lblEmlSMTPPort" Content="Port" HorizontalAlignment="Left" Margin="326,81,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlSMTPPort" HorizontalAlignment="Left" Height="24" Margin="363,83,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
+                    <CheckBox x:Name="chkEmlSSL" Content="Use SSL" HorizontalAlignment="Left" Margin="450,86,0,0" VerticalAlignment="Top" IsEnabled="False"/>
+                    <Label x:Name="lblEmlUserId" Content="User" HorizontalAlignment="Left" Margin="19,108,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxEmlUserID" HorizontalAlignment="Left" Margin="58,110,0,0" VerticalAlignment="Top" Width="180" IsEnabled="False" DisplayMemberPath="ID"/>
+                    <Label x:Name="lblEmlFrom" Content="From" HorizontalAlignment="Left" Margin="19,134,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlFrom" HorizontalAlignment="Left" Height="24" Margin="61,135,0,0" VerticalAlignment="Top" Width="301" IsEnabled="False"/>
+                    <Label x:Name="lblEmlTo" Content="To" HorizontalAlignment="Left" Margin="19,161,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlTo" HorizontalAlignment="Left" Height="24" Margin="47,162,0,0" VerticalAlignment="Top" Width="498" IsEnabled="False"/>
+                    <Label x:Name="lblEmlCC" Content="CC" HorizontalAlignment="Left" Margin="19,188,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlCC" HorizontalAlignment="Left" Height="24" Margin="49,189,0,0" VerticalAlignment="Top" Width="496" IsEnabled="False"/>
+                    <Label x:Name="lblEmlBCC" Content="BCC" HorizontalAlignment="Left" Margin="19,215,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtEmlBCC" HorizontalAlignment="Left" Height="24" Margin="56,216,0,0" VerticalAlignment="Top" Width="489" IsEnabled="False"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Environments">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="196*"/>
@@ -64,7 +110,7 @@ $inputXML = @"
                     <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="725" Grid.ColumnSpan="2"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Servers" TabIndex="50">
+            <TabItem Header="Servers">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="32" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737" Grid.ColumnSpan="2"/>
                     <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
@@ -94,53 +140,7 @@ $inputXML = @"
                     <Button x:Name="btnCopyFiles" Content="Copy Blg Files" HorizontalAlignment="Left" Margin="606,187,0,0" VerticalAlignment="Top" Width="100"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Task Scheduler" TabIndex="40">
-                <Grid>
-                    <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <Button x:Name="btnTskNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnTskEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskDelete" Content="Delete" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskSave" Content="Save" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskDisable" Content="Disable" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnTskEnable" Content="Enable" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737" RenderTransformOrigin="0.5,0.5">
-                        <Rectangle.RenderTransform>
-                            <TransformGroup>
-                                <ScaleTransform/>
-                                <SkewTransform AngleX="0.591"/>
-                                <RotateTransform/>
-                                <TranslateTransform X="0.99"/>
-                            </TransformGroup>
-                        </Rectangle.RenderTransform>
-                    </Rectangle>
-                    <Label x:Name="lblTskName" Content="Environment" HorizontalAlignment="Left" Margin="15.023,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskEnvironment" HorizontalAlignment="Left" Margin="93,55.47,0,0" VerticalAlignment="Top" Width="100" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
-                    <Label x:Name="lblTskTaskName" Content="Task" HorizontalAlignment="Left" Margin="196.293,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskTaskName" HorizontalAlignment="Left" Margin="228.676,55.47,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="Value" SelectedValuePath="Name"/>
-                    <TextBox x:Name="txtTskInterval" HorizontalAlignment="Left" Height="22" Margin="409.186,55.45,0,0" VerticalAlignment="Top" Width="40" IsEnabled="False"/>
-                    <Label x:Name="lblTskInterval" Content="Interval:" HorizontalAlignment="Left" Margin="357.342,53.47,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="lblTskTimeSpan" Content="At:" HorizontalAlignment="Left" Margin="451.291,53.47,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtTskTime" HorizontalAlignment="Left" Height="22" Margin="474.62,55.45,0,0" VerticalAlignment="Top" Width="55" IsEnabled="False"/>
-                    <Label x:Name="lblTskUserId" Content="Run as" HorizontalAlignment="Left" Margin="532.283,53.47,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxTskUserID" HorizontalAlignment="Left" Margin="580.621,55.47,0,0" VerticalAlignment="Top" Width="160" IsEnabled="False" DisplayMemberPath="ID"/>
-                    <ListView x:Name="lstCurrJobs" Height="180" Margin="16.5,82.659,17.5,0" VerticalAlignment="Top" Width="732">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="85"/>
-                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="85"/>
-                                <GridViewColumn Header="Repeat Every" DisplayMemberBinding ="{Binding Interval}" Width="75"/>
-                                <GridViewColumn Header="Daily" DisplayMemberBinding ="{Binding DaysInterval}" Width="75"/>
-                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="75"/>
-                                <GridViewColumn Header="User" DisplayMemberBinding ="{Binding User}" Width="75"/>
-                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="75"/>
-                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="75"/>
-                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="75"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Enviroment Check" TabIndex="60">
+            <TabItem Header="Enviroment Check">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
                     <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
@@ -184,51 +184,46 @@ $inputXML = @"
                             </GridView>
                         </ListView.View>
                     </ListView>
-
                 </Grid>
             </TabItem>
-            <TabItem Header="Users" TabIndex="20">
+            <TabItem Header="Task Scheduler">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <Button x:Name="btnUsrNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnUsrDelete" Content="Delete" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnUsrTest" Content="Test" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" Height="65" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxUsrID" HorizontalAlignment="Left" Margin="77,58,0,0" VerticalAlignment="Top" Width="180" DisplayMemberPath="ID"/>
-                    <Label x:Name="lblUsrID" Content="User ID" HorizontalAlignment="Left" Margin="23,56,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="lblUsrUsername" Content="Username" HorizontalAlignment="Left" Margin="23,83,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtUsrUsername" HorizontalAlignment="Left" Height="22" Margin="91,85,0,0" VerticalAlignment="Top" Width="320" IsEnabled="False"/>
+                    <Button x:Name="btnTskNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
+                    <Button x:Name="btnTskEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskDelete" Content="Delete" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskSave" Content="Save" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskDisable" Content="Disable" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnTskEnable" Content="Enable" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737" RenderTransformOrigin="0.5,0.5"/>
+                    <Label x:Name="lblTskName" Content="Environment" HorizontalAlignment="Left" Margin="15.023,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskEnvironment" HorizontalAlignment="Left" Margin="93,55.47,0,0" VerticalAlignment="Top" Width="100" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
+                    <Label x:Name="lblTskTaskName" Content="Task" HorizontalAlignment="Left" Margin="196.293,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskTaskName" HorizontalAlignment="Left" Margin="228.676,55.47,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="Value" SelectedValuePath="Name"/>
+                    <TextBox x:Name="txtTskInterval" HorizontalAlignment="Left" Height="22" Margin="409.186,55.45,0,0" VerticalAlignment="Top" Width="40" IsEnabled="False"/>
+                    <Label x:Name="lblTskInterval" Content="Interval:" HorizontalAlignment="Left" Margin="357.342,53.47,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblTskTimeSpan" Content="At:" HorizontalAlignment="Left" Margin="451.291,53.47,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtTskTime" HorizontalAlignment="Left" Height="22" Margin="474.62,55.45,0,0" VerticalAlignment="Top" Width="55" IsEnabled="False"/>
+                    <Label x:Name="lblTskUserId" Content="Run as" HorizontalAlignment="Left" Margin="532.283,53.47,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="cbxTskUserID" HorizontalAlignment="Left" Margin="580.621,55.47,0,0" VerticalAlignment="Top" Width="160" IsEnabled="False" DisplayMemberPath="ID"/>
+                    <ListView x:Name="lstCurrJobs" Height="180" Margin="16,83,20,0" VerticalAlignment="Top" Width="732">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Environment" DisplayMemberBinding ="{Binding Environment}" Width="85"/>
+                                <GridViewColumn Header="Name" DisplayMemberBinding ="{Binding Name}" Width="85"/>
+                                <GridViewColumn Header="Repeat Every" DisplayMemberBinding ="{Binding Interval}" Width="75"/>
+                                <GridViewColumn Header="Daily" DisplayMemberBinding ="{Binding DaysInterval}" Width="75"/>
+                                <GridViewColumn Header="At" DisplayMemberBinding ="{Binding At}" Width="75"/>
+                                <GridViewColumn Header="User" DisplayMemberBinding ="{Binding User}" Width="75"/>
+                                <GridViewColumn Header="Status" DisplayMemberBinding ="{Binding State}" Width="75"/>
+                                <GridViewColumn Header="Next Run" DisplayMemberBinding ="{Binding NextRunTime}" Width="75"/>
+                                <GridViewColumn Header="Last Run" DisplayMemberBinding ="{Binding LastRunTime}" Width="75"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </Grid>
             </TabItem>
-            <TabItem Header="Emails" TabIndex="30">
-                <Grid>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="30" Margin="13,10,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
-                    <Button x:Name="btnEmlNew" Content="New" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
-                    <Button x:Name="btnEmlEdit" Content="Edit" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnEmlSave" Content="Save" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnEmlDelete" Content="Delete" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnEmlTest" Content="Test Email" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Rectangle Fill="#FFEFEFF1" Height="208" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" HorizontalAlignment="Left" Width="737"/>
-                    <Label x:Name="lblEmlID" Content="ID" HorizontalAlignment="Left" Margin="19,54,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxEmlID" HorizontalAlignment="Left" Margin="46,56,0,0" VerticalAlignment="Top" Width="180" DisplayMemberPath="ID"/>
-                    <Label x:Name="lblEmlSMTP" Content="Email Server" HorizontalAlignment="Left" Margin="19,80,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlSMTP" HorizontalAlignment="Left" Height="24" Margin="97,82,0,0" VerticalAlignment="Top" Width="224" IsEnabled="False"/>
-                    <Label x:Name="lblEmlSMTPPort" Content="Port" HorizontalAlignment="Left" Margin="326,81,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlSMTPPort" HorizontalAlignment="Left" Height="24" Margin="363,83,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
-                    <CheckBox x:Name="chkEmlSSL" Content="Use SSL" HorizontalAlignment="Left" Margin="450,86,0,0" VerticalAlignment="Top" IsEnabled="False"/>
-                    <Label x:Name="lblEmlUserId" Content="User" HorizontalAlignment="Left" Margin="19,108,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="cbxEmlUserID" HorizontalAlignment="Left" Margin="58,110,0,0" VerticalAlignment="Top" Width="180" IsEnabled="False" DisplayMemberPath="ID"/>
-                    <Label x:Name="lblEmlFrom" Content="From" HorizontalAlignment="Left" Margin="19,134,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlFrom" HorizontalAlignment="Left" Height="24" Margin="61,135,0,0" VerticalAlignment="Top" Width="301" IsEnabled="False"/>
-                    <Label x:Name="lblEmlTo" Content="To" HorizontalAlignment="Left" Margin="19,161,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlTo" HorizontalAlignment="Left" Height="24" Margin="47,162,0,0" VerticalAlignment="Top" Width="498" IsEnabled="False"/>
-                    <Label x:Name="lblEmlCC" Content="CC" HorizontalAlignment="Left" Margin="19,188,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlCC" HorizontalAlignment="Left" Height="24" Margin="49,189,0,0" VerticalAlignment="Top" Width="496" IsEnabled="False"/>
-                    <Label x:Name="lblEmlBCC" Content="BCC" HorizontalAlignment="Left" Margin="19,215,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtEmlBCC" HorizontalAlignment="Left" Height="24" Margin="56,216,0,0" VerticalAlignment="Top" Width="489" IsEnabled="False"/>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Settings" TabIndex="70">
+            <TabItem Header="Settings">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="277*"/>
@@ -244,29 +239,39 @@ $inputXML = @"
                     <Button x:Name="btnSetSave" Content="Save" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Database" TabIndex="80">
+            <TabItem Header="Database">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
                     <Button x:Name="btnDBCreate" Content="Create" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
                     <Button x:Name="btnDBDrop" Content="Drop" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnDBTestConn" Content="Test DB Conn" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False"/>
                     <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="214" Margin="13,50,0,0" Stroke="Black" VerticalAlignment="Top" Width="737"/>
-                    <Label x:Name="lblDBServer" Content="DBServer" HorizontalAlignment="Left" Margin="16,104,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtDBServer" HorizontalAlignment="Left" Height="24" Margin="79,105,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
-                    <Label x:Name="lblDBName" Content="DBName" HorizontalAlignment="Left" Margin="16,133,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtDBName" HorizontalAlignment="Left" Height="24" Margin="79,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
-                    <Label x:Name="lblDBReportPath" Content="Reports Folder" HorizontalAlignment="Left" Margin="16,188.733,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtDBReportPath" HorizontalAlignment="Left" Height="24" Margin="110,189.735,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
-                    <Label x:Name="lblDBLogPath" Content="Logs Folder" HorizontalAlignment="Left" Margin="16,216.733,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="txtDBLogPath" HorizontalAlignment="Left" Height="24" Margin="110,218.735,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
+                    <Label x:Name="lblDBServer" Content="DBServer" HorizontalAlignment="Left" Margin="16,98,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBServer" HorizontalAlignment="Left" Height="24" Margin="79,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
+                    <Label x:Name="lblDBName" Content="DBName" HorizontalAlignment="Left" Margin="16,125,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBName" HorizontalAlignment="Left" Height="24" Margin="79,126,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
+                    <Label x:Name="lblDBUsername" Content="Username" HorizontalAlignment="Left" Margin="16,153,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBUsername" HorizontalAlignment="Left" Height="24" Margin="79,154,0,0" TextWrapping="Wrap" VerticalAlignment="Top" IsEnabled="False" Width="190" Background="White"/>
+                    <Label x:Name="lblDBReportPath" Content="Reports Folder" HorizontalAlignment="Left" Margin="16,201,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBReportPath" HorizontalAlignment="Left" Height="24" Margin="110,202,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
+                    <Label x:Name="lblDBLogPath" Content="Logs Folder" HorizontalAlignment="Left" Margin="16,229,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBLogPath" HorizontalAlignment="Left" Height="24" Margin="110,231,0,0" TextWrapping="Wrap" IsEnabled="False" VerticalAlignment="Top" Width="475" Background="White"/>
                     <Label x:Name="lblDBStatus" Content="Database Connection:" HorizontalAlignment="Left" Margin="16,54,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblDBCurrent" Content="Connection Failed" HorizontalAlignment="Left" Margin="140,54,0,0" VerticalAlignment="Top" Foreground="#FFFF0606" FontWeight="Bold"/>
-                    <Separator HorizontalAlignment="Left" Height="25.265" Margin="20,76,0,0" VerticalAlignment="Top" Width="722"/>
-                    <Separator HorizontalAlignment="Left" Height="25.265" Margin="20,160,0,0" VerticalAlignment="Top" Width="722"/>
+                    <Separator HorizontalAlignment="Left" Height="25" Margin="20,73,0,0" VerticalAlignment="Top" Width="722"/>
+                    <Separator HorizontalAlignment="Left" Height="25" Margin="20,179,0,0" VerticalAlignment="Top" Width="722"/>
+                    <GroupBox x:Name="grpCreds" Header="DB Credential" Height="82" Margin="319,98,329,0" VerticalAlignment="Top"/>
+                    <Button x:Name="btnDBSaveCredential" Content="Save" HorizontalAlignment="Left" Margin="328,125,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False" />
+                    <Button x:Name="btnDBClearCredential" Content="Clear" HorizontalAlignment="Left" Margin="328,150,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False" />
+                    <GroupBox x:Name="grpCleanup" Header="Cleanup" Height="82" Margin="450,98,37,0" VerticalAlignment="Top"/>
+                    <Label x:Name="lblDBSize" Content="Database Size: 00MB Available Space: 00.00MB" HorizontalAlignment="Left" Margin="455,114,0,0" VerticalAlignment="Top" FontSize="11"/>
+                    <Label x:Name="lblDBCleanupDays" Content="Keep last            days." HorizontalAlignment="Left" Margin="455,144,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtDBCleanupDays" Text="30" HorizontalAlignment="Left" Height="18" Margin="513,148,0,0" VerticalAlignment="Top" Width="30" Background="White" TextAlignment="Center"/>
+                    <Button x:Name="btnDBCleanUp" Content="DB Cleanup" HorizontalAlignment="Left" Margin="621,147,0,0" VerticalAlignment="Top" Width="101"/>
                 </Grid>
             </TabItem>
         </TabControl>
-        <Image x:Name="image" HorizontalAlignment="Left" Height="68" Margin="13,10,0,0" VerticalAlignment="Top" Width="71" Source="C:\Users\Administrator\Pictures\D365Tools.png"/>
+        <Image x:Name="image" HorizontalAlignment="Left" Height="68" Margin="13,10,0,0" VerticalAlignment="Top" Width="71" />
         <StatusBar Height="25" VerticalAlignment="Bottom" Width="Auto">
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -303,26 +308,6 @@ $Reader=(New-Object System.Xml.XmlNodeReader $XAML)
 try{$Form=[Windows.Markup.XamlReader]::Load($Reader)} catch{Write-Warning "Unable to parse XML, with error: $($Error[0])`n Ensure that there are NO SelectionChanged properties (PowerShell cannot process them)"; Throw}
 $XAML.SelectNodes("//*[@Name]") | %{<#"trying item $($_.Name)";#> try {Set-Variable -Name "Wpf$($_.Name)" -Value $Form.FindName($_.Name) -Scope Global -ErrorAction Stop} catch{Throw}}
  
-function Get-FormVariables{
-    if ($global:ReadmeDisplay -ne $true){
-        #Write-host "If you need to reference this display again, run Get-FormVariables" -ForegroundColor Yellow
-        $global:ReadmeDisplay = $true
-    }
-    #write-host "Found the following interactable elements from our form" -ForegroundColor Cyan
-    #Get-Variable WPF*
-}
-
-Get-FormVariables
-
-function Get-DataSources
-{
-    Get-EnvironmentsDB
-    Get-UsersDB
-    Get-EmailsDB
-    Get-TasksList
-    Get-SettingsXML
-}
-
 function Set-DataSources
 {
     $WpfcbxEnvEnvironment.ItemsSource = $Script:EnvironmentDB.Tables[0].DefaultView
@@ -430,7 +415,6 @@ function Get-TasksList
     catch {
         $Script:Tasks = @()
     }
-    #return $Tasks
     $WpflstCurrJobs.ItemsSource = @($Script:Tasks)
 }
 
@@ -713,7 +697,7 @@ param (
 	$Cmd = New-Object System.Data.SqlClient.SQLCommand ($Query,$Conn)
 	[boolean]$HasStore = $Cmd.ExecuteScalar()
     if($HasStore) {
-        New-Popup -Message "There is a backup for $Id." -Title "Canceled" -Buttons OK -Icon Stop
+        New-Popup -Message "There is a configuration backup for $Id in the database." -Title "Canceled" -Buttons OK -Icon Stop
         $WpflblWarning.Text = "Canceled."
     }
     else {
@@ -733,7 +717,6 @@ param (
 	    $Cmd = New-Object System.Data.SqlClient.SQLCommand ($Query,$Conn)
 	    $Cmd.ExecuteNonQuery() | Out-Null
 
-
         $WpflblWarning.Text = "Completed."
     }
     $Conn.Close()
@@ -745,12 +728,6 @@ function Insert-User
     $Query = "INSERT INTO [dbo].[AXTools_UserAccount] ([ID],[USERNAME],[PASSWORD]) VALUES ('$Id','$UserName','$SecureStringAsPlainText')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery() | Out-Null
-    if(![string]::IsNullOrEmpty($RunAs)) {
-        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
-        if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value = "$UserName" }
-        if([string]::IsNullOrEmpty(($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value)) { $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value = "$($SecureStringAsPlainText.ToString())" }
-        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
-    }
 }
 
 function Get-TasksInterval
@@ -930,7 +907,6 @@ $WpflstCurrJobs.Add_SelectionChanged({
             $WpfbtnTskEnable.IsEnabled = $true
             $WpfbtnTskDelete.IsEnabled = $true
             $WpfbtnTskEdit.IsEnabled = $true
-
         }
         elseif($WpflstCurrJobs.SelectedItem.State -like 'Ready') {
             $WpfbtnTskDisable.IsEnabled = $true
@@ -1421,6 +1397,22 @@ $WpfbtnTskSave.Add_Click({
                     Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
                     Get-TabItemClear
                 }
+                'AX Data Refresh' {
+                    $TaskName = "$($WpfcbxTskEnvironment.Text) - $($WpfcbxTskTaskName.Text)"
+                    $TaskRunAsUser = $Credential.UserName
+                    $TaskRunAsPassword = $Credential.GetNetworkCredential().Password       
+                    $PowershellFilePath = 'Powershell.exe '
+                    $ScriptFilePath = """$ScriptDir\AX-Refresh\RFR-DynamicsRefresh.ps1"""
+                    $ScriptParameters = "-EnvironName ""$($WpfcbxTskEnvironment.Text)"" -RestoreDB"
+                    $Action = New-ScheduledTaskAction -Execute $PowershellFilePath -Argument "-File $ScriptFilePath $ScriptParameters"
+                    $Trigger = New-ScheduledTaskTrigger -Daily -At $(([DateTime]::Parse($WpftxtTskTime.Text)).ToShortTimeString()) -DaysInterval 1
+                    $Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit $(New-TimeSpan -Hours 4) -MultipleInstances Queue
+                    $Principals = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Password -UserId $TaskRunAsUser -Id $TaskRunAsUser
+                    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principals -Description "Created: $(Get-Date -Format G) - $env:USERDOMAIN\$env:USERNAME"
+                    Get-TasksFolder
+                    Register-ScheduledTask -TaskPath '\DynamicsAxTools' -TaskName $TaskName -InputObject $Task -User $TaskRunAsUser -Password $TaskRunAsPassword
+                    Get-TabItemClear
+                }
                 Default {
                     $WpflblWarning.Text = "Incorrect Task Name $($WpfcbxTskTaskName.Text)"
                 }
@@ -1747,6 +1739,27 @@ $WpfbtnDBCreate.Add_Click({
     }
 })
 
+$WpfbtnDBSaveCredential.Add_Click({
+    $CurrentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $ToolsCred = Get-Credential $CurrentUser.Name
+    if(Check-UserPassword $ToolsCred) {
+        $SecureStringAsPlainText = Write-EncryptedString -InputString $ToolsCred.GetNetworkCredential().Password -DTKey "$((Get-WMIObject Win32_Bios).PSComputerName)-$((Get-WMIObject Win32_Bios).SerialNumber)"
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+        $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value = "$($ToolsCred.UserName)" 
+        $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value = "$($SecureStringAsPlainText.ToString())"
+        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
+        $WpftxtDBUsername.Text = ((Import-ConfigFile).Username)
+    }
+})
+
+$WpfbtnDBClearCredential.Add_Click({
+    [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+    $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'UserName'}).Value = "" 
+    $($ConfigFile.DynamicsAxTools.Setting | Where {$_.Key -eq 'Password'}).Value = ""
+    $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
+    $WpftxtDBUsername.Text = ((Import-ConfigFile).Username)
+})
+
 #===========================================================================
 # Form Servers
 #===========================================================================
@@ -2001,7 +2014,6 @@ $WpfbtnServStart.Add_Click({
                 $ReCheck = $false
             }
         }
-
     }
     if($ReCheck) { Get-EnvCheck }
 })
@@ -2370,6 +2382,85 @@ param (
 	}
 }
 
+$WpfbtnDBCleanUp.Add_Click({
+    if($WpftxtDBCleanupDays.Text -ne 0 -or ![string]::IsNullOrEmpty($WpftxtDBCleanupDays.Text)) {
+        $WpfbtnDBCleanUp.IsEnabled = $false
+        $Answer = New-Popup -Message "Do you want to continue?" -Title "Alert" -Buttons YesNo -Icon Question
+        if($Answer -eq 6) {
+            $SqlQueries =   "DELETE FROM AXMonitor_ExecutionLog WHERE CREATEDDATETIME <= DATEADD(Day, $([int]$WpftxtDBCleanupDays.Text * -1), GETDATE())",
+                            "DELETE FROM AXReport_ExecutionLog WHERE CREATEDDATETIME <= DATEADD(Day, $([int]$WpftxtDBCleanupDays.Text * -1), GETDATE())",
+                            "DELETE FROM AXTools_ExecutionLog WHERE CREATEDDATETIME <= DATEADD(Day, $([int]$WpftxtDBCleanupDays.Text * -1), GETDATE())",
+                            "DELETE FROM AXTools_EmailLog WHERE CREATEDDATETIME <= DATEADD(Day, $([int]$WpftxtDBCleanupDays.Text * -1), GETDATE())",
+                            "DELETE FROM A FROM AXMonitor_AXBatchJobs A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_AXNumberSequences A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_GRDLog A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_GRDStatistics A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_PerfmonData A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_SQLConfiguration A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_SQLInformation A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_SQLRunningSpids A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_SQLQueryPlans A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_AxBatchJobs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_AxLongBatchJobs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_AxMRP A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_AxRetailJobs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_AxServices A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_EventLogs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_PerfmonData A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_RunningProcesses A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_SqlDatabases A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_SQLLog A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXReport_SRSLog A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DBCC SHRINKDATABASE ($($WpftxtDBName.Text), TRUNCATEONLY)"
+
+            $ScriptBlock = {
+                Param ($SqlConn,$SqlCmd,$SqlQuery)
+                $SqlCmd.Connection = $SqlConn
+                $SqlCmd.CommandText = $SqlQuery
+                try {
+                    $SqlCmd.ExecuteNonQuery() | Out-Null
+                }
+                catch {
+                    $ErrorMsg = $($_.Exception.Message)
+                }
+                $SqlConn.Close()
+                return $ErrorMsg
+            }
+
+            $RunSpacePool = [RunspaceFactory]::CreateRunspacePool(1,2)
+            $RunSpacePool.Open()
+            $Jobs = @()
+
+            $WpflblWarning.Text = "Running ..."
+            foreach($SqlQuery in $SqlQueries) {
+                $SqlConn = Get-ConnectionString
+                $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
+                $Job = [Powershell]::Create().AddScript($ScriptBlock)
+                $Job.AddParameter("SqlConn", $SqlConn)
+                $Job.AddParameter("SqlCmd", $SqlCmd)
+                $Job.AddParameter("SqlQuery", $SqlQuery)
+                $Job.RunspacePool = $RunSpacePool
+                $Jobs += New-Object PSObject -Property @{
+                    Computer = $env:COMPUTERNAME
+                    Pipe = $Job
+                    Result = $Job.BeginInvoke()
+                }
+            }
+            
+            $JobResults = @()
+            $Jobs | % {
+                $JobResults += $_.Pipe.EndInvoke($_.Result)
+            }
+
+            $WpflblWarning.Text = "Done."
+        }
+        else {
+            $WpflblWarning.Text = "Canceled."
+        }        
+    }
+    $WpfbtnDBCleanUp.IsEnabled = $true
+})
+
 #===========================================================================
 # Form Esc. Key
 #===========================================================================
@@ -2461,8 +2552,10 @@ param
 $Form.Add_Loaded({
     $WpftxtDBServer.Text = ((Import-ConfigFile).DbServer)
     $WpftxtDBName.Text = ((Import-ConfigFile).DbName)
+    $WpftxtDBUsername.Text = ((Import-ConfigFile).UserName)
     $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
     if($Srv.Status -eq 'Online' -and $Srv.Databases[$WpftxtDBName.Text] -and ![string]::IsNullOrEmpty($WpftxtDBServer.Text) -and ![string]::IsNullOrEmpty($WpftxtDBName.Text)) {
+        Get-EnvironmentsDB
         Get-UsersDB
         Get-EmailsDB
         Get-TasksList
@@ -2470,7 +2563,7 @@ $Form.Add_Loaded({
         Get-TabItemClear
         $DBStats = [ordered]@{0="No";1="Log Statistics only";2="Log and Update Statistics"}
         $WpfcbxEnvDBStats.ItemsSource = $DBStats
-        $SchedTasks = [ordered]@{0="AX Monitor";1="AX Report";2="Check AOS";3="Recycle Perfmon";4="Check Perfmon"}
+        $SchedTasks = [ordered]@{0="AX Monitor";1="AX Report";2="Check AOS";3="Recycle Perfmon";4="Check Perfmon";5="AX Data Refresh"}
         $WpfcbxTskTaskName.ItemsSource = $SchedTasks
         $WpfdgXMLSettings.CanUserAddRows = $false
         $WpfdgXMLSettings.CanUserDeleteRows = $false
@@ -2479,11 +2572,15 @@ $Form.Add_Loaded({
         $WpfbtnDBCreate.IsEnabled = $false
         $WpfbtnDBDrop.IsEnabled = $true
         $WpfbtnDBTestConn.IsEnabled = $true
+        $WpfbtnDBSaveCredential.IsEnabled = $true
+        $WpfbtnDBClearCredential.IsEnabled = $true
         $WpftxtDBServer.IsEnabled = $false
         $WpftxtDBName.IsEnabled = $false
         $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
         $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
         $WpfcbxSrvType.ItemsSource = @("AOS";"SQL";"IIS";"RDP";"SRS")
+        $DBSize = $Srv.Databases[$WpftxtDBName.Text] | Select Size, @{n='SpaceAvailable'; e={[Math]::Round(($_.SpaceAvailable/1024),2)}}
+        $WpflblDBSize.Content = "Database Size: $($DBSize.Size)MB Available Space: $($DBSize.SpaceAvailable)MB"
     }
     else {
         Get-SettingsXML
@@ -2735,7 +2832,7 @@ else {
     $null = $AsyncWindow::ShowWindowAsync((Get-Process -PID $Pid).MainWindowHandle, 0)
     $Form.ShowDialog() | Out-Null
 }
-#>
+
 $Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
 Stop-Process $Pid

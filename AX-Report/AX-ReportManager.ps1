@@ -178,9 +178,24 @@ param(
 				Add-SQLInstance $WrkServer.ServerName '' 'Regional Database (StoreDB)'
 			}
 			'SRS' {
-				##TODO: ADD SSRS version based on SQL version
-				$RSObject = Get-WmiObject -Class "MSReportServer_ConfigurationSetting" -Namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v13\Admin" -ComputerName $WrkServer.ServerName
-				Add-SQLInstance $RSObject.DatabaseServerName $RSObject.DatabaseName 'SSRS Database'
+				#$RSObject = Get-WmiObject -Class "MSReportServer_ConfigurationSetting" -Namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v13\Admin" -ComputerName $WrkServer.ServerName
+	            if ($Script:Settings.LocalAdminAccount) {
+		            if(Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS' -ErrorAction SilentlyContinue }) {
+                        $InstanceKey = (Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS'}).MSSQLSERVER
+                        $SQLVersion = ((Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($args[0])\Setup"} -ArgumentList $InstanceKey).Version).Split(".")[0]
+                        $RSObject = Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-WmiObject -Class "MSReportServer_ConfigurationSetting" -Namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v$($args[0])\Admin" } -ArgumentList $SQLVersion
+                    }
+	            }
+	            else {
+		            if(Invoke-Command -Computer $WrkServer.ServerName -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS' -ErrorAction SilentlyContinue }) {
+                        $InstanceKey = (Invoke-Command -Computer $WrkServer.ServerName -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS'}).MSSQLSERVER
+                        $SQLVersion = ((Invoke-Command -Computer $WrkServer.ServerName -ScriptBlock { Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($args[0])\Setup"} -ArgumentList $InstanceKey).Version).Split(".")[0]
+                        $RSObject = Invoke-Command -Computer $WrkServer.ServerName -ScriptBlock { Get-WmiObject -Class "MSReportServer_ConfigurationSetting" -Namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v$($args[0])\Admin" } -ArgumentList $SQLVersion
+                    }
+	            }
+                $RSObject | % {              
+				    Add-SQLInstance $_.DatabaseServerName $_.DatabaseName "SSRS Database ($($_.InstanceName))"
+                }
 			}
 		}
 		Get-EventLogs

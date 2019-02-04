@@ -597,7 +597,7 @@ function Get-EnvironmentServers
 	    }
     }
     else {
-	    $Script:WarningMsg = 'No servers to show.'
+	    $Script:WarningMsg = 'No servers in the database (Run 9 > 5 to refresh servers).'
     }
 }
 

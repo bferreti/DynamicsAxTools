@@ -86,12 +86,8 @@ function Get-SQLMonitoring
     }
     else {
         if(($Script:Settings.EnableStats -gt 0) -and (Get-SQLStatisticsInterval)) {
-            #Write-ExecLog "Statistics True"
             Get-SQLStatistics
         }
-        #else {
-        #    Write-ExecLog "Statistics False"
-        #}
     }
     if($Script:Settings.GRDJobs) { 
         Write-ExecLog "Check GRD Jobs $($Script:Settings.GRDJobs.Count)"
@@ -347,10 +343,10 @@ function Get-GRDStatus
     Get-CPUStatus
     Get-SQLStatus
 
-    #Write-Host("$Step","Blocking Count - $($Script:Settings.Blocking.Spid.Count) / $($Script:Settings.BlockThold)")
-    #Write-Host("$Step","Wait Time - $($Script:Settings.WaitTotal) / $($Script:Settings.WaitingThold)")
-    #Write-Host("$Step","CPU% - $($Script:Settings.CPUTotal) / $($Script:Settings.CPUThold)")
-    #Write-Host("$Step","GRD Flag is set to $($Script:Settings.EnableGRD)")
+    
+    if([boolean]::Parse($Script:Settings.Debug)) {
+        Write-Log("GRD Results - Blocking Count - $($Script:Settings.Blocking.Spid.Count) / $($Script:Settings.BlockThold) - Wait Time - $($Script:Settings.WaitTotal) / $($Script:Settings.WaitingThold) - CPU% - $($Script:Settings.CPUTotal) / $($Script:Settings.CPUThold) - GRD Flag is set to $($Script:Settings.EnableGRD)")
+    }
    
     if(($($Script:Settings.Blocking.Spid.Count) -ge $($Script:Settings.BlockThold)) -or 
         ($($Script:Settings.WaitTotal) -gt $($Script:Settings.WaitingThold)) -or 
@@ -521,7 +517,9 @@ function Get-GRDTables
 
     Write-ExecLog "Started GRD (Guardian Defense - Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
 
-    if([boolean]::Parse($Script:Settings.Debug)) { 
+    if([boolean]::Parse($Script:Settings.Debug)) {
+        Check-Folder "$($Script:Settings.LogFolder)\$($Script:Settings.FileDateTime)"
+        $Script:Settings.LogFolder = "$($Script:Settings.LogFolder)\$($Script:Settings.FileDateTime)"
         $Script:Settings.Processes | Export-Csv "$($Script:Settings.LogFolder)\40-GRD_Processes_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
         $Script:Settings.Blocking | Export-Csv "$($Script:Settings.LogFolder)\41-GRD_Blocking_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
         $Script:Settings | Export-Csv "$($Script:Settings.LogFolder)\00-GRD_Settings_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append
@@ -534,7 +532,7 @@ function Get-GRDTables
                 #($_.Sql_Text -notmatch 'FETCH*|DECLARE*|CREATE INDEX*|CREATE PROCEDURE*|UPDATE*|INSERT*|sp_*|exec*') -and
                 #($_.Sql_Text -notmatch 'FETCH*|CREATE INDEX*') -and
                 ($_.Status -ne 'sleeping') -and ($_.Sql_Text -notlike '') )} | 
-                Select-Object Sql_Text #, Logical_Reads, Host_Name
+                Select-Object Sql_Text
 
     if([boolean]::Parse($Script:Settings.Debug)) { $SQLText | Export-Csv "$($Script:Settings.LogFolder)\11-GRD_SQLTextFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
 
@@ -645,6 +643,7 @@ function Get-GRDTables
 
         if($TablesRet) {
             GRD-StartJobs $TablesRet
+            GRD-GetExecutionPlans $TablesRet
         }
     }
     else {
@@ -803,6 +802,64 @@ function Get-JobStatus
             }
         }
     }
+}
+
+function GRD-GetExecutionPlans
+{
+param(
+    [array]$Tables
+)
+    $TablesIn = @()
+    $Tables | % { [array]$TablesIn += "'$(($_).Replace('dbo.',''))'" }
+    $SqlQuery = "INSERT INTO [dbo].[AXMonitor_SQLQueryPlans]
+               ([ENVIRONMENT]
+               ,[AVG_SECONDS]
+               ,[TOTAL_SECONDS]
+               ,[EXECUTION_COUNT]
+               ,[SQL_TEXT]
+               ,[TABLE_NAME]
+               ,[DATABASE_NAME]
+               ,[LAST_EXECUTION_TIME]
+               ,[MIN_LOGICAL_READS]
+               ,[MAX_LOGICAL_READS]
+               ,[LAST_LOGICAL_READS]
+               ,[SQL_HANDLE]
+               ,[PLAN_HANDLE]
+               ,[QUERY_HASH]
+               ,[QUERY_PLAN_HASH]
+               ,[GUID])
+            SELECT '$($Script:Settings.Environment)' as ENVIRONMENT, 
+		            ROUND(qs.total_elapsed_time / qs.execution_count / 1000000.0,9) AS AVG_SECONDS,
+		            ROUND(qs.total_elapsed_time / 1000000.0,9) AS TOTAL_SECONDS,
+		            qs.EXECUTION_COUNT,
+		            LTRIM(RTRIM(SUBSTRING (qt.text,qs.statement_start_offset/2, 
+				            (CASE WHEN qs.statement_end_offset = -1 
+				            THEN LEN(CONVERT(NVARCHAR(MAX), qt.text)) * 2 
+				            ELSE qs.statement_end_offset END - qs.statement_start_offset)/2))) AS SQL_TEXT,
+		            o.name AS TABLE_NAME, 
+		            DB_NAME(qt.dbid) AS DATABASE_NAME, 
+		            LAST_EXECUTION_TIME, 
+		            MIN_LOGICAL_READS, 
+		            MAX_LOGICAL_READS, 
+		            LAST_LOGICAL_READS, 
+		            '0x'+CONVERT(varchar(max),SQL_HANDLE,2) as SQL_HANDLE, --SQL_HANDLE,
+		            '0x'+CONVERT(varchar(max),PLAN_HANDLE,2) as PLAN_HANDLE, --PLAN_HANDLE, 
+		            '0x'+CONVERT(varchar(max),QUERY_HASH,2) as QUERY_HASH, --QUERY_HASH, 
+		            '0x'+CONVERT(varchar(max),QUERY_PLAN_HASH,2) as QUERY_PLAN_HASH, --QUERY_PLAN_HASH, 
+		            '$($Script:Settings.Guid)' AS GUID
+            FROM sys.dm_exec_query_stats qs
+            CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) as qt
+            LEFT OUTER JOIN sys.objects o ON qt.objectid = o.object_id
+            WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND (qs.total_elapsed_time / qs.execution_count / 1000000.0) >= 10 AND o.name IN ($($TablesIn -join ','))
+            ORDER BY AVG_SECONDS DESC"
+    try {
+        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$Script:Settings.ToolsConnection)
+        $SqlCommand.ExecuteNonQuery() | Out-Null
+    }
+    catch {
+            if([boolean]::Parse($Script:Settings.Debug)) { $_.Exception.Message | Out-File "$($Script:Settings.LogFolder)\33-GRD_QueryPlans_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+    }
+    if([boolean]::Parse($Script:Settings.Debug)) { $SqlQuery | Out-File "$($Script:Settings.LogFolder)\32-GRD_QueryPlans_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 }
 
 function Get-SQLStatisticsInterval
