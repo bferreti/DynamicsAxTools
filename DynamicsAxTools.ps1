@@ -2593,6 +2593,7 @@ $Form.Add_Loaded({
         $WpftabControl.Items[3].IsEnabled = $false
         $WpftabControl.Items[4].IsEnabled = $false
         $WpftabControl.Items[5].IsEnabled = $false
+        $WpftabControl.Items[6].IsEnabled = $false
         $WpftabControl.SelectedIndex = 8
         $WpfbtnDBCreate.IsEnabled = $true
         $WpfbtnDBDrop.IsEnabled = $false
