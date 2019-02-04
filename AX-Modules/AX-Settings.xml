@@ -1,32 +1,32 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <DynamicsAxTools>
-  <Setting Module="General" Key="ReportFolder" Value="" />
-  <Setting Module="General" Key="LogFolder" Value="" />
-  <Setting Module="General" Key="DBServer" Value="" />
-  <Setting Module="General" Key="DBName" Value="" />
-  <Setting Module="General" Key="UserName" Value="" />
-  <Setting Module="General" Key="Password" Value="" />
-  <Setting Module="AXReport" Key="KeepReports" Value="7" />
-  <Setting Module="AXReport" Key="KeepPerfmon" Value="5" />
-  <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" />
-  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="" />
-  <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" />
-  <Setting Module="AXReport" Key="LongJobThreshold" Value="15" />
-  <Setting Module="AXReport" Key="MRPThreshold" Value="0" />
-  <Setting Module="AXMonitor" Key="Debug" Value="false" />
-  <Setting Module="AXMonitor" Key="KeepReports" Value="7" />
-  <Setting Module="AXMonitor" Key="StatisticsPercentChange" Value="10" />
-  <Setting Module="AXMonitor" Key="SendLowRiskEmail" Value="15" />
-  <Setting Module="AXMonitor" Key="StatisticsCheck" Value="30" />
-  <Setting Module="AXMonitor" Key="StatisticsUpdate" Value="60" />
-  <Setting Module="AXMonitor" Key="StatisticsUpdateTop" Value="15" />
-  <Setting Module="AXMonitor" Key="StatisticsUpdateCpuMax" Value="50" />
-  <Setting Module="AXRefresh" Key="SqlTruncate" Value="true" />
-  <Setting Module="AXRefresh" Key="SqlCompression" Value="true" />
-  <Setting Module="AXRefresh" Key="SqlStoreScript" Value="false" />
-  <Setting Module="AXRefresh" Key="DataScrub" Value="false" />
-  <Setting Module="AXRefresh" Key="SendEmail" Value="false" />
-  <Setting Module="AXRefresh" Key="SaveTables" Value="DMFDATASOURCE,DMFDATASOURCEPROPERTIES,AFMPLUPARAMETERS,AFMPLUERRHANDLINGSETUP,DMFDEFINITIONGROUPENTITY,SYSEMAILPARAMETERS,AFMRETAILPARAMETERSEXT,AIFCHANNEL,AIFPORT,AIFSERVICE,AIFWEBSITES,BATCHGROUP,BATCHSERVERCONFIG,BATCHSERVERGROUP,BIANALYSISSERVER,BIANALYSISSERVICESDATABASE,BICONFIGURATION,DMFPARAMETERS,DOCUPARAMETERS,DOCUTYPE,EPGLOBALPARAMETERS,EPWEBSITEPARAMETERS,HCMEMPLOYMENT,HCMPERSONIMAGE,HCMPOSITION,HCMPOSITIONUNIONAGREEMENT,HCMPOSITIONWORKERASSIGNMENT,HCMWORKER,HCMWORKERPRIMARYPOSITION,INVENTLOCATIONDEFAULTLOCATION,RETAILCDXDATAGROUP,RETAILCDXFILESTORAGEPROVIDER,RETAILCDXSCHEDULEDATAGROUP,RETAILCDXSCHEDULERINTERVAL,RETAILCHANNELPROFILE,RETAILCHANNELPROFILEPROPERTY,RETAILCHANNELTABLE,RETAILCONNAOSPROFILE,RETAILCONNCONNECTIONPROFILE,RETAILCONNDATABASEPROFILE,RETAILCONNPARAMETERS,RETAILCONNSCHEDULE,RETAILCONNSTORECONNECTPROFILE,RETAILDEVICE,RETAILDEVICETYPES,RETAILHARDWAREPROFILE,RETAILINTERNALORGANIZATION,RETAILPARAMETERS,RETAILPOSITIONPOSPERMISSION,RETAILPOSPERMISSIONGROUP,RETAILPOSTHEME,RETAILPUBCHANNELATTRIBUTE,RETAILSHAREDBINGPARAMETERS,RETAILSHAREDPARAMETERS,RETAILTERMINALTABLE,RETAILTHEMEPALLET,RETAILTILLLAYOUT,RETAILTILLLAYOUTSTAFF,RETAILTILLLAYOUTSTORE,RETAILTILLLAYOUTZONE,RETAILTILLLAYOUTZONEREFERENCE,RETAILTRANSACTIONSERVICEPROFILE,SECURITYUSERROLE,SRSSERVERS,SYSBCPROXYUSERACCOUNT,SYSCLUSTERCONFIG,SYSSERVERCONFIG,SYSUSERINFO,SYSVERSIONCONTROLPARAMETERS,USERGROUPLIST,USERINFO" />
-  <Setting Module="AXRefresh" Key="DeleteTables" Value="SYSSERVERSESSIONS,SYSCLIENTSESSIONS,SYSLASTVALUE,SYSEXCEPTIONTABLE,AIFMESSAGELOG" />
-  <Setting Module="AXRefresh" Key="ScrubTables" Value="Address|Email|NULL,VendTable|Email|vendor@contoso.com,PurchTable|Email|vendor@contoso.com,CustTable|Email|customer@contoso.com" />
+  <Setting Module="General" Key="ReportFolder" Value="" Text="Report Folder Location" />
+  <Setting Module="General" Key="LogFolder" Value="" Text="Log Folder Location (if Debug is True)" />
+  <Setting Module="General" Key="DBServer" Value="" Text="Database Server Name" />
+  <Setting Module="General" Key="DBName" Value="" Text="Database Name" />
+  <Setting Module="General" Key="UserName" Value="" Text="Database UserName - do not change." />
+  <Setting Module="General" Key="Password" Value="" Text="Database Password - do not change." />
+  <Setting Module="AXReport" Key="KeepReports" Value="7" Text="Days to keep AX Reports." />
+  <Setting Module="AXReport" Key="KeepPerfmon" Value="5" Text="Days to keep Perfmon files locally." />
+  <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" Text="Perfmon DataCollector name." />
+  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="" Text="Archive Folder for perfmon files." />
+  <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" Text="Days to keep perfmon archived files." />
+  <Setting Module="AXReport" Key="LongJobThreshold" Value="15" Text="Long Batch Jobs - above threshold (minutes)." />
+  <Setting Module="AXReport" Key="MRPThreshold" Value="0" Text="Long MRP run in minutes or 0 will calculate an average time based on report's data." />
+  <Setting Module="AXMonitor" Key="Debug" Value="false" Text="Change Debug setting for AX Monitor (GRD)." />
+  <Setting Module="AXMonitor" Key="KeepReports" Value="7" Text="Days to keep AX Monitor reports." />
+  <Setting Module="AXMonitor" Key="StatisticsPercentChange" Value="10" Text="Min % to log SQL Statistics changes." />
+  <Setting Module="AXMonitor" Key="SendLowRiskEmail" Value="15" Text="Inverval to send low risk emails." />
+  <Setting Module="AXMonitor" Key="StatisticsCheck" Value="30" Text="Interval to check SQL Statistics." />
+  <Setting Module="AXMonitor" Key="StatisticsUpdate" Value="60" Text="Interval to update Statistics." />
+  <Setting Module="AXMonitor" Key="StatisticsUpdateTop" Value="15" Text="Update Statistics for top indexes." />
+  <Setting Module="AXMonitor" Key="StatisticsUpdateCpuMax" Value="50" Text="Just update stats if CPU bellow %." />
+  <Setting Module="AXRefresh" Key="SqlTruncate" Value="true" Text="Truncate tables before running an enviroment refresh." />
+  <Setting Module="AXRefresh" Key="SqlCompression" Value="true" Text="Trys to compress SQL tables." />
+  <Setting Module="AXRefresh" Key="SqlStoreScript" Value="false" Text="Save Create Table script on the database (can cause errors)." />
+  <Setting Module="AXRefresh" Key="DataScrub" Value="false" Text="Scrub AX Data?" />
+  <Setting Module="AXRefresh" Key="SendEmail" Value="false" Text="Send email when refresh is completed?" />
+  <Setting Module="AXRefresh" Key="SaveTables" Value="DMFDATASOURCE,DMFDATASOURCEPROPERTIES,DMFDEFINITIONGROUPENTITY,SYSEMAILPARAMETERS,AIFCHANNEL,AIFPORT,AIFSERVICE,AIFWEBSITES,BATCHGROUP,BATCHSERVERCONFIG,BATCHSERVERGROUP,BIANALYSISSERVER,BIANALYSISSERVICESDATABASE,BICONFIGURATION,DMFPARAMETERS,DOCUPARAMETERS,DOCUTYPE,EPGLOBALPARAMETERS,EPWEBSITEPARAMETERS,HCMEMPLOYMENT,HCMPERSONIMAGE,HCMPOSITION,HCMPOSITIONUNIONAGREEMENT,HCMPOSITIONWORKERASSIGNMENT,HCMWORKER,HCMWORKERPRIMARYPOSITION,INVENTLOCATIONDEFAULTLOCATION,RETAILCDXDATAGROUP,RETAILCDXFILESTORAGEPROVIDER,RETAILCDXSCHEDULEDATAGROUP,RETAILCDXSCHEDULERINTERVAL,RETAILCHANNELPROFILE,RETAILCHANNELPROFILEPROPERTY,RETAILCHANNELTABLE,RETAILCONNAOSPROFILE,RETAILCONNCONNECTIONPROFILE,RETAILCONNDATABASEPROFILE,RETAILCONNPARAMETERS,RETAILCONNSCHEDULE,RETAILCONNSTORECONNECTPROFILE,RETAILDEVICE,RETAILDEVICETYPES,RETAILHARDWAREPROFILE,RETAILINTERNALORGANIZATION,RETAILPARAMETERS,RETAILPOSITIONPOSPERMISSION,RETAILPOSPERMISSIONGROUP,RETAILPOSTHEME,RETAILPUBCHANNELATTRIBUTE,RETAILSHAREDBINGPARAMETERS,RETAILSHAREDPARAMETERS,RETAILTERMINALTABLE,RETAILTHEMEPALLET,RETAILTILLLAYOUT,RETAILTILLLAYOUTSTAFF,RETAILTILLLAYOUTSTORE,RETAILTILLLAYOUTZONE,RETAILTILLLAYOUTZONEREFERENCE,RETAILTRANSACTIONSERVICEPROFILE,SECURITYUSERROLE,SRSSERVERS,SYSBCPROXYUSERACCOUNT,SYSCLUSTERCONFIG,SYSSERVERCONFIG,SYSUSERINFO,SYSVERSIONCONTROLPARAMETERS,USERGROUPLIST,USERINFO" Text="Table to store configuration snapshot." />
+  <Setting Module="AXRefresh" Key="DeleteTables" Value="SYSSERVERSESSIONS,SYSCLIENTSESSIONS,SYSLASTVALUE,SYSEXCEPTIONTABLE,AIFMESSAGELOG" Text="Tables to delete only." />
+  <Setting Module="AXRefresh" Key="ScrubTables" Value="Address|Email|NULL,VendTable|Email|vendor@contoso.com,PurchTable|Email|vendor@contoso.com,CustTable|Email|customer@contoso.com" Text="Data scrubbing criteria - Table|Field|Value (UPDATE Table SET Field = Value)." />
 </DynamicsAxTools>
