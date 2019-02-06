@@ -18,7 +18,7 @@ $inputXML = @"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DynamicsAxTools"
         mc:Ignorable="d"
-        Title="DynamicsAxTools (Powershell Toolbox)" Height="400" Width="800" ResizeMode="NoResize">
+        Title="DynamicsAxTools" Height="400" Width="800" ResizeMode="NoResize">
     <Grid>
         <TabControl x:Name="tabControl" Margin="5,20,5,35" >
             <TabItem Header="Notes">
