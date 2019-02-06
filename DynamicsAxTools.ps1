@@ -18,9 +18,9 @@ $inputXML = @"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DynamicsAxTools"
         mc:Ignorable="d"
-        Title="DynamicsAxTools (Powershell Toolbox)" Height="385" Width="800" ResizeMode="NoResize">
+        Title="DynamicsAxTools (Powershell Toolbox)" Height="400" Width="800" ResizeMode="NoResize">
     <Grid>
-        <TabControl x:Name="tabControl" Margin="5,20,5,35" >
+        <TabControl x:Name="tabControl" Margin="5,20,5,45" >
             <TabItem Header="Notes">
                 <Grid>
                     <RichTextBox x:Name="richTextBox" Height="280" VerticalAlignment="Top" VerticalScrollBarVisibility="Visible" IsReadOnly="True">
@@ -84,15 +84,15 @@ $inputXML = @"
                     <Button x:Name="btnEnvSave" Content="Save" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvDelete" Content="Delete" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvtestSQL" Content="Test DB Conn" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False" />
-                    <Button x:Name="btnEnvReports" Content="Reports" HorizontalAlignment="Left" Margin="635,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
-                    <Button x:Name="btnEnvLogs" Content="Logs" HorizontalAlignment="Left" Margin="700,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
+                    <Button x:Name="btnEnvReports" Content="Reports" HorizontalAlignment="Left" Margin="615,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
+                    <Button x:Name="btnEnvLogs" Content="Logs" HorizontalAlignment="Left" Margin="680,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
                     <Rectangle Fill="#FFEFEFF1" Height="192" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top" />
                     <ComboBox x:Name="cbxEnvEnvironment" HorizontalAlignment="Left" Margin="95,59,0,0" VerticalAlignment="Top" Width="223" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
                     <TextBox x:Name="txtEnvEnvironment" HorizontalAlignment="Left" Height="24" Margin="91,85,0,0" VerticalAlignment="Top" Width="183" IsEnabled="False"/>
                     <ComboBox x:Name="cbxEnvEmail" HorizontalAlignment="Left" Margin="320,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
-                    <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="460,84,0,0" VerticalAlignment="Top" />
-                    <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="525,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
-                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="665,90,0,0" VerticalAlignment="Top" />
+                    <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="455,84,0,0" VerticalAlignment="Top" />
+                    <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="520,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
+                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="660,90,0,0" VerticalAlignment="Top" />
                     <ComboBox x:Name="cbxEnvDBUser" HorizontalAlignment="Left" Margin="78,123,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
                     <Label x:Name="lblEnvDBServer" Content="SQL Server" HorizontalAlignment="Left" Margin="227,121,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtEnvDBServer" HorizontalAlignment="Left" Height="24" Margin="299,122,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" />
@@ -105,14 +105,14 @@ $inputXML = @"
                     <TextBox x:Name="txtEnvWaiting" HorizontalAlignment="Left" Height="24" Margin="500,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False" />
                     <Label x:Name="lblEnvDBUser" Content="SQL User" HorizontalAlignment="Left" Margin="15,121,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvDBStats" Content="Check DB Statistics" HorizontalAlignment="Left" Margin="15,148,0,0" VerticalAlignment="Top"/>
-                    <Separator HorizontalAlignment="Left" Height="18" Margin="18,108,0,0" VerticalAlignment="Top" Width="745" />
+                    <Separator HorizontalAlignment="Left" Height="18" Margin="18,108,0,0" VerticalAlignment="Top" Width="722" />
                     <Label x:Name="lblEnvCPU" Content="CPU Threshold" HorizontalAlignment="Left" Margin="16,208,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvBlocking" Content="Blocking Threshold" HorizontalAlignment="Left" Margin="189,208,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvWaiting" Content="Waiting Threshold" HorizontalAlignment="Left" Margin="385,208,0,0" VerticalAlignment="Top" />
                     <Label x:Name="lblEnvName" Content="Environment" HorizontalAlignment="Left" Margin="15,57,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvDescription" Content="Description" HorizontalAlignment="Left" Margin="15,84,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="lblEnvEmail" Content="Email" HorizontalAlignment="Left" Margin="279,84,0,0" VerticalAlignment="Top"/>
-                    <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="745" />
+                    <Separator HorizontalAlignment="Left" Height="18" Margin="19,172,0,0" VerticalAlignment="Top" Width="722" />
                 </Grid>
             </TabItem>
             <TabItem Header="Servers">
@@ -120,7 +120,7 @@ $inputXML = @"
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <ComboBox x:Name="cbxServEnvironment" HorizontalAlignment="Left" Margin="20,14,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
                     <Rectangle Fill="#FFEFEFF1" Height="214" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top" />
-                    <DataGrid x:Name="dgServers" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="451" AutoGenerateColumns="False" MinColumnWidth="55" HorizontalContentAlignment="Center">
+                    <DataGrid x:Name="dgServers" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="440" AutoGenerateColumns="False" MinColumnWidth="55" HorizontalContentAlignment="Center">
                         <DataGrid.Columns>
                             <DataGridTextColumn Binding="{Binding SERVERNAME, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Server" Width="Auto" CanUserResize="True" />
                             <DataGridComboBoxColumn SelectedValueBinding="{Binding SERVERTYPE, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged}" Header="Type" Width="Auto" CanUserResize="True" />
@@ -131,18 +131,18 @@ $inputXML = @"
                         </DataGrid.Columns>
                     </DataGrid>
                     <Button x:Name="btnSave" Content="Save" HorizontalAlignment="Left" Margin="175,15,0,0" VerticalAlignment="Top" Width="75"/>
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="476,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="282"/>
-                    <GroupBox x:Name="boxSamples" Header="Perfmon Deployment" HorizontalAlignment="Left" Height="193" Margin="480,57,0,0" VerticalAlignment="Top" Width="272" />
-                    <Label x:Name="lblXmlPath" Content="Template Path:" HorizontalAlignment="Left" Margin="487,77,0,0" VerticalAlignment="Top" FontSize="10"/>
-                    <TextBox x:Name="txtFilePath" HorizontalAlignment="Left" Height="23" Margin="489,97,0,0" VerticalAlignment="Top" Width="257" IsReadOnly="True" IsEnabled="False" FontSize="9"/>
-                    <Label x:Name="lblXmltype" Content="Template Type:" HorizontalAlignment="Left" Margin="487,119,0,0" VerticalAlignment="Top" FontSize="10"/>
-                    <ComboBox x:Name="cbxSrvType" HorizontalAlignment="Left" Margin="489,139,0,0" VerticalAlignment="Top" Width="71"/>
-                    <Button x:Name="btnLoadXml" Content="Load XML" HorizontalAlignment="Left" Margin="590,139,0,0" VerticalAlignment="Top" Width="70"/>
-                    <Button x:Name="btnSaveXml" Content="Save to DB" HorizontalAlignment="Left" Margin="665,139,0,0" VerticalAlignment="Top" Width="70" IsEnabled="False"/>
-                    <Button x:Name="btnPerfDeploy" Content="Deploy Perfmon" HorizontalAlignment="Left" Margin="516,187,0,0" VerticalAlignment="Top" Width="100"/>
-                    <Button x:Name="btnPerfDelete" Content="Delete Perfmon" HorizontalAlignment="Left" Margin="516,212,0,0" VerticalAlignment="Top" Width="100"/>
-                    <Button x:Name="btnDeleteFolder" Content="Delete Folder" HorizontalAlignment="Left" Margin="621,212,0,0" VerticalAlignment="Top" Width="100"/>
-                    <Button x:Name="btnCopyFiles" Content="Copy Blg Files" HorizontalAlignment="Left" Margin="621,187,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="467,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="282"/>
+                    <GroupBox x:Name="boxSamples" Header="Perfmon Deployment" HorizontalAlignment="Left" Height="193" Margin="471,57,0,0" VerticalAlignment="Top" Width="272" />
+                    <Label x:Name="lblXmlPath" Content="Template Path:" HorizontalAlignment="Left" Margin="478,77,0,0" VerticalAlignment="Top" FontSize="10"/>
+                    <TextBox x:Name="txtFilePath" HorizontalAlignment="Left" Height="23" Margin="480,97,0,0" VerticalAlignment="Top" Width="257" IsReadOnly="True" IsEnabled="False" FontSize="9"/>
+                    <Label x:Name="lblXmltype" Content="Template Type:" HorizontalAlignment="Left" Margin="478,119,0,0" VerticalAlignment="Top" FontSize="10"/>
+                    <ComboBox x:Name="cbxSrvType" HorizontalAlignment="Left" Margin="480,139,0,0" VerticalAlignment="Top" Width="71"/>
+                    <Button x:Name="btnLoadXml" Content="Load XML" HorizontalAlignment="Left" Margin="581,139,0,0" VerticalAlignment="Top" Width="70"/>
+                    <Button x:Name="btnSaveXml" Content="Save to DB" HorizontalAlignment="Left" Margin="656,139,0,0" VerticalAlignment="Top" Width="70" IsEnabled="False"/>
+                    <Button x:Name="btnPerfDeploy" Content="Deploy Perfmon" HorizontalAlignment="Left" Margin="507,187,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnPerfDelete" Content="Delete Perfmon" HorizontalAlignment="Left" Margin="507,212,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnDeleteFolder" Content="Delete Folder" HorizontalAlignment="Left" Margin="612,212,0,0" VerticalAlignment="Top" Width="100"/>
+                    <Button x:Name="btnCopyFiles" Content="Copy Blg Files" HorizontalAlignment="Left" Margin="612,187,0,0" VerticalAlignment="Top" Width="100"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Enviroment Check">
@@ -150,20 +150,20 @@ $inputXML = @"
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
                     <ComboBox x:Name="cbxSrvChkEnvironment" HorizontalAlignment="Left" Margin="20,14,0,0" VerticalAlignment="Top" Width="150" IsEditable="False" DisplayMemberPath="ENVIRONMENT"/>
                     <Rectangle Fill="#FFEFEFF1" Height="214" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top" />
-                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="477,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="280"/>
-                    <GroupBox x:Name="groupBox" Header="Environment Checks" HorizontalAlignment="Left" Height="120" Margin="481,57,0,0" VerticalAlignment="Top" Width="272"/>
-                    <CheckBox x:Name="checkAOS" Content="AOS Service Status" HorizontalAlignment="Left" Margin="490,80,0,0" VerticalAlignment="Top" IsChecked="True"/>
-                    <CheckBox x:Name="checkPerfmon" Content="Perfmon Collector Set Status" HorizontalAlignment="Left" Margin="490,99,0,0" VerticalAlignment="Top" IsChecked="True"/>
-                    <CheckBox x:Name="checkServer" Content="AX Users / Avail. Memory / Paging % / CPU" HorizontalAlignment="Left" Margin="490,119,0,0" VerticalAlignment="Top" IsChecked="True"/>
-                    <CheckBox x:Name="checkSQL" Content="SQL Blocking and Perf Couters" HorizontalAlignment="Left" Margin="490,139,0,0" VerticalAlignment="Top" IsChecked="True"/>
-                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="681,148,0,0" VerticalAlignment="Top" Width="65"/>
-                    <GroupBox x:Name="grpAOSTasks" Header="AOS Service" HorizontalAlignment="Left" Height="40" Margin="481,173,0,0" VerticalAlignment="Top" Width="272"/>
-                    <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="611,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="681,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False" RenderTransformOrigin="-0.538,0.15"/>
-                    <GroupBox x:Name="grpPerfmonTasks" Header="Perfmon Collector" HorizontalAlignment="Left" Height="40" Margin="481,212,0,0" VerticalAlignment="Top" Width="272"/>
-                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="611,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="681,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
-                    <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="452">
+                    <Rectangle Fill="#FFEFEFF1" HorizontalAlignment="Left" Height="200" Margin="470,57,0,0" Stroke="#FF688CAF" VerticalAlignment="Top" Width="280"/>
+                    <GroupBox x:Name="groupBox" Header="Environment Checks" HorizontalAlignment="Left" Height="120" Margin="474,57,0,0" VerticalAlignment="Top" Width="272"/>
+                    <CheckBox x:Name="checkAOS" Content="AOS Service Status" HorizontalAlignment="Left" Margin="483,80,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkPerfmon" Content="Perfmon Collector Set Status" HorizontalAlignment="Left" Margin="483,99,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkServer" Content="AX Users / Avail. Memory / Paging % / CPU" HorizontalAlignment="Left" Margin="483,119,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <CheckBox x:Name="checkSQL" Content="SQL Blocking and Perf Couters" HorizontalAlignment="Left" Margin="483,139,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                    <Button x:Name="btnServCheck" Content="Check" HorizontalAlignment="Left" Margin="674,148,0,0" VerticalAlignment="Top" Width="65"/>
+                    <GroupBox x:Name="grpAOSTasks" Header="AOS Service" HorizontalAlignment="Left" Height="40" Margin="474,173,0,0" VerticalAlignment="Top" Width="272"/>
+                    <Button x:Name="btnServStart" Content="Start" HorizontalAlignment="Left" Margin="604,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnServStop" Content="Stop" HorizontalAlignment="Left" Margin="674,188,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False" RenderTransformOrigin="-0.538,0.15"/>
+                    <GroupBox x:Name="grpPerfmonTasks" Header="Perfmon Collector" HorizontalAlignment="Left" Height="40" Margin="474,212,0,0" VerticalAlignment="Top" Width="272"/>
+                    <Button x:Name="btnPerfStart" Content="Start" HorizontalAlignment="Left" Margin="604,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <Button x:Name="btnPerfStop" Content="Stop" HorizontalAlignment="Left" Margin="674,227,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
+                    <ListView x:Name="lstChkSrv" HorizontalAlignment="Left" Height="200" Margin="20,57,0,0" VerticalAlignment="Top" Width="440">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Type" DisplayMemberBinding ="{Binding ServerType}" Width="Auto"/>
