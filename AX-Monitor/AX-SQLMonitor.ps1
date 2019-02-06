@@ -87,6 +87,7 @@ function Get-SQLMonitoring
     else {
         if(($Script:Settings.EnableStats -gt 0) -and (Get-SQLStatisticsInterval)) {
             Get-SQLStatistics
+            GRD-GetExecutionPlans
         }
     }
     if($Script:Settings.GRDJobs) { 
@@ -287,7 +288,6 @@ function Get-SQLStatus
                 JOIN sys.dm_exec_sessions as s with(nolock) on s.session_id = c.session_id
                 JOIN sys.dm_exec_requests as r with(nolock) ON c.session_id = r.blocking_session_id
                 WHERE c.session_id NOT IN (SELECT session_id from sys.dm_exec_requests WHERE session_id <> @@SPID AND session_id > 50)"
-
     $Conn = New-Object System.Data.SqlClient.SQLConnection
     $Conn.ConnectionString = "Server=$($Script:Settings.AXDBServer);Database=Master;Integrated Security=True;Connect Timeout=30"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
@@ -643,7 +643,7 @@ function Get-GRDTables
 
         if($TablesRet) {
             GRD-StartJobs $TablesRet
-            GRD-GetExecutionPlans $TablesRet
+            GRD-GetExecutionPlans
         }
     }
     else {
@@ -811,8 +811,9 @@ param(
 )
     $TablesIn = @()
     $Tables | % { [array]$TablesIn += "'$(($_).Replace('dbo.',''))'" }
-    $SqlQuery = "INSERT INTO [dbo].[AXMonitor_SQLQueryPlans]
+    $SqlQuery = "INSERT INTO [dbo].[AXMonitor_SQLQueryStats]
                ([ENVIRONMENT]
+			   ,[LAST_SECONDS]
                ,[AVG_SECONDS]
                ,[TOTAL_SECONDS]
                ,[EXECUTION_COUNT]
@@ -828,14 +829,12 @@ param(
                ,[QUERY_HASH]
                ,[QUERY_PLAN_HASH]
                ,[GUID])
-            SELECT '$($Script:Settings.Environment)' as ENVIRONMENT, 
+            SELECT '$($Script:Settings.Environment)' as ENVIRONMENT,
+					ROUND(qs.last_elapsed_time / 1000000.0,9) AS LAST_SECONDS, 
 		            ROUND(qs.total_elapsed_time / qs.execution_count / 1000000.0,9) AS AVG_SECONDS,
 		            ROUND(qs.total_elapsed_time / 1000000.0,9) AS TOTAL_SECONDS,
 		            qs.EXECUTION_COUNT,
-		            LTRIM(RTRIM(SUBSTRING (qt.text,qs.statement_start_offset/2, 
-				            (CASE WHEN qs.statement_end_offset = -1 
-				            THEN LEN(CONVERT(NVARCHAR(MAX), qt.text)) * 2 
-				            ELSE qs.statement_end_offset END - qs.statement_start_offset)/2))) AS SQL_TEXT,
+					LTRIM(RTRIM(qt.text)) as SQL_TEXT,
 		            o.name AS TABLE_NAME, 
 		            DB_NAME(qt.dbid) AS DATABASE_NAME, 
 		            LAST_EXECUTION_TIME, 
@@ -848,9 +847,9 @@ param(
 		            '0x'+CONVERT(varchar(max),QUERY_PLAN_HASH,2) as QUERY_PLAN_HASH, --QUERY_PLAN_HASH, 
 		            '$($Script:Settings.Guid)' AS GUID
             FROM sys.dm_exec_query_stats qs
-            CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) as qt
+            CROSS APPLY sys.dm_exec_sql_text(qs.plan_handle) as qt
             LEFT OUTER JOIN sys.objects o ON qt.objectid = o.object_id
-            WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND (qs.total_elapsed_time / qs.execution_count / 1000000.0) >= 10 AND o.name IN ($($TablesIn -join ','))
+            WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND LAST_EXECUTION_TIME >= DATEADD(day, DATEDIFF(day,0,GETDATE()),0) and QUERY_HASH <> 0x0000000000000000 AND (qs.last_elapsed_time / 1000000.0) >= 5
             ORDER BY AVG_SECONDS DESC"
     try {
         $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$Script:Settings.ToolsConnection)

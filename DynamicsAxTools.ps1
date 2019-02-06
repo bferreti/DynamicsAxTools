@@ -20,7 +20,7 @@ $inputXML = @"
         mc:Ignorable="d"
         Title="DynamicsAxTools (Powershell Toolbox)" Height="400" Width="800" ResizeMode="NoResize">
     <Grid>
-        <TabControl x:Name="tabControl" Margin="5,20,5,45" >
+        <TabControl x:Name="tabControl" Margin="5,20,5,35" >
             <TabItem Header="Notes">
                 <Grid>
                     <RichTextBox x:Name="richTextBox" Height="280" VerticalAlignment="Top" VerticalScrollBarVisibility="Visible" IsReadOnly="True">
