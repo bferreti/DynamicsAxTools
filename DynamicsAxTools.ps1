@@ -20,21 +20,7 @@ $inputXML = @"
         mc:Ignorable="d"
         Title="DynamicsAxTools" Height="400" Width="800" ResizeMode="NoResize">
     <Grid>
-        <TabControl x:Name="tabControl" Margin="5,20,5,35" >
-            <TabItem Header="Notes">
-                <Grid>
-                    <RichTextBox x:Name="richTextBox" Height="280" VerticalAlignment="Top" VerticalScrollBarVisibility="Visible" IsReadOnly="True">
-                        <FlowDocument>
-                            <Paragraph>
-                                <Image x:Name="Image" HorizontalAlignment="Left" Height="68" Margin="13,10,0,0" VerticalAlignment="Top" Width="71" />
-                            </Paragraph>
-                            <Paragraph>
-                                <Run Text="RichTextBox"/>
-                            </Paragraph>
-                        </FlowDocument>
-                    </RichTextBox>
-                </Grid>
-            </TabItem>
+        <TabControl x:Name="tabControl" Margin="5,20,5,30" >
             <TabItem Header="User/Email Accounts">
                 <Grid>
                     <Rectangle Fill="#FFEFEFF1" Height="30" Margin="13,10,14,0" Stroke="Black" VerticalAlignment="Top"/>
@@ -263,8 +249,22 @@ $inputXML = @"
                     <Button x:Name="btnDBCleanUp" Content="DB Cleanup" HorizontalAlignment="Left" Margin="621,147,0,0" VerticalAlignment="Top" Width="101"/>
                 </Grid>
             </TabItem>
+            <TabItem Header="About">
+                <Grid>
+                    <RichTextBox x:Name="richTextBox" Height="280" VerticalAlignment="Top" VerticalScrollBarVisibility="Visible" IsReadOnly="True">
+                        <FlowDocument>
+                            <Paragraph>
+                                <Image x:Name="Image" HorizontalAlignment="Left" Height="68" Margin="13,10,0,0" VerticalAlignment="Top" Width="71" />
+                            </Paragraph>
+                            <Paragraph>
+                                <Run Text="RichTextBox"/>
+                            </Paragraph>
+                        </FlowDocument>
+                    </RichTextBox>
+                </Grid>
+            </TabItem>            
         </TabControl>
-        <StatusBar Height="22" VerticalAlignment="Bottom" Width="Auto">
+        <StatusBar Height="22" VerticalAlignment="Bottom" Width="Auto" BorderBrush="Black">
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Grid>
@@ -547,8 +547,11 @@ function Get-TabItemClear
             Get-SettingsXML
         }
         'Database' {
+            Get-SettingsXML
             $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $WpftxtDBServer.Text
             if($Srv.Databases | Where { $_.Name -eq $WpftxtDBName.Text }) {
+                $WpftxtDBName.IsEnabled = $false
+                $WpftxtDBServer.IsEnabled = $false
                 $WpftabControl.Items[0].IsEnabled = $true
                 $WpftabControl.Items[1].IsEnabled = $true
                 $WpftabControl.Items[2].IsEnabled = $true
@@ -556,14 +559,24 @@ function Get-TabItemClear
                 $WpftabControl.Items[4].IsEnabled = $true
                 $WpftabControl.Items[5].IsEnabled = $true
                 $WpftabControl.Items[6].IsEnabled = $true
+                $WpftabControl.Items[7].IsEnabled = $true
+                $WpftabControl.Items[8].IsEnabled = $true
                 $WpflblDBCurrent.Content = 'Connection Successful'
                 $WpflblDBCurrent.Foreground = '#00802b'
                 $WpfbtnDBCreate.IsEnabled = $false
                 $WpfbtnDBDrop.IsEnabled = $true
                 $WpfbtnDBTestConn.IsEnabled = $true
+                $WpfbtnDBCleanUp.IsEnabled = $true
                 $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
                 $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
-                Get-SettingsXML
+                if((Import-ConfigFile).UserName -or (Import-ConfigFile).Password) {
+                    $WpfbtnDBClearCredential.IsEnabled = $true
+                    $WpfbtnDBSaveCredential.IsEnabled = $false
+                }
+                else {
+                    $WpfbtnDBSaveCredential.IsEnabled = $true
+                    $WpfbtnDBClearCredential.IsEnabled = $false
+                }
             }
             else {
                 $WpftabControl.Items[0].IsEnabled = $false
@@ -572,31 +585,35 @@ function Get-TabItemClear
                 $WpftabControl.Items[3].IsEnabled = $false
                 $WpftabControl.Items[4].IsEnabled = $false
                 $WpftabControl.Items[5].IsEnabled = $false
-                $WpftabControl.Items[6].IsEnabled = $false
+                $WpftabControl.SelectedIndex = 7
                 $WpflblDBCurrent.Content = 'Connection Failed'
                 $WpflblDBCurrent.Foreground = '#FFFF0606'
                 $WpftxtDBServer.Clear()
                 $WpftxtDBName.Clear()
+                $WpftxtDBName.Text = 'DynamicsAxTools'
                 $WpftxtDBServer.IsEnabled = $true
                 $WpftxtDBName.IsEnabled = $true
                 $WpfbtnDBCreate.IsEnabled = $true
                 $WpfbtnDBDrop.IsEnabled = $false
                 $WpfbtnDBTestConn.IsEnabled = $false
+                $WpfbtnDBCleanUp.IsEnabled = $false
+                $WpfbtnDBSaveCredential.IsEnabled = $false
+                $WpfbtnDBClearCredential.IsEnabled = $false
                 $WpftxtDBReportPath.Text = ((Import-ConfigFile).ReportFolder)
                 $WpftxtDBLogPath.Text = ((Import-ConfigFile).LogFolder)
             }
         }
-            'Servers' {
-                $WpfcbxServEnvironment.SelectedIndex = -1
-                $WpftxtFilePath.Clear()
-                $WpfcbxSrvType.SelectedIndex = -1
-                $WpfdgServers.ItemsSource = $null
+        'Servers' {
+            $WpfcbxServEnvironment.SelectedIndex = -1
+            $WpftxtFilePath.Clear()
+            $WpfcbxSrvType.SelectedIndex = -1
+            $WpfdgServers.ItemsSource = $null
                 
-            }
-            'Enviroment Check' {
-                $WpfcbxSrvChkEnvironment.SelectedIndex = -1
-                $WpflstChkSrv.ItemsSource = $null
-            }
+        }
+        'Enviroment Check' {
+            $WpfcbxSrvChkEnvironment.SelectedIndex = -1
+            $WpflstChkSrv.ItemsSource = $null
+        }
     }
 }
 
@@ -1954,6 +1971,10 @@ $WpfbtnDBDrop.Add_Click({
         $Srv = New-Object ('Microsoft.SqlServer.Management.SMO.Server') $Server
         $Srv.KillAllProcesses($Database)
         $Srv.Databases[$Database].Drop()
+        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
+        $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbServer'}).Value = ''
+        $($ConfigFile.DynamicsAxTools.Setting | where {$_.Key -eq 'DbName'}).Value = ''
+        $ConfigFile.Save("$ModuleFolder\AX-Settings.xml")
         Get-TabItemClear
     }
     else {
@@ -2607,12 +2628,13 @@ $Form.Add_Loaded({
         $WpftabControl.Items[3].IsEnabled = $false
         $WpftabControl.Items[4].IsEnabled = $false
         $WpftabControl.Items[5].IsEnabled = $false
-        $WpftabControl.Items[6].IsEnabled = $false
-        $WpftabControl.SelectedIndex = 8
+        $WpftabControl.SelectedIndex = 7
         $WpfbtnDBCreate.IsEnabled = $true
         $WpfbtnDBDrop.IsEnabled = $false
         $WpfbtnDBTestConn.IsEnabled = $false
         $WpfbtnDBCleanUp.IsEnabled = $false
+        $WpfbtnDBSaveCredential.IsEnabled = $false
+        $WpfbtnDBClearCredential.IsEnabled = $false
         $WpftxtDBServer.Clear()
         $WpftxtDBName.Clear()
         $WpftxtDBName.Text = 'DynamicsAxTools'
