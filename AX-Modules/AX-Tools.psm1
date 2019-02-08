@@ -1319,9 +1319,9 @@ param (
                                 if($Start) { $DataCollectorSet.Start($false) }
                                 $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
-                            else {
-                                $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
-                            }
+                            #else {
+                            #    $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
+                            #}
                         }
                         catch {
                             $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
@@ -1340,9 +1340,9 @@ param (
                                 if($Start) { $DataCollectorSet.Start($false) }
                                 $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
-                            else {
-                                $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
-                            }
+                            #else {
+                            #    $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
+                            #}
                         }
                         catch {
                             $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
