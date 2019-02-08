@@ -806,11 +806,6 @@ function Get-JobStatus
 
 function Get-ExecutionPlans
 {
-param(
-    [array]$Tables
-)
-    $TablesIn = @()
-    $Tables | % { [array]$TablesIn += "'$(($_).Replace('dbo.',''))'" }
     $SqlQuery = "INSERT INTO [dbo].[AXMonitor_SQLQueryStats]
                ([ENVIRONMENT]
 			   ,[LAST_SECONDS]
