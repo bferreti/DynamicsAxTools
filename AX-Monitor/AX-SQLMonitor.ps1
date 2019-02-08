@@ -87,7 +87,7 @@ function Get-SQLMonitoring
     else {
         if(($Script:Settings.EnableStats -gt 0) -and (Get-SQLStatisticsInterval)) {
             Get-SQLStatistics
-            GRD-GetExecutionPlans
+            Get-ExecutionPlans
         }
     }
     if($Script:Settings.GRDJobs) { 
@@ -643,7 +643,7 @@ function Get-GRDTables
 
         if($TablesRet) {
             GRD-StartJobs $TablesRet
-            GRD-GetExecutionPlans
+            Get-ExecutionPlans
         }
     }
     else {
@@ -804,7 +804,7 @@ function Get-JobStatus
     }
 }
 
-function GRD-GetExecutionPlans
+function Get-ExecutionPlans
 {
 param(
     [array]$Tables
