@@ -272,7 +272,7 @@ $inputXML = @"
                             <ColumnDefinition Width="2" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="5" />
-                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="75" />
                             <ColumnDefinition Width="5" />
                         </Grid.ColumnDefinitions>
                     </Grid>
@@ -738,6 +738,20 @@ param(
     $Interval
 )
     if($Interval -match 'PT(\d+)(.*)$')
+    {
+        $modifier = $Matches[1]
+        $unit = $Matches[2]
+        $hour = 0
+        $minute = 0
+        $second = 0
+        switch($unit) {
+            'H' { $hour = $modifier }
+            'M' { $minute = $modifier }
+        }
+        $timespan = New-Object 'TimeSpan' $hour,$minute,$second
+        return $timespan.TotalMinutes
+    }
+    elseif($Interval -match 'P0DT0H(\d+)(.*)(\d)')
     {
         $modifier = $Matches[1]
         $unit = $Matches[2]
