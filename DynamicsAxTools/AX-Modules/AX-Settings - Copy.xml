@@ -9,7 +9,7 @@
   <Setting Module="AXReport" Key="KeepReports" Value="7" Text="Days to keep AX Reports." />
   <Setting Module="AXReport" Key="KeepPerfmon" Value="5" Text="Days to keep Perfmon files locally." />
   <Setting Module="AXReport" Key="PerfmonName" Value="AxPerfmon" Text="Perfmon DataCollector name." />
-  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="" Text="Archive Folder for perfmon files." />
+  <Setting Module="AXReport" Key="BlgArchiveFolder" Value="C:\Users\bferreti\Documents\GitHub\DynamicsAxTools\PerfmonFiles" Text="Archive Folder for perfmon files." />
   <Setting Module="AXReport" Key="KeepBlgArchive" Value="180" Text="Days to keep perfmon archived files." />
   <Setting Module="AXReport" Key="LongJobThreshold" Value="15" Text="Long Batch Jobs - above threshold (minutes)." />
   <Setting Module="AXReport" Key="MRPThreshold" Value="0" Text="Long MRP run in minutes or 0 will calculate an average time based on report's data." />
