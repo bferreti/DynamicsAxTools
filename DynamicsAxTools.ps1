@@ -70,6 +70,7 @@ $inputXML = @"
                     <Button x:Name="btnEnvSave" Content="Save" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvDelete" Content="Delete" HorizontalAlignment="Left" Margin="230,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnEnvtestSQL" Content="Test DB Conn" HorizontalAlignment="Left" Margin="300,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False" />
+                    <Button x:Name="btnEnvRefresh" Content="Start Refresh Script" HorizontalAlignment="Left" Margin="405,15,0,0" VerticalAlignment="Top" Width="110" IsEnabled="False" />
                     <Button x:Name="btnEnvReports" Content="Reports" HorizontalAlignment="Left" Margin="615,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
                     <Button x:Name="btnEnvLogs" Content="Logs" HorizontalAlignment="Left" Margin="680,15,0,0" VerticalAlignment="Top" Width="60" IsEnabled="False" />
                     <Rectangle Fill="#FFEFEFF1" Height="192" Margin="13,50,14,0" Stroke="Black" VerticalAlignment="Top" />
@@ -78,13 +79,15 @@ $inputXML = @"
                     <ComboBox x:Name="cbxEnvEmail" HorizontalAlignment="Left" Margin="320,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
                     <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="455,84,0,0" VerticalAlignment="Top" />
                     <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="520,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
-                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="660,90,0,0" VerticalAlignment="Top" />
+                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="660,90,0,0" VerticalAlignment="Top" IsEnabled="False" />
                     <ComboBox x:Name="cbxEnvDBUser" HorizontalAlignment="Left" Margin="78,123,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
                     <Label x:Name="lblEnvDBServer" Content="SQL Server" HorizontalAlignment="Left" Margin="227,121,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtEnvDBServer" HorizontalAlignment="Left" Height="24" Margin="299,122,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" />
                     <Label x:Name="lblEnvDBName" Content="DB Name" HorizontalAlignment="Left" Margin="500,121,0,0" VerticalAlignment="Top" />
                     <TextBox x:Name="txtEnvDBName" HorizontalAlignment="Left" Height="24" Margin="565,123,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" />
                     <ComboBox x:Name="cbxEnvDBStats" HorizontalAlignment="Left" Margin="130,150,0,0" VerticalAlignment="Top" Width="200" DisplayMemberPath="Value" SelectedValuePath="Name" IsEnabled="False"/>
+                    <Label x:Name="lblEnvDBBackup" Content="DB Backup Folder" HorizontalAlignment="Left" Margin="350,150,0,0" VerticalAlignment="Top" />
+                    <TextBox x:Name="txtEnvDBBackup" HorizontalAlignment="Left" Height="24" Margin="455,150,0,0" VerticalAlignment="Top" Width="285" IsEnabled="False" />
                     <CheckBox x:Name="chkEnvGRD" Content="Enable GRD" HorizontalAlignment="Left" Margin="22,190,0,0" VerticalAlignment="Top" IsEnabled="False"/>
                     <TextBox x:Name="txtEnvCPU" HorizontalAlignment="Left" Height="24" Margin="109,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
                     <TextBox x:Name="txtEnvBlocking" HorizontalAlignment="Left" Height="24" Margin="305,209,0,0" VerticalAlignment="Top" Width="75" IsEnabled="False"/>
@@ -224,6 +227,7 @@ $inputXML = @"
                     <Button x:Name="btnDBCreate" Content="Create" HorizontalAlignment="Left" Margin="20,15,0,0" VerticalAlignment="Top" Width="65"/>
                     <Button x:Name="btnDBDrop" Content="Drop" HorizontalAlignment="Left" Margin="90,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Button x:Name="btnDBTestConn" Content="Test DB Conn" HorizontalAlignment="Left" Margin="160,15,0,0" VerticalAlignment="Top" Width="100" IsEnabled="False"/>
+                    <Button x:Name="btnDBLog" Content="Logs" HorizontalAlignment="Left" Margin="265,15,0,0" VerticalAlignment="Top" Width="65" IsEnabled="False"/>
                     <Rectangle Fill="#FFEFEFF1" Height="214" Margin="13,50,10,0" Stroke="Black" VerticalAlignment="Top" />
                     <Label x:Name="lblDBServer" Content="DBServer" HorizontalAlignment="Left" Margin="16,98,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtDBServer" HorizontalAlignment="Left" Height="24" Margin="79,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="190" Background="White"/>
@@ -249,20 +253,6 @@ $inputXML = @"
                     <Button x:Name="btnDBCleanUp" Content="DB Cleanup" HorizontalAlignment="Left" Margin="621,147,0,0" VerticalAlignment="Top" Width="101"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="About">
-                <Grid>
-                    <RichTextBox x:Name="richTextBox" Height="280" VerticalAlignment="Top" VerticalScrollBarVisibility="Visible" IsReadOnly="True">
-                        <FlowDocument>
-                            <Paragraph>
-                                <Image x:Name="Image" HorizontalAlignment="Left" Height="68" Margin="13,10,0,0" VerticalAlignment="Top" Width="71" />
-                            </Paragraph>
-                            <Paragraph>
-                                <Run Text="RichTextBox"/>
-                            </Paragraph>
-                        </FlowDocument>
-                    </RichTextBox>
-                </Grid>
-            </TabItem>            
         </TabControl>
         <StatusBar Height="22" VerticalAlignment="Bottom" Width="Auto" BorderBrush="Black">
             <StatusBar.ItemsPanel>
@@ -323,7 +313,7 @@ function Get-EnvironmentsDB
                     CASE WHEN B.ENVIRONMENT IS NOT NULL
                       THEN 1
                       ELSE 0
-                    END AS AXREFRESH
+                    END AS AXREFRESH, B.BKPFOLDER
                     FROM AXTools_Environments A
                     LEFT JOIN AXRefresh_EnvironmentsExt B ON A.ENVIRONMENT = B.ENVIRONMENT"
 	$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
@@ -475,6 +465,7 @@ function Get-TabItemClear
             $WpfbtnEnvtestSQL.IsEnabled = $false
             $WpfbtnEnvReports.IsEnabled = $false
             $WpfbtnEnvLogs.IsEnabled = $false
+            $WpfbtnEnvRefresh.IsEnabled = $false
             $WpftxtEnvEnvironment.IsEnabled = $false
             $WpfchkEnvRefresh.IsEnabled = $false
             $WpftxtEnvDBServer.IsEnabled = $false
@@ -483,6 +474,7 @@ function Get-TabItemClear
             $WpftxtEnvCPU.IsEnabled = $false
             $WpftxtEnvBlocking.IsEnabled = $false
             $WpftxtEnvWaiting.IsEnabled = $false
+            $WpftxtEnvDBBackup.IsEnabled = $false
             $WpfcbxEnvEnvironment.SelectedItem = $null
             $WpftxtEnvEnvironment.Clear()
             $WpfcbxEnvEmail.SelectedItem = $null
@@ -496,6 +488,7 @@ function Get-TabItemClear
             $WpftxtEnvCPU.Clear()
             $WpftxtEnvBlocking.Clear()
             $WpftxtEnvWaiting.Clear()
+            $WpftxtEnvDBBackup.Clear()
         }
         'User/Email Accounts' {
             Get-UsersDB
@@ -1137,12 +1130,18 @@ $WpfcbxEnvEnvironment.Add_SelectionChanged({
         $WpftxtEnvEnvironment.Text = $WpfcbxEnvEnvironment.SelectedItem["Description"]
         $WpfcbxEnvEmail.SelectedItem = $WpfcbxEnvEmail.Items | Where { $_.ID -eq $WpfcbxEnvEnvironment.SelectedItem["EmailProfile"] }
         $WpfcbxEnvLocalUser.SelectedItem = $WpfcbxEnvLocalUser.Items | Where { $_.ID -eq $WpfcbxEnvEnvironment.SelectedItem["LocalAdminUser"] }
-        if(($WpfcbxEnvEnvironment.SelectedItem["AxRefresh"] -eq 1)) { $WpfchkEnvRefresh.IsChecked = $true }
+        if(($WpfcbxEnvEnvironment.SelectedItem["AxRefresh"] -eq 1)) {
+            $WpfchkEnvRefresh.IsChecked = $true
+            $WpfbtnEnvRefresh.IsEnabled = $true
+        }
         $WpftxtEnvDBServer.Text = $WpfcbxEnvEnvironment.SelectedItem["DBServer"]
         $WpfcbxEnvDBUser.SelectedItem = $WpfcbxEnvDBUser.Items | Where { $_.ID -eq $WpfcbxEnvEnvironment.SelectedItem["DBUser"] }
         $WpftxtEnvDBName.Text = $WpfcbxEnvEnvironment.SelectedItem["DBName"]
         $WpfcbxEnvDBStats.SelectedItem = $WpfcbxEnvDBStats.Items | Where { $_.Name -eq $WpfcbxEnvEnvironment.SelectedItem["RunStats"] }
-        if(($WpfcbxEnvEnvironment.SelectedItem["RunGrd"] -eq 1)) { $WpfchkEnvGRD.IsChecked = $true }
+        $WpftxtEnvDBBackup.Text = $WpfcbxEnvEnvironment.SelectedItem["BKPFolder"]
+        if(($WpfcbxEnvEnvironment.SelectedItem["RunGrd"] -eq 1)) {
+            $WpfchkEnvGRD.IsChecked = $true
+        }
         $WpftxtEnvCPU.Text = $WpfcbxEnvEnvironment.SelectedItem["CpuThold"]
         $WpftxtEnvBlocking.Text = $WpfcbxEnvEnvironment.SelectedItem["BlockThold"]
         $WpftxtEnvWaiting.Text = $WpfcbxEnvEnvironment.SelectedItem["WaitingThold"]
@@ -1243,11 +1242,10 @@ $WpfbtnEnvNew.Add_Click({
     $WpftxtEnvEnvironment.Clear()
     $WpftxtEnvDBServer.Clear()
     $WpftxtEnvDBName.Clear()
+    $WpftxtEnvDBBackup.Clear()
     $WpftxtEnvCPU.Clear()
     $WpftxtEnvBlocking.Clear()
     $WpftxtEnvWaiting.Clear()
-    $WpfchkEnvRefresh.IsEnabled = $false
-    $WpfchkEnvGRD.IsEnabled = $false
     $WpfcbxEnvEmail.IsEnabled = $true
     $WpfcbxEnvLocalUser.IsEnabled = $true
     $WpfcbxEnvDBUser.IsEnabled = $true
@@ -1255,6 +1253,7 @@ $WpfbtnEnvNew.Add_Click({
     $WpftxtEnvEnvironment.IsEnabled = $true
     $WpftxtEnvDBServer.IsEnabled = $true
     $WpftxtEnvDBName.IsEnabled = $true
+    $WpftxtEnvDBBackup.IsEnabled = $true
     $WpftxtEnvCPU.IsEnabled = $true
     $WpftxtEnvBlocking.IsEnabled = $true
     $WpftxtEnvWaiting.IsEnabled = $true
@@ -1373,6 +1372,7 @@ $WpfbtnEnvEdit.Add_Click({
         $WpftxtEnvEnvironment.IsEnabled = $true
         $WpftxtEnvDBServer.IsEnabled = $true
         $WpftxtEnvDBName.IsEnabled = $true
+        $WpftxtEnvDBBackup.IsEnabled = $true
         $WpftxtEnvCPU.IsEnabled = $true
         $WpftxtEnvBlocking.IsEnabled = $true
         $WpftxtEnvWaiting.IsEnabled = $true
@@ -1426,7 +1426,7 @@ $WpfbtnEnvSave.Add_Click({
         $Cmd.ExecuteNonQuery() | Out-Null
 
         if($WpfchkEnvRefresh.IsChecked) {
-            $Query = "INSERT INTO [dbo].[AXRefresh_EnvironmentsExt] ([ENVIRONMENT]) VALUES ('$($WpfcbxEnvEnvironment.Text)')"
+            $Query = "INSERT INTO [dbo].[AXRefresh_EnvironmentsExt] ([ENVIRONMENT],[BKPFOLDER]) VALUES ('$($WpfcbxEnvEnvironment.Text)','$($WpftxtEnvDBBackup.Text)')"
             $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
             $Cmd.ExecuteNonQuery() | Out-Null
         }
@@ -1443,6 +1443,7 @@ $WpfbtnEnvSave.Add_Click({
         $Original | Add-Member NoteProperty 'DESCRIPTION' $WpfcbxEnvEnvironment.SelectedItem.DESCRIPTION
         $Original | Add-Member NoteProperty 'DBSERVER' $WpfcbxEnvEnvironment.SelectedItem.DBSERVER
         $Original | Add-Member NoteProperty 'DBNAME' $WpfcbxEnvEnvironment.SelectedItem.DBNAME
+        $Original | Add-Member NoteProperty 'BKPFOLDER' $WpfcbxEnvEnvironment.SelectedItem.BKPFOLDER
         $Original | Add-Member NoteProperty 'DBUSER' $WpfcbxEnvEnvironment.SelectedItem.DBUSER
         $Original | Add-Member NoteProperty 'CPUTHOLD' $WpfcbxEnvEnvironment.SelectedItem.CPUTHOLD
         $Original | Add-Member NoteProperty 'BLOCKTHOLD' $WpfcbxEnvEnvironment.SelectedItem.BLOCKTHOLD
@@ -1457,6 +1458,7 @@ $WpfbtnEnvSave.Add_Click({
         $Changed | Add-Member NoteProperty 'DESCRIPTION' $WpftxtEnvEnvironment.Text
         $Changed | Add-Member NoteProperty 'DBSERVER' $WpftxtEnvDBServer.Text
         $Changed | Add-Member NoteProperty 'DBNAME' $WpftxtEnvDBName.Text
+        $Changed | Add-Member NoteProperty 'BKPFOLDER' $WpftxtEnvDBBackup.Text
         $Changed | Add-Member NoteProperty 'DBUSER' $WpfcbxEnvDBUser.Text
         $Changed | Add-Member NoteProperty 'CPUTHOLD' $WpftxtEnvCPU.Text
         $Changed | Add-Member NoteProperty 'BLOCKTHOLD' $WpftxtEnvBlocking.Text
@@ -2498,6 +2500,25 @@ $WpfbtnDBCleanUp.Add_Click({
     $WpfbtnDBCleanUp.IsEnabled = $true
 })
 
+$WpfbtnDBLog.Add_Click({
+    $SqlConn = Get-ConnectionString	
+	$SqlQuery = "SELECT [CREATEDDATETIME] AS [DateTime], [LOG] AS [Log], [GUID] AS [Guid]
+                    FROM [DynamicsAxTools].[dbo].[AXTools_ExecutionLog]
+                    WHERE [CREATEDDATETIME] >= DATEADD(Day, -3, GETDATE())"
+	$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+	$Adapter.SelectCommand = $SqlCommand
+	$DBLogs = New-Object System.Data.DataSet
+	$Adapter.Fill($DBLogs) | Out-Null
+    $DBLogs.Tables[0] | Out-GridView -Title "Database Logs - 3 Days"
+    $DBLogs.Dispose()
+})
+
+$WpfbtnEnvRefresh.Add_Click({
+    $Arguments = "& '" + "$ScriptDir\AX-Refresh\RFR-DynamicsRefresh.ps1" + "'"
+    Start-Process Powershell -Verb RunAs -ArgumentList $Arguments
+})
+
 #===========================================================================
 # Form Esc. Key
 #===========================================================================
@@ -2515,7 +2536,6 @@ param
             $WpfcbxEnvEnvironment.IsEditable = $false
             $WpfbtnEnvSave.IsEnabled = $false
             $WpfbtnEnvNew.IsEnabled = $true
-            #Get-TabItemClear
             if($WpfcbxEnvEnvironment.SelectedIndex -eq -1) {
                 $WpfbtnEnvtestSQL.IsEnabled = $false
                 $WpfchkEnvRefresh.IsChecked = $false
@@ -2528,6 +2548,7 @@ param
                 $WpftxtEnvEnvironment.Clear()
                 $WpftxtEnvDBServer.Clear()
                 $WpftxtEnvDBName.Clear()
+                $WpftxtEnvDBBackup.Clear()
                 $WpftxtEnvCPU.Clear()
                 $WpftxtEnvBlocking.Clear()
                 $WpftxtEnvWaiting.Clear()
@@ -2543,7 +2564,6 @@ param
             $WpfcbxEmlID.IsEditable = $false
             $WpfbtnEmlSave.IsEnabled = $false
             $WpfbtnEmlNew.IsEnabled = $true
-            #Get-TabItemClear
             if($WpfcbxEmlID.SelectedIndex -eq -1) {
                 $WpfcbxEmlID.SelectedIndex = -1
                 $WpfcbxEmlUserID.SelectedIndex = -1
@@ -2610,6 +2630,7 @@ $Form.Add_Loaded({
         $WpfbtnDBCreate.IsEnabled = $false
         $WpfbtnDBDrop.IsEnabled = $true
         $WpfbtnDBTestConn.IsEnabled = $true
+        $WpfbtnDBLog.IsEnabled = $true
         $WpfbtnDBSaveCredential.IsEnabled = $true
         $WpfbtnDBClearCredential.IsEnabled = $true
         $WpftxtDBServer.IsEnabled = $false
@@ -2641,6 +2662,7 @@ $Form.Add_Loaded({
     }
 })
 
+<#
 #===========================================================================
 # Form Logo
 #===========================================================================
@@ -2846,6 +2868,7 @@ $Bitmap.StreamSource = [System.IO.MemoryStream][System.Convert]::FromBase64Strin
 $Bitmap.EndInit()
 $Bitmap.Freeze()
 $WpfImage.Source = $Bitmap
+#>
 $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 
 #===========================================================================
@@ -2864,7 +2887,7 @@ else {
     $Form.ShowDialog() | Out-Null
 }
 
-$Form.ShowDialog() | Out-Null
+#$Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
 Stop-Process $Pid
 
