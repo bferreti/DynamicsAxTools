@@ -1253,7 +1253,7 @@ $WpfbtnEnvNew.Add_Click({
     $WpftxtEnvEnvironment.IsEnabled = $true
     $WpftxtEnvDBServer.IsEnabled = $true
     $WpftxtEnvDBName.IsEnabled = $true
-    $WpftxtEnvDBBackup.IsEnabled = $true
+    #$WpftxtEnvDBBackup.IsEnabled = $true
     $WpftxtEnvCPU.IsEnabled = $true
     $WpftxtEnvBlocking.IsEnabled = $true
     $WpftxtEnvWaiting.IsEnabled = $true
@@ -1361,6 +1361,7 @@ $WpfbtnTskNew.Add_Click({
 
 $WpfbtnEnvEdit.Add_Click({
     if($WpfcbxEnvEnvironment.SelectedIndex -ne -1) {
+        $WpfbtnEnvEdit.IsEnabled = $false
         $WpfbtnEnvNew.IsEnabled = $false
         $WpfbtnEnvSave.IsEnabled = $true
         $WpfchkEnvRefresh.IsEnabled = $false
@@ -1376,6 +1377,7 @@ $WpfbtnEnvEdit.Add_Click({
         $WpftxtEnvCPU.IsEnabled = $true
         $WpftxtEnvBlocking.IsEnabled = $true
         $WpftxtEnvWaiting.IsEnabled = $true
+        if($WpfchkEnvRefresh.IsChecked -eq $true) { $WpftxtEnvDBBackup.IsEnabled = $true }
     }
     else {
         $WpflblWarning.Text = "Nothing to Edit."
@@ -1384,6 +1386,7 @@ $WpfbtnEnvEdit.Add_Click({
 
 $WpfbtnEmlEdit.Add_Click({
     if($WpfcbxEmlID.SelectedIndex -ne -1) {
+        $WpfbtnEmlEdit.IsEnabled = $false
         $WpfbtnEmlNew.IsEnabled = $false
         $WpfbtnEmlSave.IsEnabled = $True
         $WpftxtEmlBCC.IsEnabled = $True
@@ -1403,6 +1406,7 @@ $WpfbtnEmlEdit.Add_Click({
 })
 
 $WpfbtnTskEdit.Add_Click({
+    $WpfbtnTskEdit.IsEnabled = $false
     $WpfbtnTskNew.IsEnabled = $false
     $WpfbtnTskSave.IsEnabled = $true
     $WpfcbxTskEnvironment.SelectedItem = $WpfcbxTskEnvironment.Items | Where { $_.Environment -eq $WpflstCurrJobs.SelectedItem.Environment }
@@ -2518,6 +2522,18 @@ $WpfbtnDBLog.Add_Click({
 $WpfbtnEnvRefresh.Add_Click({
     $Arguments = "& '" + "$ScriptDir\AX-Refresh\RFR-DynamicsRefresh.ps1" + "'"
     Start-Process Powershell -Verb RunAs -ArgumentList $Arguments
+})
+
+$WpfchkEnvRefresh.Add_Checked({
+    if($WpfbtnEnvSave.IsEnabled -eq $true) {
+        $WpftxtEnvDBBackup.IsEnabled = $true
+    }
+})
+
+$WpfchkEnvRefresh.Add_Unchecked({
+    if($WpfbtnEnvSave.IsEnabled -eq $true) {
+        $WpftxtEnvDBBackup.IsEnabled = $false
+    }
 })
 
 #===========================================================================
