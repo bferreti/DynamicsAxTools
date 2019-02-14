@@ -79,7 +79,7 @@ $inputXML = @"
                     <ComboBox x:Name="cbxEnvEmail" HorizontalAlignment="Left" Margin="320,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
                     <Label x:Name="lblEnvLocalUser" Content="Local User" HorizontalAlignment="Left" Margin="455,84,0,0" VerticalAlignment="Top" />
                     <ComboBox x:Name="cbxEnvLocalUser" HorizontalAlignment="Left" Margin="520,86,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False" />
-                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="660,90,0,0" VerticalAlignment="Top" IsEnabled="False" />
+                    <CheckBox x:Name="chkEnvRefresh" Content="AX Refresh" HorizontalAlignment="Left" Margin="660,90,0,0" VerticalAlignment="Top" IsEnabled="False"/>
                     <ComboBox x:Name="cbxEnvDBUser" HorizontalAlignment="Left" Margin="78,123,0,0" VerticalAlignment="Top" Width="125" DisplayMemberPath="ID" IsEnabled="False"/>
                     <Label x:Name="lblEnvDBServer" Content="SQL Server" HorizontalAlignment="Left" Margin="227,121,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtEnvDBServer" HorizontalAlignment="Left" Height="24" Margin="299,122,0,0" VerticalAlignment="Top" Width="175" IsEnabled="False" />
@@ -2504,7 +2504,8 @@ $WpfbtnDBLog.Add_Click({
     $SqlConn = Get-ConnectionString	
 	$SqlQuery = "SELECT [CREATEDDATETIME] AS [DateTime], [LOG] AS [Log], [GUID] AS [Guid]
                     FROM [DynamicsAxTools].[dbo].[AXTools_ExecutionLog]
-                    WHERE [CREATEDDATETIME] >= DATEADD(Day, -3, GETDATE())"
+                    WHERE [CREATEDDATETIME] >= DATEADD(Day, -3, GETDATE())
+                    ORDER BY [CREATEDDATETIME] DESC"
 	$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $SqlCommand

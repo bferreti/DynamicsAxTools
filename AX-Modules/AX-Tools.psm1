@@ -1291,17 +1291,12 @@ param (
 	[Switch]$Start
 )
     $SettingsXml = Import-ConfigFile -ScriptName 'AxReport'
-
     $Query = "SELECT SERVERNAME FROM AXTools_Servers WHERE ENVIRONMENT = '$AXEnvironment' AND ACTIVE = '1'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
     $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
     $Adapter.SelectCommand = $Cmd
     $Servers = New-Object System.Data.DataSet
     $TotalServers = $Adapter.Fill($Servers)
-
-    $Stopped = 0
-    $Running = 0
-
     if($TotalServers -gt 0) {
         $Query =   "SELECT LocalAdminUser FROM [AXTools_Environments] WHERE ENVIRONMENT = '$AXEnvironment'"
         $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$(Get-ConnectionString))
@@ -1319,9 +1314,6 @@ param (
                                 if($Start) { $DataCollectorSet.Start($false) }
                                 $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
-                            #else {
-                            #    $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
-                            #}
                         }
                         catch {
                             $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
@@ -1340,9 +1332,6 @@ param (
                                 if($Start) { $DataCollectorSet.Start($false) }
                                 $Msg = "ERROR: Perfmon Check $ServerName | $DataCollectorName | Stopped."
                             }
-                            #else {
-                            #    $Msg = "Perfmon Check - $ServerName | $DataCollectorName | Running."
-                            #}
                         }
                         catch {
                             $Msg = "ERROR: Perfmon $($ServerName) - $($_.exception.message)"
@@ -1353,6 +1342,7 @@ param (
                 }
             }
         }
+        Write-Log "Perfmon Check Completed. Env. $AXEnvironment."
     }
     else {
         Write-Log "ERROR: Perfmon Check environment $AXEnvironment not found."
