@@ -342,14 +342,12 @@ function Get-GRDStatus
 {
     Get-CPUStatus
     Get-SQLStatus
-
-    
     if([boolean]::Parse($Script:Settings.Debug)) {
         Write-Log("GRD Results - Blocking Count - $($Script:Settings.Blocking.Spid.Count) / $($Script:Settings.BlockThold) - Wait Time - $($Script:Settings.WaitTotal) / $($Script:Settings.WaitingThold) - CPU% - $($Script:Settings.CPUTotal) / $($Script:Settings.CPUThold) - GRD Flag is set to $($Script:Settings.EnableGRD)")
     }
    
     if(($($Script:Settings.Blocking.Spid.Count) -ge $($Script:Settings.BlockThold)) -or 
-        ($($Script:Settings.WaitTotal) -gt $($Script:Settings.WaitingThold)) -or 
+        ($($Script:Settings.WaitTotal) -ge $($Script:Settings.WaitingThold)) -or 
         ($($Script:Settings.CPUTotal) -ge $($Script:Settings.CPUThold)))
     {
         $GRDRun = $true
@@ -369,7 +367,7 @@ function Get-GRDStatus
                                             @{n='StatsTotal';e={'0'}},
                                             @{n='Email';e={'0'}},
                                             @{n='Report';e={''}},
-                                            @{n='Log';e={"$($Script:Settings.CPUThold) | $($Script:Settings.BlockThold) | $($Script:Settings.WaitingThold)"}}, #| $($Script:Settings.EnableGRD) | $($Script:Settings.EnableStats)"}},
+                                            @{n='Log';e={"$($Script:Settings.CPUThold) | $($Script:Settings.BlockThold) | $($Script:Settings.WaitingThold)"}},
                                             @{n='GUID';e={($_.Guid)}})
     return $GRDRun
 }
@@ -406,7 +404,6 @@ function Get-AXJobs
                                         @{n='GUID';e={($Script:Settings.Guid)}})
 
     Write-ExecLog "Started Number Sequences Status"
-
     $Query = 'SELECT C.NumberSequence, C.Txt, C.Format, 
                     Status = CASE B.STATUS
 		                WHEN 0 THEN ''Free''
@@ -511,12 +508,12 @@ function Get-GRDTables
 {
     if(($Script:Settings.ProcessesInfo.Spid.Count -eq 0) -and (!($Rerun))) {
         Write-ExecLog "Missing SQL Details. Starting new instance."
-        Invoke-Expression "$scriptPath $($Script:Settings.Environment) -Rerun"
+        Invoke-Expression "$ScriptPath $($Script:Settings.Environment) -Rerun"
         Exit
     }
 
-    Write-ExecLog "Started GRD (Guardian Defense - Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
-
+    Write-ExecLog "Started GRD (Processes $($Script:Settings.ProcessesInfo.Spid.Count))"
+    
     if([boolean]::Parse($Script:Settings.Debug)) {
         Check-Folder "$($Script:Settings.LogFolder)\$($Script:Settings.FileDateTime)"
         $Script:Settings.LogFolder = "$($Script:Settings.LogFolder)\$($Script:Settings.FileDateTime)"
@@ -528,10 +525,7 @@ function Get-GRDTables
     }
     
     $SQLText = $Script:Settings.ProcessesInfo | 
-                Where-Object {(($_.Database -eq $Script:Settings.AXDBName) -and 
-                #($_.Sql_Text -notmatch 'FETCH*|DECLARE*|CREATE INDEX*|CREATE PROCEDURE*|UPDATE*|INSERT*|sp_*|exec*') -and
-                #($_.Sql_Text -notmatch 'FETCH*|CREATE INDEX*') -and
-                ($_.Status -ne 'sleeping') -and ($_.Sql_Text -notlike '') )} | 
+                Where-Object {(($_.Database -eq $Script:Settings.AXDBName) -and ($_.Status -ne 'sleeping') -and ($_.Sql_Text -notlike '') )} | 
                 Select-Object Sql_Text
 
     if([boolean]::Parse($Script:Settings.Debug)) { $SQLText | Export-Csv "$($Script:Settings.LogFolder)\11-GRD_SQLTextFilter_$($Environment)_$($Script:Settings.FileDateTime).csv" -NoTypeInformation -Append }
