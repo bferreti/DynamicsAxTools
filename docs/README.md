@@ -1,6 +1,6 @@
 ## Welcome to DynamicsAxTools
 
-* #### [Code of Conduct](https://github.com/bferreti/DynamicsAxTools/blob/master/docs/CODE_OF_CONDUCT.md)
+* #### [Code of Conduct](CODE_OF_CONDUCT.md)
 * #### [Download](https://github.com/bferreti/DynamicsAxTools/archive/master.zip)
 * #### [Installation Guide](https://github.com/bferreti/DynamicsAxTools/wiki)
 
