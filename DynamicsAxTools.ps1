@@ -2087,7 +2087,7 @@ $WpfbtnSave.Add_Click({
         $SrvFailed = @()
         foreach($Change in $Script:Servers.Tables.GetChanges()) {
             if($Change.SERVERNAME -and $Change.SERVERTYPE -and $Change.ACTIVE) {
-                $WpfdgServers.SelectedItem = $WpfdgServers.ItemsSource | Where { $_.SERVERNAME -eq $Change.SERVERNAME }
+                $WpfdgServers.SelectedItem = $WpfdgServers.ItemsSource | Where { $_.SERVERNAME -eq $Change.SERVERNAME -and $_.SERVERTYPE -eq $Change.SERVERTYPE }
                 $WpfdgServers.SelectedItem.ENVIRONMENT = $WpfcbxServEnvironment.SelectedItem.Environment
                 $WpfdgServers.SelectedItem.CREATEDDATETIME = [DateTime]::Parse($(Get-Date))
                 $SrvPing = Test-Connection $WpfdgServers.SelectedItem.SERVERNAME -Count 1 -ErrorAction SilentlyContinue
