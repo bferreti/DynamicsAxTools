@@ -461,9 +461,6 @@ param (
     #Message Parameters
     $SMTPMessage = New-Object System.Net.Mail.MailMessage
     $SMTPMessage.From = $SMTPFrom
-    #if(-not [System.DBNull]::Value.Equals($SMTPTo)) {$SMTPTo.Split(';') | % { $SMTPMessage.To.Add($_.Trim()) }} else { break }
-    #if(-not [System.DBNull]::Value.Equals($SMTPCC)) {$SMTPCC.Split(';') | % { $SMTPMessage.CC.Add($_.Trim()) }}
-    #if(-not [System.DBNull]::Value.Equals($SMTPBCC)) {$SMTPBCC.Split(';') | % { $SMTPMessage.Bcc.Add($_.Trim()) }}
     if(-not [string]::IsNullOrEmpty($SMTPTo)) {$SMTPTo.Split(';') | % { $SMTPMessage.To.Add($_.Trim()) }} else { break }
     if(-not [string]::IsNullOrEmpty($SMTPCC)) {$SMTPCC.Split(';') | % { $SMTPMessage.CC.Add($_.Trim()) }}
     if(-not [string]::IsNullOrEmpty($SMTPBCC)) {$SMTPBCC.Split(';') | % { $SMTPMessage.Bcc.Add($_.Trim()) }}
@@ -989,9 +986,9 @@ function Set-RowColor {
 		.PARAMETER Yellow
 		     Some additional pish
 		.PARAMETER Red
-		    use $this and an expression to measure the value
+		    Use $this and an expression to measure the value
 		.PARAMETER Alertnating
-			a switch the will define Odd and Even Rows in the rowcolor column 
+			A switch the will define Odd and Even Rows in the rowcolor column 
 #>	
 Param (
 	$ObjectArray, 
@@ -1021,7 +1018,7 @@ function New-HTMLChart
 {
 <#
 	.SYNOPSIS
-		adds a row colour field to the array of object for processing with htmltable
+		Adds a row colour field to the array of object for processing with htmltable
 	    .PARAMETER PieChartObject
 			This is a custom object with Pie chart properties, Create-HTMLPieChartObject
 		.PARAMETER PieChartData

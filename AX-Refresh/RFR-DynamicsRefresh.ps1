@@ -440,7 +440,6 @@ function Get-EnviromentList
 		$SqlQuery = "SELECT A.ENVIRONMENT as Options 
                         FROM AXTools_Environments A
                         JOIN AXRefresh_EnvironmentsExt B on A.ENVIRONMENT = B.ENVIRONMENT"
-                        #WHERE B.MACHINENAME <> ''"
 		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
 		$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 		$Adapter.SelectCommand = $SqlCommand
@@ -525,19 +524,19 @@ function Get-EnvironmentServers
     if($DSServers.Tables.Rows.Count -gt 0) {
         $AOSServers = @()
 	    foreach($Server in $DSServers.Tables[0]) {
+            if([string]::IsNullOrEmpty($Server.InstanceName)) {$Instance='01'} else {$Instance=$Server.InstanceName.Substring(0,2)}
             $AOSTemp = New-Object -TypeName System.Object
             $AOSTemp | Add-Member -Name AosId -Value $($Server.AOSID) -MemberType NoteProperty
             $AOSTemp | Add-Member -Name Instance_Name -Value $($Server.InstanceName) -MemberType NoteProperty
             $AOSTemp | Add-Member -Name Status -Value $($Server.Status) -MemberType NoteProperty
-            $AOSTemp | Add-Member -Name ServerName -Value $($Server.AOSID.Substring(0,$Server.AOSID.Length-5)) -MemberType NoteProperty
-            
+            $AOSTemp | Add-Member -Name ServerName -Value $($Server.ServerName) -MemberType NoteProperty #$($Server.AOSID.Substring(0,$Server.AOSID.Length-5)) -MemberType NoteProperty
             if (!(Test-Connection $AOSTemp.ServerName -Count 1 -Quiet)) {
                 $AOSTemp | Add-Member -Name ServerStatus -Value "Can't connect" -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name UpdateFlag -Value '1' -MemberType NoteProperty
             }
             else {
-                $Service = Get-WmiObject -Class Win32_Service -ComputerName $AOSTemp.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" -and $_.Name.Substring($_.Name.Length-2,2) -like $Server.InstanceName.Substring(0,2) }
+                $Service = Get-WmiObject -Class Win32_Service -ComputerName $AOSTemp.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" -and $_.Name.Substring($_.Name.Length-2,2) -like $Instance }
                 if(![string]::IsNullOrEmpty($Service)) {
                     $AOSTemp | Add-Member -Name Active -Value '1' -MemberType NoteProperty
                     $AOSTemp | Add-Member -Name ServiceStatus -Value $($Service.State) -MemberType NoteProperty
@@ -826,7 +825,7 @@ function Get-RunningServers
 				    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 				    $SqlConn.Open()
 				    if ($Script:Environment.HasServers) {
-					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME <= '$DateTime'"
+					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERTYPE = 'AOS' AND CREATEDDATETIME <= '$DateTime'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
@@ -836,6 +835,9 @@ function Get-RunningServers
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
+					$SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSServers.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
+					$SqlCommand.ExecuteNonQuery() | Out-Null
 				    $SqlConn.Close()
 			    }
 			    N {
@@ -1298,7 +1300,7 @@ param(
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	try {
-		$SqlQuery = "SELECT InstanceName FROM AXTools_Servers WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND ACTIVE = 1"
+		$SqlQuery = "SELECT InstanceName FROM AXTools_Servers WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND INSTANCENAME <> '' AND ACTIVE = 1"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 		$Adapter.SelectCommand = $SqlCommand
@@ -1329,7 +1331,7 @@ param(
 	}
 	if (($AOSRFRCnt -eq 0) -and ($AOSCnt -eq 0)) {
 		Write-Host ''
-		$ReadSrvs = Read-Host "Type AOS Server(s) [comma-separated]"
+		$ReadSrvs = Read-Host "Reload Servers (9 > 5) or Type AOS Server(s) [comma-separated]"
 		if (!($ReadSrvs)) {
 			$Script:WarningMsg = 'Invalid Option. Retry.'
 			Get-Menu
@@ -1510,7 +1512,6 @@ function Set-TableRecId
 		$SqlQuery = "SELECT NEXTVAL FROM SYSTEMSEQUENCES WHERE TABID IN (SELECT TABLEID FROM SQLDICTIONARY WHERE NAME = '$Table' AND FIELDID = 0)"
 		$SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
 		$SystemRecId = $SqlCommand.ExecuteScalar()
-		#if ($TableRecId.GetType().Name -match 'DBnull') { $TableRecId = 0 }
 		if([string]::IsNullOrEmpty($SystemRecId)) { $SystemRecId = 0 }
 		if([string]::IsNullOrEmpty($TableRecId)) { $TableRecId = 0 }
 		if(($TableRecId -gt $SystemRecId) -and ($TableRecId -ne 0) -and ($SystemRecId -ne 0)) {

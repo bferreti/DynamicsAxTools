@@ -68,7 +68,7 @@ function Get-WrkProcess
 	{
 		'RecycleBlg' {
 			foreach ($WrkServer in Get-WrkServers) {
-				Restart-PerfCollector
+				Get-PerfCollector
 			}
 			break
 		}
@@ -172,13 +172,12 @@ param(
 				Get-AOSServices $WrkServer
 			}
 			'SQL' {
-				Add-SQLInstance $WrkServer.ServerName '' 'Other Database (Non-AX)'
+				Add-SQLInstance $WrkServer.ServerName '' 'Database Server (SQL)'
 			}
-			'REG' {
-				Add-SQLInstance $WrkServer.ServerName '' 'Regional Database (StoreDB)'
-			}
+			#'REG' {
+			#	Add-SQLInstance $WrkServer.ServerName '' 'Channel Database (StoreDB)'
+			#}
 			'SRS' {
-				#$RSObject = Get-WmiObject -Class "MSReportServer_ConfigurationSetting" -Namespace "root\Microsoft\SqlServer\ReportServer\RS_MSSQLSERVER\v13\Admin" -ComputerName $WrkServer.ServerName
 	            if ($Script:Settings.LocalAdminAccount) {
 		            if(Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS' -ErrorAction SilentlyContinue }) {
                         $InstanceKey = (Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS'}).MSSQLSERVER
@@ -598,7 +597,7 @@ function Get-AXLogs
 	}
 }
 
-function Restart-PerfCollector
+function Get-PerfCollector
 {
 	try {
 		$DataCollectorSet = New-Object -COM Pla.DataCollectorSet
@@ -611,16 +610,8 @@ function Restart-PerfCollector
 		Enable-NetFirewallRule -DisplayGroup "Performance Logs and Alerts" -CimSession $CIMComputer
 		Enable-NetFirewallRule -DisplayGroup "Windows Management Instrumentation (WMI)" -CimSession $CIMComputer
 		Remove-CimSession -ComputerName $WrkServer.ServerName
-		#
-		$Query = "SELECT TOP 1 [TEMPLATEXML] FROM [AXTools_PerfmonTemplates] WHERE [SERVERTYPE] = '$($WrkServer.ServerType)' and [ACTIVE] = 1 ORDER BY CREATEDDATETIME DESC"
-		$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
-		$Xml = $Cmd.ExecuteScalar()
-		$DataCollectorSet.SetXml($Xml)
-		$DataCollectorSet.RootPath = "%systemdrive%\PerfLogs\Admin\$($Script:Settings.PerfmonName)"
-		$DataCollectorSet.Commit($Script:Settings.PerfmonName,$WrkServer.ServerName,0x0003) | Out-Null
         #>
 	}
-
 	if ($DataCollectorSet.Status -eq 1) {
 		$DataCollectorSet.Stop($false)
 		Start-Sleep -Seconds 2
@@ -638,7 +629,7 @@ function Restart-PerfCollector
 	if ([int]$Script:Settings.KeepPerfmon -gt 0) {
 		$Path = "\\$($WrkServer.ServerName)\" + $($DataCollectorSet.LatestOutputLocation).Replace(':','$')
 		$BlgFiles = Get-ChildItem -Path $Path | Where-Object { $_.Extension -match '.blg' -and $_.LastWriteTime -lt $((Get-Date).AddDays(- [int]$Script:Settings.KeepPerfmon)) }
-		if ($BlgFiles.Count -ge $([int]$Script:Settings.KeepPerfmon - 1)) {
+		if ($BlgFiles.Count -ge $([int]$Script:Settings.KeepPerfmon)) {
 			if ([int]$Script:Settings.KeepBlgArchive -gt 0) {
 				Check-Folder "$Path\Temp\"
 				[Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
@@ -735,13 +726,13 @@ function Get-PerfmonLogs
 					'*W3SVC_W3WP(*AsyncService)\Requests / Sec' { Add-PerfCounter $Path 'SYNC' 1 }
 					'*W3SVC_W3WP(*AsyncService)\Active Requests' { Add-PerfCounter $Path 'SYNC' 1 }
 					#
-					'*Web Service(*Default*)\Current Connections' { Add-PerfCounter $Path 'STO' 1 }
-					'*Web Service(*Default*)\Bytes Received/sec' { Add-PerfCounter $Path 'STO' 1 }
-					'*Web Service(*Default*)\Bytes Sent/sec' { Add-PerfCounter $Path 'STO' 1 }
-					'*WAS_W3WP(*Default*)\Health Ping Reply Latency' { Add-PerfCounter $Path 'STO' 0 }
-					'*WAS_W3WP(*Default*)\Total Health Pings.' { Add-PerfCounter $Path 'STO' 0 }
-					'*W3SVC_W3WP(*Default*)\Requests / Sec' { Add-PerfCounter $Path 'STO' 0 }
-					'*W3SVC_W3WP(*Default*)\Active Requests' { Add-PerfCounter $Path 'STO' 0 }
+					'*Web Service(*Default*)\Current Connections' { Add-PerfCounter $Path 'IIS' 1 }
+					'*Web Service(*Default*)\Bytes Received/sec' { Add-PerfCounter $Path 'IIS' 1 }
+					'*Web Service(*Default*)\Bytes Sent/sec' { Add-PerfCounter $Path 'IIS' 1 }
+					'*WAS_W3WP(*Default*)\Health Ping Reply Latency' { Add-PerfCounter $Path 'IIS' 0 }
+					'*WAS_W3WP(*Default*)\Total Health Pings.' { Add-PerfCounter $Path 'IIS' 0 }
+					'*W3SVC_W3WP(*Default*)\Requests / Sec' { Add-PerfCounter $Path 'IIS' 0 }
+					'*W3SVC_W3WP(*Default*)\Active Requests' { Add-PerfCounter $Path 'IIS' 0 }
 					#
 					'*Terminal Services\Inactive Sessions' { Add-PerfCounter $Path 'RDP' 1 }
 					'*Terminal Services\Total Sessions' { Add-PerfCounter $Path 'RDP' 1 }

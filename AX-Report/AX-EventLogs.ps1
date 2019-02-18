@@ -100,6 +100,3 @@ function Get-EventLogs
 }
 
 Get-EventLogs
-
-
-
