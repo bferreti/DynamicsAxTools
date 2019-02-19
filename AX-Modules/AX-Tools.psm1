@@ -343,8 +343,7 @@ function UpdateMsiStatus
 param (
     [string]$Status
 )
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    #$Conn.Open()
+    $Conn = Get-ConnectionString
     $Query = "UPDATE [dbo].[AXInstallStatus] SET Status = '$Status' WHERE GUID = '$Guid'"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -360,8 +359,7 @@ param (
     [String]$Value,
     [String]$Where
 )
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    #$Conn.Open()
+    $Conn = Get-ConnectionString
     $Query = "UPDATE [dbo].[$Table] SET [$Set] = '$Value' WHERE $Where"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -505,8 +503,8 @@ param (
 $CurDate = Get-Date -f "MMM d, yyyy hh:mm tt"
 
 if($SimpleHTML) {
-$Report = @"
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+$ReportHtml = @"
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>$($Title)</title>
       <style type=text/css>
@@ -547,7 +545,7 @@ $Report = @"
 }
 
 elseif($AxReport) {
-$Report = @"
+$ReportHtml = @"
 MIME-Version: 1.0
 Content-Type: multipart/related; boundary="PART"; type="text/html"
 
@@ -555,7 +553,7 @@ Content-Type: multipart/related; boundary="PART"; type="text/html"
 Content-Type: text/html; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 
 <head><title>$($Title)</title>
@@ -610,8 +608,8 @@ function hide(obj) {
 }
 
 elseif($AxSummary) {
-$Report = @"
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"> 
+$ReportHtml = @"
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"> 
 <html>
 <head><title>$($Title)</title> 
     <style type="text/css"> * {margin: 0px;font-family: sans-serif;font-size: 8pt;}
@@ -646,8 +644,8 @@ $Report = @"
 }
 
 else {
-$Report = @"
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+$ReportHtml = @"
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head>
 <title>$($Title)</title>
     <style type="text/css">*{font:8pt sans-serif;margin:0px}
@@ -703,7 +701,7 @@ function hide(obj) {
 </div>
 "@
 }
-	Return $Report
+	return $ReportHtml
 }
 
 function Get-HtmlClose
@@ -717,7 +715,7 @@ Param(
 $Footer = "Date: {0} | UserName: {1}\{2} | {3}" -f $(Get-Date),$env:UserDomain,$env:UserName,$Footer
 
 if($AxReport) {
-$Report = @"
+$ReportHtml = @"
 <div class="section">
     <hr />
     <div class="Footer">$Footer</div>
@@ -731,7 +729,7 @@ $Report = @"
 }
 
 elseif($AxSummary) {
-$Report = @"
+$ReportHtml = @"
 <div class="section">
     <hr />
     <div class="footer">$Footer</div>
@@ -743,7 +741,7 @@ $Report = @"
 }
 
 else {
-$Report = @"
+$ReportHtml = @"
 <div class="section">
     <hr />
     <div class="Footer">$Footer</div>
@@ -754,7 +752,7 @@ $Report = @"
 
 "@
 }
-	Write-Output $Report
+	Write-Output $ReportHtml
 }
 
 function Get-HtmlContentOpen
@@ -764,7 +762,6 @@ Param(
 	[switch]$IsHidden, 
 	[validateset(1,2,3,4,5,6)][int]$BackgroundShade
 )
-
 switch ($BackgroundShade)
 {
     1 { $bgColorCode = "#F8F8F8" }
@@ -777,7 +774,7 @@ switch ($BackgroundShade)
 }
 if ($IsHidden) {
 	$JavaScriptRdm = Get-Random
-	$Report = @"
+	$ReportHtml = @"
 <div class="section">
     <div class="header">
         <a name="$($Header)">$($Header)</a> (<a id="show_$JavaScriptRdm" href="javascript:void(0);" onclick="show('$JavaScriptRdm');" style="color: #ffffff;">Show</a><a id="hide_$JavaScriptRdm" href="javascript:void(0);" onclick="hide('$JavaScriptRdm');" style="color: #ffffff; display:none;">Hide</a>)
@@ -786,7 +783,7 @@ if ($IsHidden) {
 "@	
 }
 else {
-	$Report = @"
+	$ReportHtml = @"
 <div class="section">
     <div class="header">
         <a name="$($Header)">$($Header)</a>
@@ -794,24 +791,24 @@ else {
     <div class="content" style="background-color:$($bgColorCode);"> 
 "@
 }
-	return $Report
+	return $ReportHtml
 }
 
 function Get-HtmlContentClose
 {
-	$Report = @"
+	$ReportHtml = @"
 </div>
 </div>
 "@
-	Return $Report
+	return $ReportHtml
 }
 
 function Get-HtmlAddNewLine
 {
-	$Report = @"
+	$ReportHtml = @"
 <br>
 "@
-	Return $Report
+	return $ReportHtml
 }
 
 function Get-HtmlContentTable
@@ -824,38 +821,37 @@ param(
     [String]$Style
 )
 	if ($GroupBy -eq '') {
-		if($Title) { $Report = "<h2>$Title</h2>" }
-        $ReportHtml = $ObjectArray | ConvertTo-Html -Fragment
-		$ReportHtml = $ReportHtml -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', ""
-		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Green</td></tr>","<tr class=`"green`">`$+</tr>"
-		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Yellow</td></tr>","<tr class=`"yellow`">`$+</tr>"
-    	$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Red</td></tr>","<tr class=`"red`">`$+</tr>"
-        $ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Orange</td></tr>","<tr class=`"orange`">`$+</tr>"
-        $ReportHtml = $ReportHtml -replace "<tr>(.*)<td>LightRed</td></tr>","<tr class=`"lightred`">`$+</tr>"
-        $ReportHtml = $ReportHtml -replace "<tr>(.*)<td>LightGreen</td></tr>","<tr class=`"lightgreen`">`$+</tr>"
-        $ReportHtml = $ReportHtml -replace "<tr>(.*)<td>LightYellow</td></tr>","<tr class=`"lightyellow`">`$+</tr>"
-		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Odd</td></tr>","<tr class=`"odd`">`$+</tr>"
-		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>Even</td></tr>","<tr class=`"even`">`$+</tr>"
-		$ReportHtml = $ReportHtml -replace "<tr>(.*)<td>None</td></tr>","<tr>`$+</tr>"
-		$ReportHtml = $ReportHtml -replace '<th>RowColor</th>', ''
-        
-        $Report += $ReportHtml
+		if($Title) { $ReportHtml = "<h2>$Title</h2>" }
+        $ReportHtmlArr = $ObjectArray | ConvertTo-Html -Fragment
+		$ReportHtmlArr = $ReportHtmlArr -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', ""
+		$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Green</td></tr>","<tr class=`"green`">`$+</tr>"
+		$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Yellow</td></tr>","<tr class=`"yellow`">`$+</tr>"
+    	$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Red</td></tr>","<tr class=`"red`">`$+</tr>"
+        $ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Orange</td></tr>","<tr class=`"orange`">`$+</tr>"
+        $ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>LightRed</td></tr>","<tr class=`"lightred`">`$+</tr>"
+        $ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>LightGreen</td></tr>","<tr class=`"lightgreen`">`$+</tr>"
+        $ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>LightYellow</td></tr>","<tr class=`"lightyellow`">`$+</tr>"
+		$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Odd</td></tr>","<tr class=`"odd`">`$+</tr>"
+		$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>Even</td></tr>","<tr class=`"even`">`$+</tr>"
+		$ReportHtmlArr = $ReportHtmlArr -replace "<tr>(.*)<td>None</td></tr>","<tr>`$+</tr>"
+		$ReportHtmlArr = $ReportHtmlArr -replace '<th>RowColor</th>', ''
+        $ReportHtml += $ReportHtmlArr
 
-		if ($Fixed.IsPresent) {	$Report = $Report -replace '<table>', '<table class="fixed">' }
-        if ($Style) { $Report = $Report -replace '<table>', "<table class=""$Style"">" }
+		if ($Fixed.IsPresent) {	$ReportHtml = $ReportHtml -replace '<table>', '<table class="fixed">' }
+        if ($Style) { $ReportHtml = $ReportHtml -replace '<table>', "<table class=""$Style"">" }
 	}
 	else {
 		$NumberOfColumns = ($ObjectArray | Get-Member -MemberType NoteProperty  | select Name).Count
 		$Groupings = @()
 		$ObjectArray | select $GroupBy -Unique  | sort $GroupBy | foreach { $Groupings += [String]$_.$GroupBy}
-		if ($Fixed.IsPresent) {	$Report = '<table class="fixed">' }
-		else { $Report = "<table>" }
+		if ($Fixed.IsPresent) {	$ReportHtml = '<table class="fixed">' }
+		else { $ReportHtml = "<table>" }
 		$GroupHeader = $ObjectArray | ConvertTo-Html -Fragment 
 		$GroupHeader = $GroupHeader -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', "" -replace '<table>', "" -replace '</table>', "" -replace "<td>.+?</td>" -replace "<tr></tr>", ""
 		$GroupHeader = $GroupHeader -replace '<th>RowColor</th>', ''
-		$Report += $GroupHeader
+		$ReportHtml += $GroupHeader
 		foreach ($Group in $Groupings) {
-			$Report += "<tr><td colspan=`"$NumberOfColumns`" class=`"groupby`">$Group</td></tr>"
+			$ReportHtml += "<tr><td colspan=`"$NumberOfColumns`" class=`"groupby`">$Group</td></tr>"
 			$GroupBody = $ObjectArray | where { [String]$($_.$GroupBy) -eq $Group } | select * -ExcludeProperty $GroupBy | ConvertTo-Html -Fragment
 			$GroupBody = $GroupBody -replace '<col/>', "" -replace '<colgroup>', "" -replace '</colgroup>', "" -replace '<table>', "" -replace '</table>', "" -replace "<th>.+?</th>" -replace "<tr></tr>", "" -replace '<tr><td>', "<tr><td></td><td>"
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>Green</td></tr>","<tr class=`"green`">`$+</tr>"
@@ -864,19 +860,19 @@ param(
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>Odd</td></tr>","<tr class=`"odd`">`$+</tr>"
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>Even</td></tr>","<tr class=`"even`">`$+</tr>"
 			$GroupBody = $GroupBody -replace "<tr>(.*)<td>None</td></tr>","<tr>`$+</tr>"
-			$Report += $GroupBody
+			$ReportHtml += $GroupBody
 		}
-		$Report += "</table>" 
+		$ReportHtml += "</table>" 
 	}
-	$Report = $Report -replace 'URL01', '<a href="'
-	$Report = $Report -replace 'URL02', '">'
-	$Report = $Report -replace 'URL03', '</a>'
+	$ReportHtml = $ReportHtml -replace 'URL01', '<a href="'
+	$ReportHtml = $ReportHtml -replace 'URL02', '">'
+	$ReportHtml = $ReportHtml -replace 'URL03', '</a>'
 	
-	if ($Report -like "*<tr>*" -and $report -like "*odd*" -and $report -like "*even*") {
-			$Report = $Report -replace "<tr>",'<tr class="header">'
+	if ($ReportHtml -like "*<tr>*" -and $ReportHtml -like "*odd*" -and $ReportHtml -like "*even*") {
+			$ReportHtml = $ReportHtml -replace "<tr>",'<tr class="header">'
 	}
 	
-	return $Report
+	return $ReportHtml
 }
 
 function Get-HtmlContentText 
@@ -885,8 +881,7 @@ param(
 	$Heading,
 	$Detail
 )
-
-$Report = @"
+$ReportHtml = @"
 <table><tbody>
 	<tr>
 	<th class="content">$Heading</th>
@@ -894,10 +889,10 @@ $Report = @"
 	</tr>
 </tbody></table>
 "@
-$Report = $Report -replace 'URL01', '<a href="'
-$Report = $Report -replace 'URL02', '">'
-$Report = $Report -replace 'URL03', '</a>'
-Return $Report
+    $ReportHtml = $ReportHtml -replace 'URL01', '<a href="'
+    $ReportHtml = $ReportHtml -replace 'URL02', '">'
+    $ReportHtml = $ReportHtml -replace 'URL03', '</a>'
+    return $ReportHtml
 }
 
 function Set-RowColor
@@ -932,10 +927,8 @@ param (
 	$ChartObject,
 	$ChartData
 )
-	
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms.DataVisualization")
-	
 	$Chart = New-object System.Windows.Forms.DataVisualization.Charting.Chart
 	$Chart.Width = $ChartObject.Size.Width
 	$Chart.Height = $ChartObject.Size.Height
@@ -983,20 +976,16 @@ function New-HTMLPieChartObject
 		Left = 1
 		Top = 1
 	}
-	
 	$DataDefinition = New-Object PSObject -Property @{`
 		DataNameColumnName = "Name"
 		DataValueColumnName = "Count"
 	}
-	
 	$ChartStyle = New-Object PSObject -Property @{`
-		#PieLabelStyle = "Outside"
         PieLabelStyle = "Disabled"
 		PieLineColor = "Black"
 		PieDrawingStyle = "Concave"
 		ExplodeMaxValue = $false
 	}
-	
 	$PieChartObject = New-Object PSObject -Property @{`
 		Type = "Pie"
 		Title = "Chart Title"
@@ -1013,7 +1002,6 @@ param(
     $PieChartObject,
     $PieChartData
 )
-	      
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms.DataVisualization")
 	$Chart = New-object System.Windows.Forms.DataVisualization.Charting.Chart 
@@ -1029,7 +1017,6 @@ param(
 		$datapoint.AxisLabel = [string]$value.Name
 		$Chart.Series["Data"].Points.Add($datapoint)
 	}
-	
 	$Chart.Series["Data"].ChartType = [System.Windows.Forms.DataVisualization.Charting.SeriesChartType]::Pie
 	$Chart.Series["Data"]["PieLabelStyle"] = $PieChartObject.ChartStyle.PieLabelStyle
 	$Chart.Series["Data"]["PieLineColor"] = $PieChartObject.ChartStyle.PieLineColor 
@@ -1048,20 +1035,20 @@ param(
 
 function Get-HTMLColumn1of2
 {
-	$report = '<div class="first column">'
-	return $report
+	$ReportHtml = '<div class="first column">'
+	return $ReportHtml
 }
 
 function Get-HTMLColumn2of2
 {
-	$report = '<div class="second column">'
-	return $report
+	$ReportHtml = '<div class="second column">'
+	return $ReportHtml
 }
 
 function Get-HTMLColumnClose
 {
-	$report = '</div>'
-	return $report
+	$ReportHtml = '</div>'
+	return $ReportHtml
 }
 
 function Test-AosServices
