@@ -45,22 +45,6 @@ $ScriptDir = Split-Path $ScriptPath
 $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
-<#
-function Import-ConfigFile
-{
-    if(Test-Path "$ModuleFolder\AX-Settings.xml") {
-        # Import settings from config file
-        [xml]$ConfigFile = Get-Content "$ModuleFolder\AX-Settings.xml"
-    }
-    else {
-        Write-Warning "Configuration file does not exists."
-    }
-
-    return $ConfigFile
-}
-#>
-
-#function Load-ScriptSettings
 function Import-ConfigFile
 {
 param(
@@ -91,7 +75,8 @@ param(
     return $PSObject
 }
 
-function Check-Folder {
+function Check-Folder
+{
 param(
     [string]$Path
 )
@@ -214,7 +199,6 @@ param (
     }
     catch {
         Write-Host "Failed to connect to AX Database. $($_.Exception.Message)"
-        #break
     }
 
     if($SQLServerObject) {
@@ -265,13 +249,13 @@ param (
     foreach ($Col in $DataTable.Columns) {
         $ColumnMap = New-Object ("Data.SqlClient.SqlBulkCopyColumnMapping") $Col.ColumnName,($Col.ColumnName).ToUpper()
         [Void]$BCopy.ColumnMappings.Add($ColumnMap)
-        #$ColumnMap
     }
     $BCopy.WriteToServer($DataTable)
     $Conn.Close()
 }
 
-function Write-EncryptedString {
+function Write-EncryptedString
+{
 [CmdletBinding()]
 param (
     [String]$InputString, 
@@ -305,7 +289,8 @@ param (
     return $OutputDataAsString
 }
 
-function Read-EncryptedString {
+function Read-EncryptedString
+{
 [CmdletBinding()]
 param (
     [String]$InputString, 
@@ -389,9 +374,7 @@ function SQL-ExecUpdate
 param (
     [String]$Query
 )
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    #$Conn.Open()
-    #$Query = "UPDATE [dbo].[$Table] SET [$Set] = '$Value' WHERE $Where"
+    $Conn = Get-ConnectionString
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
     $Conn.Close()
@@ -415,8 +398,7 @@ function SQL-WriteLog
 param (
     [String]$Log
 )
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
-    #$Conn.Open()
+    $Conn = Get-ConnectionString
     $Query = "INSERT INTO AXTools_ExecutionLogs VALUES('$(Get-Date)', '', 'AXMonitor', '$Log')"
     $Cmd = New-Object System.Data.SqlClient.SqlCommand($Query,$Conn)
     $Cmd.ExecuteNonQuery()
@@ -433,7 +415,7 @@ param (
     [String]$EmailProfile,
     [String]$Guid
 )
-    $Conn = Get-ConnectionString #$Conn = New-Object System.Data.SqlClient.SQLConnection(Get-ConnectionString)
+    $Conn = Get-ConnectionString
     $Query = "SELECT * FROM [AXTools_EmailProfile] AS A
                 JOIN [AXTools_UserAccount] AS B ON A.UserID = B.ID
                 WHERE A.ID = '$EmailProfile'"
@@ -510,19 +492,8 @@ param (
     }  
 }
 
-function Get-HtmlOpen {
-<#
-	.SYNOPSIS
-		Header HTML for report
-    .PARAMETER TitleText
-		The title of the report
-    .PARAMETER SimpleHTML
-		CSS with basic formatting
-    .PARAMETER AxReport
-		CSS for AX Report formatting (mht)
-    .PARAMETER AxSummary
-		CSS for AX Report Summary email
-#>
+function Get-HtmlOpen
+{
 [CmdletBinding()]
 param (
 	[String]$Title,
@@ -531,7 +502,7 @@ param (
     [Switch]$AxSummary
 )
 	
-$CurrentDate = Get-Date -format "MMM d, yyyy hh:mm tt"
+$CurDate = Get-Date -f "MMM d, yyyy hh:mm tt"
 
 if($SimpleHTML) {
 $Report = @"
@@ -737,16 +708,6 @@ function hide(obj) {
 
 function Get-HtmlClose
 {
-<#
-	.SYNOPSIS
-		Close HTML for report
-    .PARAMETER FooterTxt
-		The footer of the report
-    .PARAMETER AxReport
-		CSS for AX Report formatting (mht)
-    .PARAMETER AxSummary
-		CSS for AX Report Summary email
-#>
 Param(
 	[string]$Footer,
     [Switch]$AxReport,
@@ -796,17 +757,8 @@ $Report = @"
 	Write-Output $Report
 }
 
-function Get-HtmlContentOpen {
-<#
-	.SYNOPSIS
-		Creates a section in HTML
-	    .PARAMETER HeaderText
-			The heading for the section
-		.PARAMETER IsHidden
-		    Switch parameter to define if the section can collapse
-		.PARAMETER BackgroundShade
-		    An int for 1 to 6 that defines background shading
-#>	
+function Get-HtmlContentOpen
+{
 Param(
 	[string]$Header, 
 	[switch]$IsHidden, 
@@ -842,14 +794,11 @@ else {
     <div class="content" style="background-color:$($bgColorCode);"> 
 "@
 }
-	Return $Report
+	return $Report
 }
 
-function Get-HtmlContentClose {
-<#
-	.SYNOPSIS
-		Closes an HTML section
-#>	
+function Get-HtmlContentClose
+{
 	$Report = @"
 </div>
 </div>
@@ -857,32 +806,16 @@ function Get-HtmlContentClose {
 	Return $Report
 }
 
-function Get-HtmlAddNewLine {
-<#
-	.SYNOPSIS
-		Add new line
-#>	
+function Get-HtmlAddNewLine
+{
 	$Report = @"
 <br>
 "@
 	Return $Report
 }
 
-function Get-HtmlContentTable {
-<#
-	.SYNOPSIS
-		Creates an HTML table from an array of objects
-	    .PARAMETER ObjectArray
-			An array of objects
-		.PARAMETER Fixed
-		    fixes the html column width by the number of columns
-		.PARAMETER GroupBy
-		    The column to group the data. make sure this is first in the array
-		.PARAMETER Title
-		    Title
-		.PARAMETER Style
-		    Style
-#>	
+function Get-HtmlContentTable
+{
 param(
 	[Array]$ObjectArray, 
 	[Switch]$Fixed, 
@@ -948,14 +881,6 @@ param(
 
 function Get-HtmlContentText 
 {
-<#
-	.SYNOPSIS
-		Creates an HTML entry with heading and detail
-	    .PARAMETER Heading
-			Heading text or picture
-		.PARAMETER Detail
-		     Some additional info
-#>	
 param(
 	$Heading,
 	$Detail
@@ -975,21 +900,8 @@ $Report = $Report -replace 'URL03', '</a>'
 Return $Report
 }
 
-function Set-RowColor {
-<#
-	.SYNOPSIS
-		Adds a RowColor field to each row in the array
-	    .PARAMETER ObjectArray
-			The type of logo
-		.PARAMETER Green
-		     Some additional pish
-		.PARAMETER Yellow
-		     Some additional pish
-		.PARAMETER Red
-		    Use $this and an expression to measure the value
-		.PARAMETER Alertnating
-			A switch the will define Odd and Even Rows in the rowcolor column 
-#>	
+function Set-RowColor
+{
 Param (
 	$ObjectArray, 
 	$Green, 
@@ -1016,84 +928,55 @@ Param (
 
 function New-HTMLChart
 {
-<#
-	.SYNOPSIS
-		Adds a row colour field to the array of object for processing with htmltable
-	    .PARAMETER PieChartObject
-			This is a custom object with Pie chart properties, Create-HTMLPieChartObject
-		.PARAMETER PieChartData
-			Required an array with the headings Name and Count.  Using Powershell Group-object on an array
-#>
-	param (
-		$ChartObject,
-		$ChartData
-	)
+param (
+	$ChartObject,
+	$ChartData
+)
 	
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms.DataVisualization")
 	
-	#Create our chart object 
 	$Chart = New-object System.Windows.Forms.DataVisualization.Charting.Chart
 	$Chart.Width = $ChartObject.Size.Width
 	$Chart.Height = $ChartObject.Size.Height
 	$Chart.Left = $ChartObject.Size.Left
 	$Chart.Top = $ChartObject.Size.Top
-	
-	#Create a chartarea to draw on and add this to the chart 
 	$ChartArea = New-Object System.Windows.Forms.DataVisualization.Charting.ChartArea
 	$Chart.ChartAreas.Add($ChartArea)
 	[void]$Chart.Series.Add("Data")
-	
-	#Add a datapoint for each value specified in the arguments (args) 
 	foreach ($value in $ChartData)
 	{
 		$datapoint = new-object System.Windows.Forms.DataVisualization.Charting.DataPoint(0, $value.Count)
 		$datapoint.AxisLabel = [string]$value.Name
 		$Chart.Series["Data"].Points.Add($datapoint)
 	}
-	
 	switch ($ChartObject.type) {
 		"Column"	{
 			$Chart.Series["Data"].ChartType = [System.Windows.Forms.DataVisualization.Charting.SeriesChartType]::Column
 			$Chart.Series["Data"]["DrawingStyle"] = $ChartObject.ChartStyle.DrawingStyle
 			($Chart.Series["Data"].points.FindMaxByValue())["Exploded"] = $ChartObject.ChartStyle.ExplodeMaxValue
 		}
-		
 		"Pie" {
 			$Chart.Series["Data"].ChartType = [System.Windows.Forms.DataVisualization.Charting.SeriesChartType]::Pie
 			$Chart.Series["Data"]["PieLabelStyle"] = $ChartObject.ChartStyle.PieLabelStyle
 			$Chart.Series["Data"]["PieLineColor"] = $ChartObject.ChartStyle.PieLineColor
 			$Chart.Series["Data"]["PieDrawingStyle"] = $ChartObject.ChartStyle.PieDrawingStyle
 			($Chart.Series["Data"].points.FindMaxByValue())["Exploded"] = $ChartObject.ChartStyle.ExplodeMaxValue
-			
-		}
-		default
-		{
-				
 		}
 	}
-	
-    #Set the title of the Chart to the current date and time 
 	$Title = new-object System.Windows.Forms.DataVisualization.Charting.Title
 	[Void]$Chart.Titles.Add($Title)
 	$Chart.Titles[0].Text = $ChartObject.Title
-	
 	$tempfile = (Join-Path $env:TEMP $ChartObject.Title.replace(' ', '')) + ".png"
-	#Save the chart to a file
 	if ((test-path $tempfile)) { Remove-Item $tempfile -Force }
 	$Chart.SaveImage($tempfile, "png")
-	
 	$Base64Chart = [Convert]::ToBase64String((Get-Content $tempfile -Encoding Byte))
 	$HTMLCode = '<IMG SRC="data:image/gif;base64,' + $Base64Chart + '" ALT="' + $ChartObject.Title + '">'
 	return $HTMLCode
-	#return $tempfile
 }
 
-function New-HTMLPieChartObject {
-<#
-	.SYNOPSIS
-		create a Pie chart object for use with Create-HTMLPieChart
-#>	
+function New-HTMLPieChartObject
+{
 	$ChartSize = New-Object PSObject -Property @{`
 		Width = 350
 		Height = 350 
@@ -1124,16 +1007,8 @@ function New-HTMLPieChartObject {
 	return $PieChartObject
 }
 
-function New-HTMLPieChart {
-<#
-	.SYNOPSIS
-		adds a row colour field to the array of object for processing with htmltable
-	    .PARAMETER PieChartObject
-			This is a custom object with Pie chart properties, Create-HTMLPieChartObject
-		.PARAMETER PieChartData
-			Required an array with the headings Name and Count.  Using Powershell Group-object on an array
-		    
-#>
+function New-HTMLPieChart
+{
 param(
     $PieChartObject,
     $PieChartData
@@ -1141,20 +1016,14 @@ param(
 	      
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 	[void][Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms.DataVisualization")
-
-	#Create our chart object 
 	$Chart = New-object System.Windows.Forms.DataVisualization.Charting.Chart 
 	$Chart.Width = $PieChartObject.Size.Width
 	$Chart.Height = $PieChartObject.Size.Height
 	$Chart.Left = $PieChartObject.Size.Left
 	$Chart.Top = $PieChartObject.Size.Top
-
-	#Create a chartarea to draw on and add this to the chart 
 	$ChartArea = New-Object System.Windows.Forms.DataVisualization.Charting.ChartArea
 	$Chart.ChartAreas.Add($ChartArea) 
 	[void]$Chart.Series.Add("Data") 
-
-	#Add a datapoint for each value specified in the arguments (args) 
 	foreach ($value in $PieChartData) {
 		$datapoint = new-object System.Windows.Forms.DataVisualization.Charting.DataPoint(0, $value.Count)
 		$datapoint.AxisLabel = [string]$value.Name
@@ -1166,18 +1035,12 @@ param(
 	$Chart.Series["Data"]["PieLineColor"] = $PieChartObject.ChartStyle.PieLineColor 
 	$Chart.Series["Data"]["PieDrawingStyle"] = $PieChartObject.ChartStyle.PieDrawingStyle
 	($Chart.Series["Data"].points.FindMaxByValue())["Exploded"] = $PieChartObject.ChartStyle.ExplodeMaxValue
-	
-
-	#Set the title of the Chart to the current date and time 
 	$Title = new-object System.Windows.Forms.DataVisualization.Charting.Title 
 	[Void]$Chart.Titles.Add($Title) 
 	$Chart.Titles[0].Text = $PieChartObject.Title
-
 	$tempfile = (Join-Path $env:TEMP $PieChartObject.Title.replace(' ','') ) + ".png"
-	#Save the chart to a file
 	if ((test-path $tempfile)) {Remove-Item $tempfile -Force}
 	$Chart.SaveImage( $tempfile  ,"png")
-
 	$Base64Chart = [Convert]::ToBase64String((Get-Content $tempfile -Encoding Byte))
 	$HTMLCode = '<IMG SRC="data:image/gif;base64,' + $Base64Chart + '" ALT="' + $PieChartObject.Title + '">'
 	return $HTMLCode 
@@ -1185,27 +1048,18 @@ param(
 
 function Get-HTMLColumn1of2
 {
-<#
-	.SYNOPSIS
-#>
 	$report = '<div class="first column">'
 	return $report
 }
 
 function Get-HTMLColumn2of2
 {
-<#
-	.SYNOPSIS
-#>
 	$report = '<div class="second column">'
 	return $report
 }
 
 function Get-HTMLColumnClose
 {
-<#
-	.SYNOPSIS
-#>
 	$report = '</div>'
 	return $report
 }
@@ -1346,7 +1200,8 @@ param (
     }
 }
 
-function New-Popup {
+function New-Popup 
+{
 <#
 .Synopsis
 Display a Popup Message
