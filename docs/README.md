@@ -2,7 +2,7 @@
 
 * #### [Code of Conduct](CODE_OF_CONDUCT.md)
 * #### [Download](https://github.com/bferreti/DynamicsAxTools/archive/master.zip)
-* #### [Installation Guide](https://github.com/bferreti/DynamicsAxTools/wiki)
+* #### [Installation Guide](https://github.com/bferreti/DynamicsAxTools/wiki/1-Installation)
 
 ***
 
