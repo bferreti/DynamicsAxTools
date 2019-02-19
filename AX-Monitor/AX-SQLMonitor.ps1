@@ -838,7 +838,7 @@ function Get-ExecutionPlans
             FROM sys.dm_exec_query_stats qs
             CROSS APPLY sys.dm_exec_sql_text(qs.plan_handle) as qt
             LEFT OUTER JOIN sys.objects o ON qt.objectid = o.object_id
-            WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND LAST_EXECUTION_TIME >= DATEADD(day, DATEDIFF(day,0,GETDATE()),0) and QUERY_HASH <> 0x0000000000000000 AND (qs.last_elapsed_time / 1000000.0) >= 5
+            WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND LAST_EXECUTION_TIME >= DATEADD(day, DATEDIFF(day,0,GETDATE()),0) and QUERY_HASH <> 0x0000000000000000 AND (qs.last_elapsed_time / 1000000.0) >= 10
             ORDER BY AVG_SECONDS DESC"
     try {
         $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$Script:Settings.ToolsConnection)

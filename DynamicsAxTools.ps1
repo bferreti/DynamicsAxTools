@@ -2442,7 +2442,7 @@ $WpfbtnDBCleanUp.Add_Click({
                             "DELETE FROM A FROM AXMonitor_SQLConfiguration A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
                             "DELETE FROM A FROM AXMonitor_SQLInformation A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
                             "DELETE FROM A FROM AXMonitor_SQLRunningSpids A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
-                            "DELETE FROM A FROM AXMonitor_SQLQueryPlans A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
+                            "DELETE FROM A FROM AXMonitor_SQLQueryStats A WHERE NOT EXISTS (SELECT 1 FROM AXMonitor_ExecutionLog B WHERE A.GUID = B.GUID)",
                             "DELETE FROM A FROM AXReport_AxBatchJobs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
                             "DELETE FROM A FROM AXReport_AxLongBatchJobs A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
                             "DELETE FROM A FROM AXReport_AxMRP A WHERE NOT EXISTS (SELECT 1 FROM AXReport_ExecutionLog B WHERE A.GUID = B.GUID)",
