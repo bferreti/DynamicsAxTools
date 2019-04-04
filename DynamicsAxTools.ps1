@@ -867,7 +867,17 @@ function Get-EnvCheck
             switch($Srv.ServerType) {
                 'AOS' {
                     if($CheckAOS) {
-                        $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+                        #$Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+                        ##Adding AX2009
+		                $AOSKey = Invoke-Command -Computer $Srv.ServerName { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' }
+                        foreach ($AOSVersion in $AOSKey) {
+	                        if ($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$") {
+		                        switch ($AOSVersion.PSChildName.Substring(0,1)) {
+			                        "5" { $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Dynamics AX Object Server*" } }
+			                        "6" { $Service = Get-WmiObject -Class Win32_Service -ComputerName $Srv.ServerName -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" } }
+		                        }
+                            }
+                        }
                         if([string]::IsNullOrEmpty($Service)) {
                             $OutputResults | Add-Member -Name AOS -Value "Error" -MemberType NoteProperty
                         }
