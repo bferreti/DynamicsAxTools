@@ -2352,7 +2352,12 @@ $WpfbtnPerfDeploy.Add_Click({
                 Default {
                     $Xml = ($PerfmonXml.Tables[0] | Where { $_.ServerType -like $Server.ServerType }).TemplateXml
                     if(![string]::IsNullOrEmpty($Xml)) {
-                        $CollectorObj.SetXml($Xml.InnerXml)
+                        if($Xml.InnerXml) {
+                            $CollectorObj.SetXml($Xml.InnerXml)
+                        }
+                        else {
+                            $CollectorObj.SetXml($Xml)
+                        }
                         $CollectorObj.RootPath = "%systemdrive%\PerfLogs\Admin\$PerfmonName"
                         $CollectorObj.SerialNumber = 1
                         $CollectorObj.Commit($PerfmonName, $Server.ServerName, 0x0003) | Out-Null
@@ -2901,6 +2906,7 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #===========================================================================
 # Shows the form
 #===========================================================================
+<#
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {   
     $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
@@ -2917,6 +2923,7 @@ else {
 #$Form.ShowDialog() | Out-Null
 [System.GC]::Collect()
 Stop-Process $Pid
-
+#>
+$Form.ShowDialog() | Out-Null
 #$WpftxtEnvCPU | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>

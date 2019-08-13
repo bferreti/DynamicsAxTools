@@ -56,21 +56,26 @@ $Dir = Split-Path $ScriptDir
 $ModuleFolder = $Dir + "\AX-Modules"
 
 Import-Module $ModuleFolder\AX-Tools.psm1 -DisableNameChecking
+$LogName = 'Application', 'System'
+$ProviderName = 'Microsoft-Dynamics*','MR*', 'Microsoft Dynamics*'
 
 function Get-EventLogs
 {
     Write-Log "Running EvenLogs job for $ServerName. RunAs - $($Credentials.UserName)"
     if($Credentials) {
         try {
-            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials | 
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = $LogName; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials -ErrorAction SilentlyContinue | 
+                    Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+            $EventLogs += Get-WinEvent –FilterHashtable @{ProviderName = $ProviderName; Level = 1, 2; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials -ErrorAction SilentlyContinue | 
                     Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
         catch [System.Diagnostics.Eventing.Reader.EventLogException]{
 	        $CIMComputer = New-CimSession -ComputerName $ServerName
 	        Enable-NetFirewallRule -DisplayGroup "Remote Event Log Management" -CimSession $CIMComputer
 	        Remove-CimSession -ComputerName $ServerName
-            #
-            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials | 
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = $LogName; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials -ErrorAction SilentlyContinue | 
+                    Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+            $EventLogs += Get-WinEvent –FilterHashtable @{ProviderName = $ProviderName; Level = 1, 2; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -Credential $Credentials -ErrorAction SilentlyContinue | 
                     Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
         catch {
@@ -79,15 +84,18 @@ function Get-EventLogs
     }
     else {
         try {
-            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName | 
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = $LogName; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -ErrorAction SilentlyContinue | 
+                Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+            $EventLogs += Get-WinEvent –FilterHashtable @{ProviderName = $ProviderName; Level = 1, 2; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -ErrorAction SilentlyContinue | 
                 Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
         catch [System.Diagnostics.Eventing.Reader.EventLogException]{
 	        $CIMComputer = New-CimSession -ComputerName $ServerName
 	        Enable-NetFirewallRule -DisplayGroup "Remote Event Log Management" -CimSession $CIMComputer
 	        Remove-CimSession -ComputerName $ServerName
-            #
-            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = 'Application', 'System'; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName | 
+            $EventLogs = Get-WinEvent –FilterHashtable @{LogName = $LogName; Level = 2, 3; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -ErrorAction SilentlyContinue | 
+                Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
+            $EventLogs += Get-WinEvent –FilterHashtable @{ProviderName = $ProviderName; Level = 1, 2; StartTime=$((Get-Date).AddDays(-1).Date)} -ComputerName $ServerName -ErrorAction SilentlyContinue | 
                 Select @{n='LogName';e={$_.LogName}}, @{n='EntryType';e={($_.LevelDisplayName).ToString()}}, @{n='EventID';e={$_.ID}}, @{n='Source';e={$_.ProviderName}}, @{n='TimeGenerated';e={$_.TimeCreated}},  @{n='Message';e={$_.Message -replace '\t|\r|\n|  ', " "}},@{n='FQDN';e={$_.MachineName}}, @{n='ServerName';e={$ServerName}}, @{n='Guid';e={$Guid}}, @{n='ReportDate';e={$ReportDate}}
         }
         catch {
@@ -95,7 +103,6 @@ function Get-EventLogs
         }
     }
     SQL-BulkInsert 'AXReport_EventLogs' $EventLogs
-    #
     if($Exception) { Write-Log "$ServerName - ERROR - EventLogs: $Exception" }
 }
 
