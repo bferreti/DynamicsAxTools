@@ -59,6 +59,7 @@ $Script:Settings = Import-ConfigFile -ScriptName 'AxReport'
 $Script:Settings | Add-Member -Name Guid -Value $Global:Guid -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ReportDate -Value $(Get-Date (Get-Date).AddDays(-1) -Format d) -MemberType NoteProperty
 $Script:Settings | Add-Member -Name Environment -Value $Environment -MemberType NoteProperty
+$Script:Settings | Add-Member -Name AxVersion -Value $null -MemberType NoteProperty
 $Script:Settings | Add-Member -Name ApplicationName -Value 'AX Report Script' -MemberType NoteProperty
 $Script:Settings | Add-Member -Name SqlConnObject -Value $(Get-ConnectionString $Script:Settings.ApplicationName) -MemberType NoteProperty
 
@@ -125,7 +126,7 @@ function Validate-Settings
 function Get-WrkServers
 {
 	Validate-Settings
-	$Query = "SELECT [SERVERNAME], [SERVERTYPE] FROM [AXTools_Servers] WHERE [Environment] = '$Environment' AND [ACTIVE] = 1"
+	$Query = "SELECT [SERVERNAME], [SERVERTYPE], [VERSION] FROM [AXTools_Servers] WHERE [Environment] = '$Environment' AND [ACTIVE] = 1"
 	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $Cmd
@@ -160,12 +161,12 @@ param(
 	foreach ($WrkServer in $WrkServers) {
 		Write-Log "$($WrkServer.ServerName) ($($WrkServer.ServerType)) Processing."
 		$Processes = Get-Process -ComputerName $WrkServer.ServerName |
-		Select-Object Name,Id,Handles,VM,WS,PM,NPM,WorkingSet,PagedMemorySize,PrivateMemorySize,VirtualMemorySize,BasePriority,@{ n = 'ServerName'; e = { $_.MachineName } },@{ n = 'Guid'; e = { $Script:Settings.GUID } },@{ n = 'ReportDate'; e = { $Script:Settings.ReportDate } }
+		    Select-Object Name,Id,Handles,VM,WS,PM,NPM,WorkingSet,PagedMemorySize,PrivateMemorySize,VirtualMemorySize,BasePriority,@{ n = 'ServerName'; e = { $_.MachineName } },@{ n = 'Guid'; e = { $Script:Settings.GUID } },@{ n = 'ReportDate'; e = { $Script:Settings.ReportDate } }
 		SQL-BulkInsert 'AXReport_RunningProcesses' $Processes
 		switch ($WrkServer.ServerType) {
 			'AOS' {
-				Get-AXConfiguration $WrkServer
-				Get-AOSServices $WrkServer
+                Get-AXConfiguration $WrkServer
+                Get-AOSServices $WrkServer
 			}
 			'IIS' {
 				Get-AXConfiguration $WrkServer
@@ -174,9 +175,6 @@ param(
 			'SQL' {
 				Add-SQLInstance $WrkServer.ServerName '' 'Database Server (SQL)'
 			}
-			#'REG' {
-			#	Add-SQLInstance $WrkServer.ServerName '' 'Channel Database (StoreDB)'
-			#}
 			'SRS' {
 	            if ($Script:Settings.LocalAdminAccount) {
 		            if(Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\RS' -ErrorAction SilentlyContinue }) {
@@ -200,6 +198,9 @@ param(
 		Get-EventLogs
 		Get-PerfmonLogs
 	}
+    if($Script:Settings.AxVersion -like '365-OnPrem') {
+        Get-HealthReport
+    }
 	Get-AXLogs
 	Get-SSRSLogs
 	AXR-CheckJobs
@@ -234,50 +235,118 @@ function AXR-CheckJobs
 function Get-AXConfiguration
 {
 	if ($Script:Settings.LocalAdminAccount) {
-		$AOSKey = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' }
-		foreach ($AOSVersion in $AOSKey) {
-			if ($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$") {
-				switch ($AOSVersion.PSChildName.Substring(0,1)) {
-					"5" { $Version = "AX2009" }
-					"6" { $Version = "AX2012" }
-					"7" { $Version = "D365" }
-				}
-				$AOSInstances = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { Get-ChildItem $args[0] }
-				foreach ($Instance in $AOSInstances) {
-					$Current = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
-					$InstanceName = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
-					$CurrentKey = "$($Instance.Name)\$Current"
-					$DBName = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
-					$DBServer = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
-					$Details = "AX Database (Version: $Version / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+		$AOSKey = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' } -ErrorAction SilentlyContinue
+        if([string]::IsNullOrEmpty($AOSKey)) {
+            $ServiceFabric  = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { 
+                Connect-ServiceFabricCluster | Out-Null
+                Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
+            } -ErrorAction SilentlyContinue
+            if([string]::IsNullOrEmpty($ServiceFabric)) {
+                $OneBox  = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { 
+                    Get-WebFilePath "IIS:\Sites\AOSService"
+                } -ErrorVariable Err -ErrorAction SilentlyContinue
+                if(!$Err -and ![string]::IsNullOrEmpty($OneBox)) {
+                    $Script:Settings.AxVersion = '365-OneBox'
+                    [Xml]$WebConfig = Get-Content "$($OneBox.FullName)\Web.Config"
+                    $DBName = ($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.Database' }).Value
+                    $DBServer = if (($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.DbServer' }).Value -like 'localhost') { $env:COMPUTERNAME }
+                                else { ($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.DbServer' }).Value }
+					$Details = "AX Database (Version: $($Script:Settings.AxVersion) / SQLServer: $DBServer / Database: $DBName)"
 					Write-Log "$($WrkServer.ServerName) - $Details"
 					Add-SQLInstance $DBServer $DBName 'AX Database'
-				}
-			}
-		}
+                }
+                else {
+				    $Details = "AX Configuration not found."
+				    Write-Log "$($WrkServer.ServerName) - $Details"
+                }
+            }
+            else {
+                $Script:Settings.AxVersion = '365-OnPrem'
+                $DBName = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_Database' }).Value
+                $DBServer = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_DbServer' }).Value
+				$Details = "AX Database (Version: $($Script:Settings.AxVersion) / SQLServer: $DBServer / Database: $DBName)"				
+                Write-Log "$($WrkServer.ServerName) - $Details"
+				Add-SQLInstance $DBServer $DBName 'AX Database'
+            }
+        }
+        else {
+		    foreach ($AOSVersion in $AOSKey) {
+			    if ($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$") {
+				    switch ($AOSVersion.PSChildName.Substring(0,1)) {
+					    "5" { $Script:Settings.AxVersion = "AX2009" }
+					    "6" { $Script:Settings.AxVersion = "AX2012" }
+				    }
+				    $AOSInstances = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { Get-ChildItem $args[0] }
+				    foreach ($Instance in $AOSInstances) {
+					    $Current = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
+					    $InstanceName = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
+					    $CurrentKey = "$($Instance.Name)\$Current"
+					    $DBName = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
+					    $DBServer = Invoke-Command -Computer $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
+					    $Details = "AX Database (Version: $Version / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+					    Write-Log "$($WrkServer.ServerName) - $Details"
+					    Add-SQLInstance $DBServer $DBName 'AX Database'
+				    }
+			    }
+		    }
+        }
 	}
 	else {
-		$AOSKey = Invoke-Command -Computer $($WrkServer.ServerName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' }
-		foreach ($AOSVersion in $AOSKey) {
-			if ($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$") {
-				switch ($AOSVersion.PSChildName.Substring(0,1)) {
-					"5" { $Version = "AX2009" }
-					"6" { $Version = "AX2012" }
-					"7" { $Version = "D365" }
-				}
-				$AOSInstances = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { Get-ChildItem $args[0] }
-				foreach ($Instance in $AOSInstances) {
-					$Current = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
-					$InstanceName = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
-					$CurrentKey = "$($Instance.Name)\$Current"
-					$DBName = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
-					$DBServer = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
-					$Details = "AX Database (Version: $Version / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+		$AOSKey = Invoke-Command -Computer $($WrkServer.ServerName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' } -ErrorAction SilentlyContinue
+        if([string]::IsNullOrEmpty($AOSKey)) {
+            $ServiceFabric  = Invoke-Command -Computer $($WrkServer.ServerName) -ScriptBlock { 
+                Connect-ServiceFabricCluster | Out-Null
+                Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
+            } -ErrorAction SilentlyContinue
+            if([string]::IsNullOrEmpty($ServiceFabric)) {
+                $OneBox  = Invoke-Command -Computer $($WrkServer.ServerName) -ScriptBlock { 
+                    Get-WebFilePath "IIS:\Sites\AOSService"
+                } -ErrorVariable Err -ErrorAction SilentlyContinue
+                if(!$Err -and ![string]::IsNullOrEmpty($OneBox)) {
+                    if([string]::IsNullOrEmpty($Script:Settings.AxVersion)){$Script:Settings.AxVersion = '365-OneBox'}
+                    [Xml]$WebConfig = Get-Content "$($OneBox.FullName)\Web.Config"
+                    $DBName = ($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.Database' }).Value
+                    $DBServer = if (($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.DbServer' }).Value -like 'localhost') { $env:COMPUTERNAME }
+                                else { ($WebConfig.Configuration.AppSettings.Add | where { $_.Key -eq 'DataAccess.DbServer' }).Value }
+					$Details = "AX Database (Version: $($Script:Settings.AxVersion) / SQLServer: $DBServer / Database: $DBName)"
 					Write-Log "$($WrkServer.ServerName) - $Details"
 					Add-SQLInstance $DBServer $DBName 'AX Database'
-				}
-			}
-		}
+                }
+                else {
+                    $Details = "AX Configuration not found."				    
+                    Write-Log "$($WrkServer.ServerName) - $Details"
+                }
+            }
+            else {
+                if([string]::IsNullOrEmpty($Script:Settings.AxVersion)){$Script:Settings.AxVersion = '365-OnPrem'}
+                $DBName = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_Database' }).Value
+                $DBServer = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_DbServer' }).Value
+				$Details = "AX Database (Version: $($Script:Settings.AxVersion) / SQLServer: $DBServer / Database: $DBName)"
+				Write-Log "$($WrkServer.ServerName) - $Details"
+				Add-SQLInstance $DBServer $DBName 'AX Database'
+            }
+        }
+        else {
+		    foreach ($AOSVersion in $AOSKey) {
+			    if ($AOSVersion.PSChildName.Substring(0,1) -match "^[0-9]*$") {
+				    switch ($AOSVersion.PSChildName.Substring(0,1)) {
+					    "5" {if([string]::IsNullOrEmpty($Script:Settings.AxVersion)){$Script:Settings.AxVersion = "Ax2009"}}
+					    "6" {if([string]::IsNullOrEmpty($Script:Settings.AxVersion)){$Script:Settings.AxVersion = "Ax2012"}}
+				    }
+				    $AOSInstances = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $AOSVersion.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { Get-ChildItem $args[0] }
+				    foreach ($Instance in $AOSInstances) {
+					    $Current = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Current }
+					    $InstanceName = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $Instance.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).InstanceName }
+					    $CurrentKey = "$($Instance.Name)\$Current"
+					    $DBName = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).Database }
+					    $DBServer = Invoke-Command -Computer $($WrkServer.ServerName) -ArgumentList $CurrentKey.Replace("HKEY_LOCAL_MACHINE","HKLM:") { (Get-ItemProperty $args[0]).DBServer }
+					    $Details = "AX Database (Version: $($Script:Settings.AxVersion) / Instance Name: $InstanceName / Configuration: $Current / SQLServer: $DBServer / Database: $DBName)"
+					    Write-Log "$($WrkServer.ServerName) - $Details"
+					    Add-SQLInstance $DBServer $DBName 'AX Database'
+				    }
+			    }
+		    }
+        }
 	}
 }
 
@@ -348,7 +417,7 @@ function Get-AOSServices
 {
 	$AOSServices = @()
 	if ($Script:Settings.LocalAdminAccount -and $WrkServer.ServerName -ne $env:COMPUTERNAME) {
-		$Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+		$Services = Get-WmiObject -Class Win32_Service -ComputerName $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ea 0 | Where-Object { $_.DisplayName -match "Microsoft Dynamics AX Object Server*|Service Fabric Host Service*|Microsoft Dynamics 365 Unified Operations*|Management Reporter*|World Wide Web*|SQL Server Reporting Services*" }
 		if ($Services) {
 			foreach ($Service in $Services) {
 				$AOSTemp = New-Object -TypeName System.Object
@@ -367,7 +436,7 @@ function Get-AOSServices
 		}
 	}
 	else {
-		$Services = Get-WmiObject -Class Win32_Service -ComputerName $($WrkServer.ServerName) -ea 0 | Where-Object { $_.DisplayName -like "Microsoft Dynamics AX Object Server*" }
+		$Services = Get-WmiObject -Class Win32_Service -ComputerName $WrkServer.ServerName -ea 0 | Where-Object { $_.DisplayName -match "Microsoft Dynamics AX Object Server*|Service Fabric Host Service*|Microsoft Dynamics 365 Unified Operations*|Management Reporter*|World Wide Web*|SQL Server Reporting Services*" }
 		if ($Services) {
 			foreach ($Service in $Services) {
 				$AOSTemp = New-Object -TypeName System.Object
@@ -386,6 +455,50 @@ function Get-AOSServices
 		}
 	}
 	SQL-BulkInsert 'AXReport_AxServices' $AOSServices
+}
+
+function Get-HealthReport
+{
+	$AppReport = @()
+	if ($Script:Settings.LocalAdminAccount -and $WrkServer.ServerName -ne $env:COMPUTERNAME) {
+        $HealthReport  = Invoke-Command -Computer $WrkServer.ServerName -Credential $Script:Settings.LocalAdminAccount -ScriptBlock { 
+            Connect-ServiceFabricCluster | Out-Null
+            Get-ServiceFabricApplication | Get-ServiceFabricApplicationHealth -Verbose
+        } -ErrorAction SilentlyContinue -HideComputerName
+        foreach($Node in $HealthReport) {
+            foreach($DepApp in $Node.DeployedApplicationHealthStates) {
+                $NodeTemp = New-Object -TypeName System.Object
+                $NodeTemp | Add-Member -Name ServerName -Value 'ESD1APOLYPFAT04' -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Service -Value $DepApp.ApplicationName.AbsoluteUri -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Name -Value $DepApp.NodeName -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Status -Value $DepApp.AggregatedHealthState -MemberType NoteProperty
+                $NodeTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Guid -Value $Script:Settings.GUID -MemberType NoteProperty
+                $NodeTemp | Add-Member -Name StartTime -Value $([datetime]::Parse($Node.HealthEvents.LastModifiedUtcTimestamp.DateTime)) -MemberType NoteProperty
+                $AppReport += $NodeTemp
+            }
+        }
+    }
+	else {
+        $HealthReport  = Invoke-Command -Computer $WrkServer.ServerName -ScriptBlock { 
+            Connect-ServiceFabricCluster | Out-Null
+            Get-ServiceFabricApplication | Get-ServiceFabricApplicationHealth -Verbose
+        } -ErrorAction SilentlyContinue -HideComputerName
+        foreach($Node in $HealthReport) {
+            foreach($DepApp in $Node.DeployedApplicationHealthStates) {
+                $NodeTemp = New-Object -TypeName System.Object
+                $NodeTemp | Add-Member -Name ServerName -Value 'ESD1APOLYPFAT04' -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Service -Value $DepApp.ApplicationName.AbsoluteUri -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Name -Value $DepApp.NodeName -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Status -Value $DepApp.AggregatedHealthState -MemberType NoteProperty
+                $NodeTemp | Add-Member -Name ReportDate -Value $Script:Settings.ReportDate -MemberType NoteProperty
+			    $NodeTemp | Add-Member -Name Guid -Value $Script:Settings.GUID -MemberType NoteProperty
+                $NodeTemp | Add-Member -Name StartTime -Value $([datetime]::Parse($Node.HealthEvents.LastModifiedUtcTimestamp.DateTime)) -MemberType NoteProperty
+                $AppReport += $NodeTemp
+            }
+        }
+	}
+	SQL-BulkInsert 'AXReport_AxServices' $AppReport
 }
 
 function Get-AXLogs
@@ -838,7 +951,7 @@ function Add-PerfCounter ($Path,$Type,$ReportView)
 
 function Get-SSRSLogs
 {
-	$Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS = 'SSRS Database' GROUP BY DBServer, DBName"
+	$Query = "SELECT DBServer, DBName FROM AXReport_SqlDatabases WHERE Guid = '$($Script:Settings.Guid)' AND DETAILS LIKE 'SSRS Database%' GROUP BY DBServer, DBName"
 	$Cmd = New-Object System.Data.SqlClient.SqlCommand ($Query,$Script:Settings.SqlConnObject)
 	$Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
 	$Adapter.SelectCommand = $Cmd
