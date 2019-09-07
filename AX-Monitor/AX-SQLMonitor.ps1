@@ -800,52 +800,41 @@ function Get-JobStatus
 
 function Get-ExecutionPlans
 {
-    $SqlQuery = "INSERT INTO [dbo].[AXMonitor_SQLQueryStats]
-               ([ENVIRONMENT]
-			   ,[LAST_SECONDS]
-               ,[AVG_SECONDS]
-               ,[TOTAL_SECONDS]
-               ,[EXECUTION_COUNT]
-               ,[SQL_TEXT]
-               ,[TABLE_NAME]
-               ,[DATABASE_NAME]
-               ,[LAST_EXECUTION_TIME]
-               ,[MIN_LOGICAL_READS]
-               ,[MAX_LOGICAL_READS]
-               ,[LAST_LOGICAL_READS]
-               ,[SQL_HANDLE]
-               ,[PLAN_HANDLE]
-               ,[QUERY_HASH]
-               ,[QUERY_PLAN_HASH]
-               ,[GUID])
-            SELECT '$($Script:Settings.Environment)' as ENVIRONMENT,
-					ROUND(qs.last_elapsed_time / 1000000.0,9) AS LAST_SECONDS, 
-		            ROUND(qs.total_elapsed_time / qs.execution_count / 1000000.0,9) AS AVG_SECONDS,
-		            ROUND(qs.total_elapsed_time / 1000000.0,9) AS TOTAL_SECONDS,
-		            qs.EXECUTION_COUNT,
-					LTRIM(RTRIM(qt.text)) as SQL_TEXT,
-		            o.name AS TABLE_NAME, 
-		            DB_NAME(qt.dbid) AS DATABASE_NAME, 
-		            LAST_EXECUTION_TIME, 
-		            MIN_LOGICAL_READS, 
-		            MAX_LOGICAL_READS, 
-		            LAST_LOGICAL_READS, 
-		            '0x'+CONVERT(varchar(max),SQL_HANDLE,2) as SQL_HANDLE, --SQL_HANDLE,
-		            '0x'+CONVERT(varchar(max),PLAN_HANDLE,2) as PLAN_HANDLE, --PLAN_HANDLE, 
-		            '0x'+CONVERT(varchar(max),QUERY_HASH,2) as QUERY_HASH, --QUERY_HASH, 
-		            '0x'+CONVERT(varchar(max),QUERY_PLAN_HASH,2) as QUERY_PLAN_HASH, --QUERY_PLAN_HASH, 
-		            '$($Script:Settings.Guid)' AS GUID
+    $SqlQuery = "SELECT '$($Script:Settings.Environment)' as ENVIRONMENT,
+                         ROUND(qs.last_elapsed_time / 1000000.0,9) AS LAST_SECONDS,
+                         ROUND(qs.total_elapsed_time / qs.execution_count / 1000000.0,9) AS AVG_SECONDS,
+                         ROUND(qs.total_elapsed_time / 1000000.0,9) AS TOTAL_SECONDS,
+                         qs.EXECUTION_COUNT,
+                         LTRIM(RTRIM(qt.text)) as SQL_TEXT,
+                         o.name AS TABLE_NAME,
+                         DB_NAME(qt.dbid) AS DATABASE_NAME,
+                         LAST_EXECUTION_TIME,
+                         MIN_LOGICAL_READS,
+                         MAX_LOGICAL_READS,
+                         LAST_LOGICAL_READS,
+                         '0x'+CONVERT(varchar(max),SQL_HANDLE,2) as SQL_HANDLE, --SQL_HANDLE,
+                         '0x'+CONVERT(varchar(max),PLAN_HANDLE,2) as PLAN_HANDLE, --PLAN_HANDLE,
+                         '0x'+CONVERT(varchar(max),QUERY_HASH,2) as QUERY_HASH, --QUERY_HASH,
+                         '0x'+CONVERT(varchar(max),QUERY_PLAN_HASH,2) as QUERY_PLAN_HASH, --QUERY_PLAN_HASH,
+                         '$($Script:Settings.Guid)' AS GUID
             FROM sys.dm_exec_query_stats qs
             CROSS APPLY sys.dm_exec_sql_text(qs.plan_handle) as qt
             LEFT OUTER JOIN sys.objects o ON qt.objectid = o.object_id
             WHERE DB_NAME(qt.dbid) = '$($Script:Settings.AXDBName)' AND LAST_EXECUTION_TIME >= DATEADD(day, DATEDIFF(day,0,GETDATE()),0) and QUERY_HASH <> 0x0000000000000000 AND (qs.last_elapsed_time / 1000000.0) >= 10
             ORDER BY AVG_SECONDS DESC"
     try {
-        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$Script:Settings.ToolsConnection)
-        $SqlCommand.ExecuteNonQuery() | Out-Null
+        $SqlConn = $Script:Settings.SQLServer.ConnectionContext.SqlConnectionObject
+        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand ($SqlQuery,$SqlConn)
+        $Adapter = New-Object System.Data.SqlClient.SqlDataAdapter
+        $Adapter.SelectCommand = $SqlCommand
+        $Plans = New-Object System.Data.DataSet
+        $PlanCnt = $Adapter.Fill($Plans)
+        if($PlanCnt -gt 0) {
+            SQL-BulkInsert 'AXMonitor_SQLQueryStats' $($Plans.Tables[0] | Select ENVIRONMENT, LAST_SECONDS, AVG_SECONDS, TOTAL_SECONDS, EXECUTION_COUNT, SQL_TEXT, TABLE_NAME, DATABASE_NAME, LAST_EXECUTION_TIME, MIN_LOGICAL_READS, MAX_LOGICAL_READS, LAST_LOGICAL_READS, SQL_HANDLE, PLAN_HANDLE, QUERY_HASH, QUERY_PLAN_HASH, GUID)
+        }
     }
     catch {
-            if([boolean]::Parse($Script:Settings.Debug)) { $_.Exception.Message | Out-File "$($Script:Settings.LogFolder)\33-GRD_QueryPlans_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
+        if([boolean]::Parse($Script:Settings.Debug)) { $_.Exception.Message | Out-File "$($Script:Settings.LogFolder)\33-GRD_QueryPlans_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
     }
     if([boolean]::Parse($Script:Settings.Debug)) { $SqlQuery | Out-File "$($Script:Settings.LogFolder)\32-GRD_QueryPlans_$($Environment)_$($Script:Settings.FileDateTime).txt" -Append }
 }
