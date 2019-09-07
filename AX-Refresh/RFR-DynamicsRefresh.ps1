@@ -537,7 +537,7 @@ function Get-EnvironmentServers
             $AOSTemp | Add-Member -Name Status -Value $($Server.Status) -MemberType NoteProperty
             $AOSTemp | Add-Member -Name ServerName -Value $($Server.ServerName) -MemberType NoteProperty
             if (!(Test-Connection $AOSTemp.ServerName -Count 1 -Quiet)) {
-                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't connect" -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't Reach Server" -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name UpdateFlag -Value '1' -MemberType NoteProperty
             }
@@ -565,12 +565,12 @@ function Get-EnvironmentServers
                 }
                 elseif($Server.Version -eq '7' -and $Server.InstanceName -like 'Azure*') {
                     $Service = Invoke-Command -Computer $($AOSTemp.ServerName) -ScriptBlock { 
-                        Connect-ServiceFabricCluster | Out-Null
+                        Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
                         Get-ServiceFabricApplication -ExcludeApplicationParameters | Where { $_.ApplicationName -like '*AX*' }
-                    }
+                    } -ErrorAction SilentlyContinue
                     if(![string]::IsNullOrEmpty($Service)) {
                         $AOSTemp | Add-Member -Name Active -Value '1' -MemberType NoteProperty
-                        $AOSTemp | Add-Member -Name ServiceStatus -Value $($Service.HealthState) -MemberType NoteProperty
+                        $AOSTemp | Add-Member -Name ServiceStatus -Value "HealthState $($Service.HealthState)" -MemberType NoteProperty
                         if($Service.State -like 'Ok' -and $AOSTemp.Status -eq 0) {
                             $AOSTemp | Add-Member -Name UpdateFlag -Value '1' -MemberType NoteProperty
                         }
@@ -705,7 +705,7 @@ function Get-AOSConfiguration
     
     if([string]::IsNullOrEmpty($AOSKey)) {
         $ServiceFabric  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-            Connect-ServiceFabricCluster
+            Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
             Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
         } -ErrorAction SilentlyContinue
         if(![string]::IsNullOrEmpty($ServiceFabric)) {
@@ -819,7 +819,7 @@ function Get-ServersByVersion
     $AOSKey = Invoke-Command -Computer $($Script:Environment.MachineName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' } -ErrorAction SilentlyContinue
     if([string]::IsNullOrEmpty($AOSKey)) {
         $ServiceFabric  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-            Connect-ServiceFabricCluster
+            Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
             Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
         } -ErrorAction SilentlyContinue
         if(![string]::IsNullOrEmpty($ServiceFabric)) {
@@ -881,7 +881,7 @@ function Get-RunningServers
             $AOSTemp | Add-Member -Name ServerName -Value $($Server.AOSID.Substring(0,$Server.AOSID.Length-5)) -MemberType NoteProperty
             
             if (!(Test-Connection $AOSTemp.ServerName -Count 1 -Quiet)) {
-                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't connect" -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't Reach Server" -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
             }
             else {
@@ -905,7 +905,7 @@ function Get-RunningServers
                     $AOSTemp | Add-Member -Name FQDN -Value "$($AOSTemp.ServerName).$($AOSTemp.Domain)" -MemberType NoteProperty
                 }
                 else {
-                    $AOSTemp | Add-Member -Name ServerStatus -Value "Different DB: $CheckDbServer\$CheckDbName" -MemberType NoteProperty
+                    $AOSTemp | Add-Member -Name ServerStatus -Value "DB Mismatch: $CheckDbServer\$CheckDbName" -MemberType NoteProperty
                     $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
                 }
 	        }
@@ -1014,20 +1014,20 @@ function Get-RunningApps
             $AOSTemp | Add-Member -Name ServerName -Value $(if($($Server.AOSID).Split(':').Count -gt 1) { ($Server.AOSID).Split(':')[1] } else { ($Server.AOSID).Split('.')[0] } ) -MemberType NoteProperty
             
             if (!(Test-Connection $AOSTemp.ServerName -Count 1 -Quiet)) {
-                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't connect" -MemberType NoteProperty
+                $AOSTemp | Add-Member -Name ServerStatus -Value "Can't Reach Server" -MemberType NoteProperty
                 $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
             }
             else {
                 $ServiceFabric  = Invoke-Command -Computer $($AOSTemp.ServerName) -ScriptBlock { 
-                    Connect-ServiceFabricCluster
+                    Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
                     Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
-                }
+                } -ErrorAction SilentlyContinue
                 $CheckDbName = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_Database' }).Value
                 $CheckDbServer = ($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_DbServer' }).Value
                 if($CheckDbServer -like $Script:Environment.keyDbServer -and $CheckDbName -like $Script:Environment.keyDbName) {
                     $AOSTemp | Add-Member -Name Active -Value '1' -MemberType NoteProperty
                     $Service = Invoke-Command -Computer $($AOSTemp.ServerName) -ScriptBlock { 
-                        Connect-ServiceFabricCluster | Out-Null
+                        Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
                         Get-ServiceFabricApplication -ExcludeApplicationParameters | Where { $_.ApplicationName -like '*AX*' }
                     }
                     $AOSTemp | Add-Member -Name ServiceStatus -Value $($Service.HealthState) -MemberType NoteProperty
@@ -1037,7 +1037,7 @@ function Get-RunningApps
                     $AOSTemp | Add-Member -Name FQDN -Value "$($AOSTemp.ServerName).$($AOSTemp.Domain)" -MemberType NoteProperty
                 }
                 else {
-                    $AOSTemp | Add-Member -Name ServerStatus -Value "Different DB: $CheckDbServer\$CheckDbName" -MemberType NoteProperty
+                    $AOSTemp | Add-Member -Name ServerStatus -Value "DB Mismatch: $CheckDbServer\$CheckDbName" -MemberType NoteProperty
                     $AOSTemp | Add-Member -Name Active -Value '0' -MemberType NoteProperty
                 }
 	        }
@@ -1184,9 +1184,9 @@ function Get-ServerOneBox
 function Get-ServiceFabricNodes
 {
     [Xml]$SFNodes  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-        Connect-ServiceFabricCluster | Out-Null
+        Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
         Get-ServiceFabricNodeConfiguration
-    }
+    } -ErrorAction SilentlyContinue
     $Nodes = @()
     foreach($Node in $SFNodes.ClusterManifest.Infrastructure.WindowsServer.NodeList.ChildNodes) {
         $ServerInfo = [System.Net.Dns]::GetHostByAddress($Node.IPAddressOrFQDN)
@@ -1224,9 +1224,9 @@ function Get-ServiceFabricNodes
 function Get-ServiceFabricSQLUser
 {
     $ServiceFabric  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-        Connect-ServiceFabricCluster
+        Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
         Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
-    }
+    } -ErrorAction SilentlyContinue
     $SecPasswd = ConvertTo-SecureString $(Invoke-ServiceFabricDecryptText -CipherText $(($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_SqlPwd' }).Value)) -AsPlainText -Force
     $Credential = New-Object System.Management.Automation.PSCredential ($(Invoke-ServiceFabricDecryptText -CipherText $(($ServiceFabric.ApplicationParameters | Where { $_.Name -eq 'DataAccess_SqlUser' }).Value)), $SecPasswd)
     
@@ -1806,7 +1806,9 @@ param(
 			    Write-Host 'Done.' -Fore Yellow
 		    }
 		    catch [Exception]{
-			    $Script:WarningMsg = "Nothing to Stop."
+			    #$Script:WarningMsg = "Nothing to Stop."
+                Write-Host "Couldn't Stop - Service is " -NoNewline -Fore Yellow
+                Write-Host $(Get-Service -Name $($Srv.ServiceName) -ComputerName $($Srv.AOSName) | Select-Object Status -ExpandProperty Status) -Fore Yellow
 		    }
 		    catch {
 			    $Script:WarningMsg = $_.Exception.Message
@@ -1822,7 +1824,9 @@ param(
 				Write-Host 'Done.' -Fore Yellow
 		    }
 		    catch [Exception]{
-			    $Script:WarningMsg = "Nothing to Start."
+			    #$Script:WarningMsg = "Nothing to Start."
+                Write-Host "Couldn't Start - Service is " -NoNewline -Fore Yellow
+                Write-Host $(Get-Service -Name $($Srv.ServiceName) -ComputerName $($Srv.AOSName) | Select-Object Status -ExpandProperty Status) -Fore Yellow
 		    }
 		    catch {
 			    $Script:WarningMsg = $_.Exception.Message
