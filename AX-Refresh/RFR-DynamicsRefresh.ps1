@@ -729,12 +729,6 @@ function Get-AOSConfiguration
             }
             Get-ServerOneBox        
         }
-        else {
-            Write-Host ''
-            Write-Warning $Err[0]
-			Clear-EnvironmentData
-			Get-Menu
-        }
     }
 
     if(!$ServiceFabric -and !$OneBox) {
@@ -787,6 +781,11 @@ function Get-AOSConfiguration
         }
     Get-RunningServers
     }
+    else {
+	    $Script:WarningMsg = "AX Configuration not found."
+	    Clear-EnvironmentData
+	    Get-Menu
+    }
 
     try {
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
@@ -804,7 +803,7 @@ function Get-AOSConfiguration
 		$SqlConn.Close()
     }
     catch {
-		$Script:WarningMsg = "AX Configuration not found."
+		$Script:WarningMsg = $_.Exception.Message
 		Clear-EnvironmentData
 		Get-Menu
     }
@@ -816,29 +815,55 @@ function Get-AOSConfiguration
 
 function Get-ServersByVersion
 {
-    $AOSKey = Invoke-Command -Computer $($Script:Environment.MachineName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' } -ErrorAction SilentlyContinue
-    if([string]::IsNullOrEmpty($AOSKey)) {
-        $ServiceFabric  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-            Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
-            Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
-        } -ErrorAction SilentlyContinue
-        if(![string]::IsNullOrEmpty($ServiceFabric)) {
-            Get-RunningApps
+    if([string]::IsNullOrEmpty($Script:Environment.MachineName)) {
+        Write-Host ''
+        do {
+		    if ($Script:Environment.AsJob) { $Prompt = 'Y' } else { $Prompt = Read-Host "Do you want to connect to $($env:COMPUTERNAME)? (Y/N)" }
+		    switch ($Prompt.ToUpper()) {
+			    Y {
+                    $Script:Environment.MachineName = $env:COMPUTERNAME
+			    }
+			    N {
+                    $AOSName = Read-Host "Enter AOS Server Name"
+                    if (!(Test-Connection $AOSName -Count 1 -Quiet)) {
+                        $Script:Environment.MachineName = $null
+                    }
+                    else {
+                        $Script:Environment.MachineName = $AOSName
+                    }
+			    }
+		    }
+	    } while ($Prompt -notmatch "[YN]")        
+    }
+    if(![string]::IsNullOrEmpty($Script:Environment.MachineName)) {
+        $AOSKey = Invoke-Command -Computer $($Script:Environment.MachineName) { Get-ChildItem 'HKLM:\SYSTEM\CurrentControlSet\Services\Dynamics Server' } -ErrorAction SilentlyContinue
+        if([string]::IsNullOrEmpty($AOSKey)) {
+            $ServiceFabric  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
+                Connect-ServiceFabricCluster -TimeoutSec 1 | Out-Null
+                Get-ServiceFabricApplication | Where { $_.ApplicationName -like '*AX*' }
+            } -ErrorAction SilentlyContinue
+            if(![string]::IsNullOrEmpty($ServiceFabric)) {
+                Get-RunningApps
+            }
+        }
+        if([string]::IsNullOrEmpty($ServiceFabric)) {
+            $OneBox  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
+                Get-WebFilePath "IIS:\Sites\AOSService"
+            } -ErrorVariable Err -ErrorAction SilentlyContinue
+            if(!$Err -and ![string]::IsNullOrEmpty($OneBox)) {
+                Get-ServerOneBox
+            }
+        }
+
+        if(!$ServiceFabric -and !$OneBox) {
+            Get-RunningServers
         }
     }
-    if([string]::IsNullOrEmpty($ServiceFabric)) {
-        $OneBox  = Invoke-Command -Computer $($Script:Environment.MachineName) -ScriptBlock { 
-            Get-WebFilePath "IIS:\Sites\AOSService"
-        } -ErrorVariable Err -ErrorAction SilentlyContinue
-        if(!$Err -and ![string]::IsNullOrEmpty($OneBox)) {
-            Get-ServerOneBox
-        }
+    else {
+		$Script:WarningMsg = "Invalid AOS Server Name. Try it again."
+		Clear-EnvironmentData
+		Get-Menu        
     }
-
-    if(!$ServiceFabric -and !$OneBox) {
-        Get-RunningServers
-    }
-
 }
 
 function Get-RunningServers
@@ -955,7 +980,14 @@ function Get-RunningServers
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
-					$SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSServers.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+                    if ($AOSServers | Where {$_.ServiceStatus -like 'Running'} | Select -First 1) {
+                        $SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.ServiceStatus -like 'Running' -and $_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+                        $Script:Environment.MachineName = ($AOSServers | Where {$_.ServiceStatus -like 'Running' -and $_.Active -eq '1'} | Select -First 1).ServerName
+                    }
+                    else {
+                        $SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+                        $Script:Environment.MachineName = ($AOSServers | Where {$_.Active -eq '1'} | Select -First 1).ServerName
+                    }
 					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					$SqlCommand.ExecuteNonQuery() | Out-Null
 				    $SqlConn.Close()
@@ -1736,22 +1768,22 @@ param(
     $Adapter.SelectCommand = $SqlCommand
     $DSServers = New-Object System.Data.DataSet
     $AOSCnt = $Adapter.Fill($DSServers)
-    if ($AOSCnt -gt 0) {
+    if($AOSCnt -gt 0) {
         $ServiceList = @()
-        foreach ($AOS in $DSServers.Tables[0]) {
+        foreach($AOS in $DSServers.Tables[0]) {
             $ServiceTemp = New-Object -TypeName System.Object
-            if (Test-Connection $AOS.ServerName -Count 1 -Quiet) {
+            if(Test-Connection $AOS.ServerName -Count 1 -Quiet) {
 			    Switch ($AOS.Version) {
                     '5' {
                         $ServiceTemp | Add-Member -Name AOSName -Value ($AOS.InstanceName).Split('@')[1] -MemberType NoteProperty
                         $ServiceTemp | Add-Member -Name InstanceName -Value ($AOS.InstanceName).Split('@')[0] -MemberType NoteProperty
-                        $ServiceTemp | Add-Member -Name ServiceName -Value "AOS50`$$($InstanceName)" -MemberType NoteProperty
+                        $ServiceTemp | Add-Member -Name ServiceName -Value "AOS50`$$(($AOS.InstanceName).Split('@')[0])" -MemberType NoteProperty
                         $ServiceTemp | Add-Member -Name Run -Value '1' -MemberType NoteProperty
                     }
                     '6' {
                         $ServiceTemp | Add-Member -Name AOSName -Value ($AOS.InstanceName).Split('@')[1] -MemberType NoteProperty
                         $ServiceTemp | Add-Member -Name InstanceName -Value ($AOS.InstanceName).Split('@')[0] -MemberType NoteProperty
-                        $ServiceTemp | Add-Member -Name ServiceName -Value "AOS60`$$($InstanceName)" -MemberType NoteProperty
+                        $ServiceTemp | Add-Member -Name ServiceName -Value "AOS60`$$(($AOS.InstanceName).Split('@')[0])" -MemberType NoteProperty
                         $ServiceTemp | Add-Member -Name Run -Value '1' -MemberType NoteProperty
                     }
                     '7' {
@@ -1806,7 +1838,6 @@ param(
 			    Write-Host 'Done.' -Fore Yellow
 		    }
 		    catch [Exception]{
-			    #$Script:WarningMsg = "Nothing to Stop."
                 Write-Host "Couldn't Stop - Service is " -NoNewline -Fore Yellow
                 Write-Host $(Get-Service -Name $($Srv.ServiceName) -ComputerName $($Srv.AOSName) | Select-Object Status -ExpandProperty Status) -Fore Yellow
 		    }
@@ -1824,7 +1855,6 @@ param(
 				Write-Host 'Done.' -Fore Yellow
 		    }
 		    catch [Exception]{
-			    #$Script:WarningMsg = "Nothing to Start."
                 Write-Host "Couldn't Start - Service is " -NoNewline -Fore Yellow
                 Write-Host $(Get-Service -Name $($Srv.ServiceName) -ComputerName $($Srv.AOSName) | Select-Object Status -ExpandProperty Status) -Fore Yellow
 		    }
@@ -1863,7 +1893,7 @@ param(
 		    try {
 				$i++
 				Write-Host "$i. Server $($Srv.AOSName) is " -Fore Yellow -NoNewline
-				Write-Host $(Get-Service -Name $($Srv.ServiceName) -ComputerName $($Srv.AOSName) | Select-Object Status -ExpandProperty Status) -Fore Yellow
+				Write-Host $(Get-WmiObject -Class Win32_Service -ComputerName $($Srv.AOSName) -ea 0 | Where-Object {$_.Name -like $($Srv.ServiceName)} | Select-Object State -ExpandProperty State) -Fore Yellow
 		    }
 		    catch [Exception]{
 			    $Script:WarningMsg = "Nothing to Check."
@@ -1873,25 +1903,6 @@ param(
 		    }
         }
     }
-    <#
-    if (($AOSRFRCnt -eq 0) -and ($AOSCnt -eq 0)) {
-	    Write-Host ''
-	    $ReadSrvs = Read-Host "Reload Servers (9 > 5) or Type AOS Server(s) [comma-separated]"
-	    if (!($ReadSrvs)) {
-		    $Script:WarningMsg = 'Invalid Option. Retry.'
-		    Get-Menu
-	    }
-	    foreach ($Srv in $ReadSrvs.Split(',').Trim() | Select-Object -Unique) {
-		    if (Test-Connection $Srv -Count 1 -Quiet) {
-			    $AOSServers += $Srv.ToUpper()
-		    }
-		    else {
-			    Write-Host ''
-			    Write-Warning "$($Srv.ToUpper()) Server is unreachable."
-		    }
-	    }
-    }
-    #>
 }
 
 function Set-NewAXGuid
