@@ -483,24 +483,24 @@ function Import-Environment
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
 	#
-	$SqlQuery = "SELECT MACHINENAME FROM AXRefresh_EnvironmentsExt WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT MACHINENAME FROM AXRefresh_EnvironmentsExt WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
     $Script:Environment.MachineName = $($SqlCommand.ExecuteScalar())
 	#
-	$SqlQuery = "SELECT DBSERVER FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT DBSERVER FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.keyDbServer = $SqlCommand.ExecuteScalar()
 	#
-	$SqlQuery = "SELECT DBNAME FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT DBNAME FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.keyDBName = $SqlCommand.ExecuteScalar()
     #
-	$SqlQuery = "SELECT DBUSER FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT DBUSER FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.keyDBUser = $SqlCommand.ExecuteScalar()
     #
 	Test-SQLSettings $Script:Environment.keyDbServer $Script:Environment.keyDBName
-	$SqlQuery = "SELECT EMAILPROFILE FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT EMAILPROFILE FROM AXTools_Environments WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$Script:Environment.EmailProfile = $SqlCommand.ExecuteScalar()
 	$SqlConn.Close()
@@ -620,7 +620,7 @@ function Get-EnvironmentServers
 				$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 				$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 				$SqlConn.Open()
-				$SqlQuery = "UPDATE [AXTools_Servers] SET ACTIVE = '$($_.Active)', STATUS = '$(if($_.ServiceStatus -match 'Running|Ok'){'1'} else {'0'})'
+				$SqlQuery = “UPDATE [AXTools_Servers] SET ACTIVE = '$($_.Active)', STATUS = '$(if($_.ServiceStatus -match 'Running|Ok'){'1'} else {'0'})'
                                 WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERNAME = '$($_.ServerName)' AND AOSID = '$($_.AOSID)'"
 				$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 				$SqlCommand.ExecuteNonQuery() | Out-Null
@@ -664,7 +664,7 @@ function New-Environment
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
-	$SqlQuery = "SELECT ENVIRONMENT FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND DELETED = 0"
+	$SqlQuery = “SELECT ENVIRONMENT FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND DELETED = 0"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$EnvCnt = $SqlCommand.ExecuteScalar()
 	$SqlConn.Close() | Out-Null
@@ -791,12 +791,12 @@ function Get-AOSConfiguration
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 		$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 		$SqlConn.Open()
-		$SqlQuery = "INSERT INTO [AXTools_Environments] (ENVIRONMENT, DESCRIPTION, DBSERVER, DBNAME)
+		$SqlQuery = “INSERT INTO [AXTools_Environments] (ENVIRONMENT, DESCRIPTION, DBSERVER, DBNAME)
                         VALUES('$($Script:Environment.Name)','$($Script:Environment.Name)','$($Script:Environment.keyDbServer)','$($Script:Environment.keyDBName)')"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SqlCommand.ExecuteNonQuery() | Out-Null
         #
-		$SqlQuery = "INSERT INTO [AXRefresh_EnvironmentsExt] (ENVIRONMENT, MACHINENAME)
+		$SqlQuery = “INSERT INTO [AXRefresh_EnvironmentsExt] (ENVIRONMENT, MACHINENAME)
                         VALUES('$($Script:Environment.Name)','$($Script:Environment.MachineName)')"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SqlCommand.ExecuteNonQuery() | Out-Null
@@ -970,22 +970,22 @@ function Get-RunningServers
 				    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 				    $SqlConn.Open()
 				    if ($Script:Environment.HasServers) {
-					    $SqlQuery = "DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERTYPE = 'AOS' AND CREATEDDATETIME <= '$DateTime'"
+					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERTYPE = 'AOS' AND CREATEDDATETIME <= '$DateTime'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
                     $AOSServers | Where-Object { $_.Active -eq '1' } | ForEach-Object {
-					    $SqlQuery = "INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
+					    $SqlQuery = “INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
                                         VALUES('$($Script:Environment.Name)','$($_.Active)','$($_.ServerName)','AOS','$($_.ServerIp)','$($_.Domain)','$($_.FQDN)','$($_.AOSID)','$("$($_.INSTANCE_NAME)`@$($_.AOSID.Substring(0,$_.AOSID.Length-5))")','$($_.VERSION)','$(if($_.ServiceStatus -like 'Running'){'1'} else {'0'})')"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
                     if ($AOSServers | Where {$_.ServiceStatus -like 'Running'} | Select -First 1) {
-                        $SqlQuery = "UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.ServiceStatus -like 'Running' -and $_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+                        $SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.ServiceStatus -like 'Running' -and $_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
                         $Script:Environment.MachineName = ($AOSServers | Where {$_.ServiceStatus -like 'Running' -and $_.Active -eq '1'} | Select -First 1).ServerName
                     }
                     else {
-                        $SqlQuery = "UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+                        $SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$(($AOSServers | Where {$_.Active -eq '1'} | Select -First 1).ServerName)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
                         $Script:Environment.MachineName = ($AOSServers | Where {$_.Active -eq '1'} | Select -First 1).ServerName
                     }
 					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
@@ -1109,17 +1109,17 @@ function Get-RunningApps
 				    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 				    $SqlConn.Open()
 				    if ($Script:Environment.HasServers) {
-					    $SqlQuery = "DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME <= '$DateTime'"
+					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME <= '$DateTime'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
                     $AOSServers | Where-Object { $_.Active -eq '1' } | ForEach-Object {
-					    $SqlQuery = "INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
+					    $SqlQuery = “INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
                                         VALUES('$($Script:Environment.Name)','$($_.Active)','$($_.ServerName)','AOS','$($_.ServerIp)','$($_.Domain)','$($_.FQDN)','$($_.AOSID)','$("$($_.INSTANCE_NAME)`@$($_.AOSID)")','$($_.VERSION)','$(if($_.ServiceStatus -like 'Ok'){'1'} else {'0'})')"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
-					$SqlQuery = "UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSServers.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+					$SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSServers.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
 					$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					$SqlCommand.ExecuteNonQuery() | Out-Null
 				    $SqlConn.Close()
@@ -1189,17 +1189,17 @@ function Get-ServerOneBox
 			    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 			    $SqlConn.Open()
 			    if ($Script:Environment.HasServers) {
-				    $SqlQuery = "DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERTYPE = 'AOS' AND CREATEDDATETIME <= '$DateTime'"
+				    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND SERVERTYPE = 'AOS' AND CREATEDDATETIME <= '$DateTime'"
 				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 				    $SqlCommand.ExecuteNonQuery() | Out-Null
 			    }
                 $AOSTemp | Where-Object { $_.Active -eq '1' } | ForEach-Object {
-				    $SqlQuery = "INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
+				    $SqlQuery = “INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
                                     VALUES('$($Script:Environment.Name)','$($_.Active)','$($_.ServerName)','AOS','$($_.ServerIp)','$($_.Domain)','$($_.FQDN)','$($_.AOSID)','$($_.Instance_Name)','$($_.VERSION)','$(if($_.ServiceStatus -like 'Ok'){'1'} else {'0'})')"
 				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 				    $SqlCommand.ExecuteNonQuery() | Out-Null
 			    }
-			    $SqlQuery = "UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSTemp.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
+			    $SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [MACHINENAME] = '$($AOSTemp.ServerName | Select -First 1)' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'"
 			    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 			    $SqlCommand.ExecuteNonQuery() | Out-Null
 			    $SqlConn.Close()
@@ -1245,7 +1245,7 @@ function Get-ServiceFabricNodes
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
     $Nodes | ForEach-Object {
-		$SqlQuery = "INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
+		$SqlQuery = “INSERT INTO [AXTools_Servers] (ENVIRONMENT,ACTIVE,SERVERNAME,SERVERTYPE,IP,DOMAIN,FQDN,AOSID,INSTANCENAME,VERSION,STATUS)
                         VALUES('$($Script:Environment.Name)','$($_.Active)','$($_.ServerName)','$($_.Type)','$($_.ServerIp)','$($_.Domain)','$($_.FQDN)','$($_.AOSID)','$($_.INSTANCE_NAME)','$($_.VERSION)','$(if($_.ServerStatus -like 'Ok'){'1'} else {'0'})')"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SqlCommand.ExecuteNonQuery() | Out-Null
@@ -1283,7 +1283,7 @@ function Get-ServiceFabricSQLUser
             $SqlCommand = New-Object System.Data.SqlClient.SqlCommand($SqlQuery,$(Get-ConnectionString))
             $SqlCommand.ExecuteNonQuery() | Out-Null
         }
-	    $SqlQuery = "UPDATE [AXTools_Environments] SET [DBUSER] = '$Id' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'" 
+	    $SqlQuery = “UPDATE [AXTools_Environments] SET [DBUSER] = '$Id' WHERE [ENVIRONMENT] = '$($Script:Environment.Name)'" 
 	    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$(Get-ConnectionString))
 	    $SqlCommand.ExecuteNonQuery() #| Out-Null
     }
@@ -1560,7 +1560,7 @@ param(
 	    $SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	    $SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	    $SqlConn.Open()
-	    $SqlQuery = "INSERT INTO [AXRefresh_EnvironmentStore] (ENVIRONMENT,SOURCEDBSERVER,SOURCEDBNAME,SOURCETABLE,TARGETTABLE,SQLSCRIPT,COUNT,CREATEDDATETIME,SQLCOMPRESSION,DELETED,DELETEDDATETIME)
+	    $SqlQuery = “INSERT INTO [AXRefresh_EnvironmentStore] (ENVIRONMENT,SOURCEDBSERVER,SOURCEDBNAME,SOURCETABLE,TARGETTABLE,SQLSCRIPT,COUNT,CREATEDDATETIME,SQLCOMPRESSION,DELETED,DELETEDDATETIME)
                      VALUES('$($Script:Environment.Name)','$SrcServer','$SrcDatabase','$Table','$DestTable','$InsertScript','$($TableSet.RowCount)','$DateTime','$Script:SqlCompression', 0, 0)"
 	    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	    $SqlCommand.ExecuteNonQuery() | Out-Null
@@ -1583,7 +1583,7 @@ param(
 				    Write-Host ''
 				    Write-Host "Deleting $($Script:Environment.Name) from Env. Store." -Fore Green
 				    foreach ($Table in $EnvTables.Tables[0]) {
-					    $SqlQuery = "DROP TABLE [$($Table.TARGETTABLE)]"
+					    $SqlQuery = “DROP TABLE [$($Table.TARGETTABLE)]"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    }
@@ -1591,24 +1591,24 @@ param(
 				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 				    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    #
-				    $SqlQuery = "DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME < '$DateTime'"
+				    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)' AND CREATEDDATETIME < '$DateTime'"
 				    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 				    $SqlCommand.ExecuteNonQuery() | Out-Null
 				    #
 				    if ($DeleteStore) {
-					    $SqlQuery = "DELETE FROM [AXTools_Environments] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlQuery = “DELETE FROM [AXTools_Environments] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
                         #
-					    $SqlQuery = "DELETE FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlQuery = “DELETE FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 					    #
-					    $SqlQuery = "DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlQuery = “DELETE FROM [AXTools_Servers] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 					    #
-					    $SqlQuery = "DELETE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+					    $SqlQuery = “DELETE FROM [AXRefresh_EnvironmentStore] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 					    $SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 					    $SqlCommand.ExecuteNonQuery() | Out-Null
 					    Clear-EnvironmentData
@@ -2040,7 +2040,7 @@ param(
 				catch {
 					$Script:WarningMsg = $_.Exception.Message
 				}
-				if ($SvcStatus.Status –eq "Running") {
+				if ($SvcStatus.Status –eq "Running”) {
 					Write-Host '- Running' -Fore Green
 				}
 				else {
@@ -2202,7 +2202,7 @@ function Start-AsJob
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
-	$SqlQuery = "SELECT TOP 1 CREATEDDATETIME FROM AXRefresh_EnvironmentStore WHERE ENVIRONMENT = '$($Script:Environment.Name)' ORDER BY CREATEDDATETIME DESC"
+	$SqlQuery = “SELECT TOP 1 CREATEDDATETIME FROM AXRefresh_EnvironmentStore WHERE ENVIRONMENT = '$($Script:Environment.Name)' ORDER BY CREATEDDATETIME DESC"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$StoreDate = $SqlCommand.ExecuteScalar()
 	$SqlConn.Close()
@@ -2215,7 +2215,7 @@ function Start-AsJob
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 		$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 		$SqlConn.Open()
-		$SqlQuery = "SELECT [BKPFOLDER] FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+		$SqlQuery = “SELECT [BKPFOLDER] FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SQLBackup = $SqlCommand.ExecuteScalar()
 		$SqlConn.Close()
@@ -2335,7 +2335,7 @@ function Set-SQLBKPFolder
 	$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 	$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 	$SqlConn.Open()
-	$SqlQuery = "SELECT [BKPFOLDER] FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+	$SqlQuery = “SELECT [BKPFOLDER] FROM [AXRefresh_EnvironmentsExt] WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 	$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 	$SQLBackup = $SqlCommand.ExecuteScalar()
 	$SqlConn.Close()
@@ -2354,7 +2354,7 @@ function Set-SQLBKPFolder
 		$SqlConn = New-Object System.Data.SqlClient.SqlConnection
 		$SqlConn.ConnectionString = "Server=$($Script:Settings.DBServer);Database=$($Script:Settings.DBName);Integrated Security=True"
 		$SqlConn.Open()
-		$SqlQuery = "UPDATE [AXRefresh_EnvironmentsExt] SET [BKPFOLDER] = '$NewBkpFolder' WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
+		$SqlQuery = “UPDATE [AXRefresh_EnvironmentsExt] SET [BKPFOLDER] = '$NewBkpFolder' WHERE ENVIRONMENT = '$($Script:Environment.Name)'"
 		$SqlCommand = New-Object System.Data.SqlClient.SQLCommand ($SqlQuery,$SqlConn)
 		$SQLBackup = $SqlCommand.ExecuteScalar()
 		$SqlConn.Close()
@@ -2409,7 +2409,7 @@ function Start-Refresh
 	$DateTime = Get-Date
 	Write-Log ("Refresh Script has started - $ScriptPath")
 	Write-Log ("User: $env:userdomain\$env:username")
-	Write-Log ("Active Connections: $((Get-WmiObject Win32_LoggedOnUser | Select Antecedent -Unique | Where { $_.Antecedent.ToString().Split('"')[1] -like $env:userdomain } | % { "{0}\{1}" -f $_.Antecedent.ToString().Split('"')[1], $_.Antecedent.ToString().Split('"')[3] }) -join ', ')")
+	Write-Log ("Active Connections: $((Get-WmiObject Win32_LoggedOnUser | Select Antecedent -Unique | Where { $_.Antecedent.ToString().Split('"')[1] -like $env:userdomain } | % { “{0}\{1}” -f $_.Antecedent.ToString().Split('"')[1], $_.Antecedent.ToString().Split('"')[3] }) -join ', ')")
 	if ($EnvironName)
 	{
         $Script:Environment.Name = $EnvironName
