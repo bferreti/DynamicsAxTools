@@ -2906,7 +2906,7 @@ $WpflblControl2.Text = $((Get-Date).ToShortTimeString())
 #===========================================================================
 # Shows the form
 #===========================================================================
-<#
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {   
     $Arguments = "& '" + $MyInvocation.MyCommand.Definition + "'"
@@ -2924,6 +2924,6 @@ else {
 [System.GC]::Collect()
 Stop-Process $Pid
 #>
-$Form.ShowDialog() | Out-Null
+#$Form.ShowDialog() | Out-Null
 #$WpftxtEnvCPU | Get-member Add* -MemberType Method -force
 #<TextBlock Text="{Binding ElementName=comboBox1, Path=SelectedItem}"/>
